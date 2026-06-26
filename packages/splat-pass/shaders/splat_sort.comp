@@ -1,0 +1,54 @@
+#version 310 es
+precision highp float;
+
+// Bitonic sort over per-eye depth keys.
+//
+// One dispatch == one bitonic stage. Driver loop in VROSplatRenderPass
+// runs log2(N)*(log2(N)+1)/2 dispatches. CPU passes the (k, j) pair as
+// uniforms; each invocation performs one compare-swap on a sorted
+// neighbour according to the bitonic schedule.
+//
+// Keys are uint32 with depth packed into the high 24 bits and 8 bits of
+// reserved tag. We sort indices, not splats — the raster pass reads
+// `sortedIndex[]` and indexes into `decodedSplats[]`. Stride-friendly
+// for both Adreno (32) and Mali (64); the workgroup size is patched at
+// compile-time by VROSplatRenderPass via #define SPLAT_SORT_LOCAL_SIZE.
+
+#ifndef SPLAT_SORT_LOCAL_SIZE
+#define SPLAT_SORT_LOCAL_SIZE 64
+#endif
+
+layout(local_size_x = SPLAT_SORT_LOCAL_SIZE) in;
+
+layout(std430, binding = 0) readonly buffer DepthKeys {
+    uint depthKey[];
+};
+
+layout(std430, binding = 1) buffer SortedIndices {
+    uint sortedIndex[];
+};
+
+uniform uint u_count;        // splat count, must be a power-of-two
+uniform uint u_stageK;       // outer-loop k (block size)
+uniform uint u_stageJ;       // inner-loop j (compare distance)
+
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    if (i >= u_count) return;
+
+    uint ixj = i ^ u_stageJ;
+    if (ixj <= i) return;        // each pair handled once
+
+    uint ai = sortedIndex[i];
+    uint aj = sortedIndex[ixj];
+    uint ki = depthKey[ai];
+    uint kj = depthKey[aj];
+
+    // Back-to-front: greater depth first (alpha-over correctness).
+    bool ascending = (i & u_stageK) == 0u;
+    bool swap = ascending ? (ki < kj) : (ki > kj);
+    if (swap) {
+        sortedIndex[i]   = aj;
+        sortedIndex[ixj] = ai;
+    }
+}

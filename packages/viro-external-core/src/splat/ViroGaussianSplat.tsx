@@ -13,6 +13,26 @@ import {
   isNativeSplatRendererAvailable,
 } from "./NativeSplatRenderer";
 
+// Optional splat-pass path. Imported eagerly because the dep is workspace-local;
+// resolves to null at runtime if the consumer omitted the package from their build.
+// ponytail: try/catch swallow handles the "not installed" case, not a hot path.
+type SplatPassRegistrar = {
+  registerSplatPass: (opts: {
+    source: { uri: string; format: string };
+    quality?: { maxSplats?: number };
+    priority?: number;
+    getTimestamp?: () => number;
+  }) => Promise<{ id: string; release: () => void; splatCount: () => number }>;
+  isNativeSplatPassAvailable: () => boolean;
+};
+let SPLAT_PASS: SplatPassRegistrar | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  SPLAT_PASS = require("@viro-external/splat-pass") as SplatPassRegistrar;
+} catch {
+  SPLAT_PASS = null;
+}
+
 export type SplatSourceFormat = "spz" | "splat" | "ply" | "ksplat";
 
 export interface ViroGaussianSplatSource {
@@ -144,6 +164,41 @@ export function ViroGaussianSplat(props: ViroGaussianSplatProps): React.ReactEle
     // when the renderer is wired in. Until then, this is a no-op rather than a fake "fully loaded".
   }, [onError, onLoadStart, profile.id, profile.tempAllowed, timestamp]);
 
+  // Splat-pass lifecycle: register a native VROSplatRenderPass on mount; release on unmount.
+  // Only runs when @viro-external/splat-pass is wired in — legacy `ViroSplatRenderer` builds
+  // skip this branch entirely.
+  const tsRef = useRef(timestamp ?? 0);
+  tsRef.current = timestamp ?? 0;
+  useEffect(() => {
+    const pass = SPLAT_PASS;
+    if (!pass || !pass.isNativeSplatPassAvailable()) return;
+    let cancelled = false;
+    let handle: { release: () => void } | null = null;
+    pass
+      .registerSplatPass({
+        source: { uri: source.uri, format: source.format },
+        quality: { maxSplats: effectiveMaxSplats },
+        getTimestamp: timestamp !== undefined ? () => tsRef.current : undefined,
+      })
+      .then((h) => {
+        if (cancelled) {
+          h.release();
+          return;
+        }
+        handle = h;
+      })
+      .catch((err) => {
+        if (!cancelled) onError?.(err instanceof Error ? err : new Error(String(err)));
+      });
+    return () => {
+      cancelled = true;
+      handle?.release();
+      handle = null;
+    };
+    // timestamp tracked via ref — re-registering on every frame would be wrong.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source.uri, source.format, effectiveMaxSplats]);
+
   useEffect(() => {
     createPlaceholderMaterial(materialName);
   }, [materialName]);
@@ -170,6 +225,12 @@ export function ViroGaussianSplat(props: ViroGaussianSplatProps): React.ReactEle
     return <></>;
   }
 
+  // Pure splat-pass path: the native render pass writes directly into
+  // the Choreographer's HDR target, so no placeholder ViroQuad is
+  // needed. MovableNode still wraps for hit-test / drag affordances.
+  const usingSplatPass =
+    SPLAT_PASS != null && SPLAT_PASS.isNativeSplatPassAvailable();
+
   return (
     <MovableNode
       movable={mode === "tabletop" && movable}
@@ -183,12 +244,14 @@ export function ViroGaussianSplat(props: ViroGaussianSplatProps): React.ReactEle
       position={position}
       scale={effectiveScale}
     >
-      <ViroQuad
-        rotation={rotation}
-        width={1}
-        height={1}
-        materials={[materialName]}
-      />
+      {usingSplatPass ? null : (
+        <ViroQuad
+          rotation={rotation}
+          width={1}
+          height={1}
+          materials={[materialName]}
+        />
+      )}
     </MovableNode>
   );
 }

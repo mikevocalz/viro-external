@@ -15,70 +15,102 @@ review can sign off slice by slice.
 - [x] Build `viroreact-release.aar` against the bump + hook.
 - [x] Refresh `mikevocalz/viro` `android/viro_renderer/viro_renderer-release.aar`.
 
-## Milestone 1 — TypeScript surface
+## Milestone 1 — TypeScript surface (LANDED 2026-06-26)
 
-- [ ] `src/store.ts` — Zustand store for splat-pass state (registration,
-      device profile, splat counts per registered pass).
-- [ ] `src/index.ts` — `registerSplatPass(opts) => SplatPassHandle` and
-      `unregisterSplatPass(handle)`. Pure native-bridge registrar; no
-      React hooks. Caller composes into their own component.
-- [ ] `src/types.ts` — SplatPassOpts (source, timestamp accessor, max
-      splat count, quality knob), SplatPassHandle, SplatPassMetrics.
-- [ ] `src/NativeSplatPass.ts` — `NativeModules.ViroSplatPass` capability
-      probe, mirrors `viro-external-core/src/splat/NativeSplatRenderer.ts`.
-- [ ] `npx tsc --noEmit` passes.
+- [x] `src/store.ts` — Zustand store for splat-pass state.
+- [x] `src/index.ts` — `registerSplatPass` / `unregisterSplatPass`.
+- [x] `src/types.ts` — SplatPassOpts, SplatPassHandle, SplatPassMetrics.
+- [x] `src/NativeSplatPass.ts` — `NativeModules.ViroSplatPass` probe.
+- [x] `npx tsc --noEmit` passes.
 
-## Milestone 2 — Shaders
+## Milestone 2 — Shaders (LANDED 2026-06-26)
 
-- [ ] `shaders/splat.vert` — projects each splat to screen, computes 2D
-      covariance from the per-eye view matrix, writes depth-key into the
-      sort SSBO, emits the per-splat quad.
-- [ ] `shaders/splat.frag` — evaluates the 2D Gaussian alpha, mixes the
-      per-splat colour through SH if SH coefficients present in the
-      source, premultiplied output for blend.
-- [ ] `shaders/splat_sort.comp` — GPU bitonic sort over the per-eye
-      depth-key SSBO. Workgroup size targets Adreno (32) and Mali (64)
-      gracefully; pick at compile via specialization or branch on
-      `gl_NumWorkGroups`.
-- [ ] `shaders/splat_decode.comp` — temporal evaluation: reads the SPZ
-      base block + 4D delta blocks, writes the per-splat live SSBO for
-      the current `timestamp`. Static 3D is the degenerate path (memcpy).
+- [x] `shaders/splat.vert` — EWA projection + 2D Gaussian construction.
+- [x] `shaders/splat.frag` — Gaussian alpha + premultiplied output.
+- [x] `shaders/splat_sort.comp` — bitonic sort over depth keys
+      (workgroup size patched at compile via `SPLAT_SORT_LOCAL_SIZE`).
+- [x] `shaders/splat_decode.comp` — SPZ temporal evaluation + degenerate
+      static-3D path.
+- [x] `native/include/ShaderSources.h` — GLSL embedded as C++ raw
+      string literals for VROSplatRenderPass to compile.
 
 ## Milestone 3 — Native pass
 
-- [ ] `native/VROSplatRenderPass.{h,cpp}` — subclass `VRORenderPass`.
-      Owns three SSBOs (decoded splats, sort keys, indirect draw args),
-      one program per shader, and a `GLStateScope` instance.
-- [ ] `native/GLStateScope.{h,cpp}` — RAII save/restore for blend,
-      depth mask, depth func, active VAO/VBO, current program, bound
-      FBO. Verified against `VRODriverOpenGL.h:80-96` frame-boundary
-      contract.
-- [ ] `native/SplatBuffers.{h,cpp}` — triple-buffered SSBO ring for the
-      per-frame splat sets; resize-on-grow with one-shot warning if a
-      consumer requests more splats than `maxSplats`.
-- [ ] `native/SplatSorter.{h,cpp}` — wraps the sort dispatch + key
-      packing (depth fp16 hi-bits, splat-id lo-bits — standard 2-pass
-      bitonic key).
-- [ ] `native/ViroSplatPassModule.{h,cpp}` — JNI bridge surface for the
-      RN module. Hands a `std::shared_ptr<VROSplatRenderPass>` to the
-      active `VROChoreographer` via `setCustomPostOpaquePass`.
+- [x] `native/{include,src}/VROSplatRenderPass.{h,cpp}` — subclass
+      `VRORenderPass`. Three SSBOs, one program per shader, GLStateScope.
+- [x] `native/{include,src}/GLStateScope.{h,cpp}` — RAII save/restore.
+- [x] `native/{include,src}/SplatBuffers.{h,cpp}` — triple-buffered SSBO
+      ring with one-shot maxSplats warning.
+- [x] `native/{include,src}/ViroSplatPassRegistry.{h,cpp}` — process
+      singleton mapping id → shared_ptr<VROSplatRenderPass>.
+- [x] `native/src/ViroSplatPassJNI.cpp` — JNI symbols for
+      `com.viromedia.bridge.module.ViroSplatPassModule`.
+      Unwraps virocore PersistentRef<VROChoreographer> from jlong,
+      forwards into the registry.
+- [x] `native/CMakeLists.txt` — produces `libsplat_pass.so`. Requires
+      `-DVIROCORE_INCLUDE_DIR` + `-DVIROCORE_ANDROID_INCLUDE_DIR` from
+      the host gradle. NO virocore vendoring.
+- [x] **virocore** `Renderer.java::getChoreographerRef()` +
+      `releaseChoreographerRef(long)` + JNI impl
+      `nativeGetChoreographerRef` / `nativeReleaseChoreographerRef` in
+      `VRORenderer_JNI.cpp`. Returns a PersistentRef<VROChoreographer>
+      handle. **Requires virocore rebuild.**
+- [x] **viro_bridge** `ViroSplatPassModule.java` — registers
+      `NativeModules.ViroSplatPass`, resolves scene-nav view tag →
+      `VRT3DSceneNavigator.getViroView().getRenderer().getChoreographerRef()`,
+      forwards to `libsplat_pass.so`.
+- [x] **viro_bridge** `VRT3DSceneNavigator.getViroView()` accessor +
+      `ReactViroPackage` registration of the new module.
 
-## Milestone 4 — SPZ decoder
+> Skipped: `SplatSorter` wrapper class. Sort dispatch lives inline in
+> VROSplatRenderPass.cpp::runSortPass(). Pull out when a second consumer
+> needs the sort independently.
 
-- [ ] CPU SPZ binary reader (header + base block + 4D delta blocks).
-- [ ] Upload base + deltas to GPU SSBO at registration time.
-- [ ] Per-frame compute decode dispatch in `splat_decode.comp`.
+## Milestone 4 — SPZ decoder (PARTIAL 2026-06-26)
+
+- [x] `native/{include,src}/SpzReader.{h,cpp}` — header parse + magic
+      validation. Self-check passes (too-small, bad magic, good v=2 +
+      antialiased flag).
+- [x] **Quantized body decode**: i24 positions (with fractionalBits
+      divisor), i8 quaternion with positive-w reconstruction +
+      normalize, u8 alpha + RGB + log-scale. Output is direct
+      raster-shader `Splat` float32 (64 bytes/splat). Self-check
+      validates synthetic round-trip on a 1-splat body.
+- [x] SH tail length validation — files with shDegree > 0 parse
+      cleanly. Decode of SH coefficients deferred until raster shader
+      gains view-dependent shading.
+- [x] **GPU upload on attach**: JNI nativeAttach takes `byte[] spzBytes`,
+      decodes via SpzReader, calls `pass->stagePendingSource(...)`. The
+      pass uploads to the decoded-splats SSBO on the next render frame.
+- [x] **Java-side fetcher**: file://, content://, http(s)://, bare paths
+      — all flow through `ViroSplatPassModule.fetchSourceBytes()` on a
+      worker thread before nativeAttach runs.
+- [ ] 4D delta block reader. Same shape but stride × frameCount; needs
+      a 4D fixture to test against.
+- [ ] Per-frame compute decode dispatch in `splat_decode.comp` (only
+      relevant for 4D — static 3D bypasses decode since SpzReader
+      emits the raster format directly).
 - [ ] Fuzz the parser against fixtures from a published 4D dataset.
 
-## Milestone 5 — Wire to existing `@viro-external/core/splat`
+## Milestone 5 — Wire to existing `@viro-external/core/splat` (PARTIAL 2026-06-26)
 
-- [ ] `ViroGaussianSplat.tsx` calls `registerSplatPass` on mount and
-      `unregisterSplatPass` on unmount.
-- [ ] Capability probe in `NativeSplatRenderer.ts` becomes the union of
+- [x] `ViroGaussianSplat.tsx` calls `registerSplatPass` on mount and
+      `release()` on unmount via try/catch require of
+      `@viro-external/splat-pass`. Honest fall-through when the package
+      isn't installed (legacy path stays the only option).
+- [x] Capability probe in `NativeSplatRenderer.ts` is now the union of
       `NativeModules.ViroSplatRenderer` (legacy) and
-      `NativeModules.ViroSplatPass` (this work) for backwards-compat.
-- [ ] Honest error surface when the native pass is absent — no
-      particle-field fallback.
+      `NativeModules.ViroSplatPass` (this work).
+- [x] Honest error surface when neither path is present — no
+      particle-field fallback. (Unchanged from baseline.)
+- [x] Pure splat-pass path: ViroGaussianSplat drops the placeholder
+      ViroQuad when `isNativeSplatPassAvailable()`. MovableNode wrapper
+      stays for hit-test / drag affordances.
+- [x] Device profile detection: `VROSplatRenderPass::lazyInit` reads
+      `glGetString(GL_RENDERER)` once, publishes `quest3` / `quest2` /
+      `mali` / `powervr` / `unknown` to the JNI deviceProfile() call.
+- [x] `INTEGRATION.md` — host-app wiring docs (gradle, CMake -D vars,
+      logcat tags, supported URI schemes).
 
 ## Milestone 6 — On-device validation
 

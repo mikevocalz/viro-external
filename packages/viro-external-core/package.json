@@ -9,14 +9,19 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@reactvision/react-viro": "2.56.0",
+    "@reactvision/react-viro": "2.57.0",
+    "@viro-external/splat-pass": "workspace:*",
     "react": "*",
     "react-native": "0.86.0",
     "react-native-viro-mux": "workspace:*"
   },
+  "peerDependenciesMeta": {
+    "@viro-external/splat-pass": { "optional": true }
+  },
   "devDependencies": {
-    "@reactvision/react-viro": "2.56.0",
+    "@reactvision/react-viro": "2.57.0",
     "@types/react": "*",
+    "@viro-external/splat-pass": "workspace:*",
     "react": "*",
     "react-native": "0.86.0",
     "react-native-viro-mux": "workspace:*",
