@@ -1,0 +1,37 @@
+{
+  "name": "@viro-external/splat-pass",
+  "version": "0.0.1",
+  "description": "Native 3DGS render-pass stage for ViroCore. GPU-decode + sort + raster, inserted in VROChoreographer after opaque geometry, depth-test on, depth-write off.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "files": [
+    "src",
+    "config",
+    "doc",
+    "shaders",
+    "native",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "TASKS.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@reactvision/react-viro": "2.57.0",
+    "react": "*",
+    "react-native": "0.86.0",
+    "react-native-viro-mux": "workspace:*",
+    "zustand": "^4 || ^5"
+  },
+  "devDependencies": {
+    "@reactvision/react-viro": "2.57.0",
+    "@types/react": "*",
+    "react": "*",
+    "react-native": "0.86.0",
+    "react-native-viro-mux": "workspace:*",
+    "typescript": "5.6.3",
+    "zustand": "^5.0.14"
+  },
+  "sideEffects": false
+}

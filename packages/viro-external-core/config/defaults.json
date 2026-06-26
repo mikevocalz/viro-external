@@ -1,0 +1,45 @@
+{
+  "cylinder": {
+    "radialSegments": 32,
+    "heightSegments": 1,
+    "thetaStart": 0,
+    "thetaLength": 6.283185307179586,
+    "openEnded": false,
+    "radiusTop": 0.5,
+    "radiusBottom": 0.5,
+    "height": 1
+  },
+  "slate": {
+    "widthMeters": 1.6,
+    "heightMeters": 0.9,
+    "fboResolution": { "width": 1024, "height": 576 },
+    "colorSpace": "srgb"
+  },
+  "gaussianSplat": {
+    "container": {
+      "magic": 877677910,
+      "version": 1
+    },
+    "sortCadence": "perFrame",
+    "sortAmortizationN": 4,
+    "renderResolutionScale": 1.0,
+    "shDegree": 2,
+    "lodDistanceBands": [1.5, 3.0, 6.0],
+    "progressiveChunkSplats": 65536,
+    "tabletop": {
+      "scaleMeters": 0.4
+    },
+    "fullScale": {
+      "scale": 1.0
+    },
+    "deviceProfiles": {
+      "quest2":       { "maxSplats": 350000,  "targetFps": 72, "tempAllowed": false },
+      "quest3":       { "maxSplats": 750000,  "targetFps": 90, "tempAllowed": true  },
+      "questPro":     { "maxSplats": 900000,  "targetFps": 90, "tempAllowed": true  },
+      "horizonOSGeneric": { "maxSplats": 500000, "targetFps": 72, "tempAllowed": false },
+      "arcore":       { "maxSplats": 180000,  "targetFps": 60, "tempAllowed": false },
+      "arkit":        { "maxSplats": 220000,  "targetFps": 60, "tempAllowed": false },
+      "unknown":      { "maxSplats": 150000,  "targetFps": 60, "tempAllowed": false }
+    }
+  }
+}

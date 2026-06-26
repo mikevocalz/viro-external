@@ -1,0 +1,57 @@
+{
+  "control": {
+    "hoverScale": 1.04,
+    "pressScale": 0.97,
+    "focusScale": 1.02,
+    "hoverDurationMs": 160,
+    "pressDurationMs": 80,
+    "focusDurationMs": 200,
+    "easing": "EaseOutCubic"
+  },
+  "button": {
+    "widthMeters": 0.18,
+    "heightMeters": 0.18,
+    "depthMeters": 0.02,
+    "contentResolution": 256,
+    "contentScaleRatio": 2,
+    "fontColor": "#ffffff"
+  },
+  "holographicButton": {
+    "tooltipText": null,
+    "renderingGroupId": 0
+  },
+  "stackPanel": {
+    "isVertical": false,
+    "margin": 0.02
+  },
+  "cylinderPanel": {
+    "radius": 1.0,
+    "margin": 0.04,
+    "columns": 6,
+    "rows": 1,
+    "orientation": "FACEORIGIN_ORIENTATION"
+  },
+  "holographicSlate": {
+    "titleBarHeightMeters": 0.05,
+    "titleBarMargin": 0.01,
+    "dimensions": { "width": 1.6, "height": 0.9 },
+    "renderingGroupId": 0
+  },
+  "zones": {
+    "primary":         { "position": [0, -0.10, -1.5], "yawDeg": 0,    "pitchDeg": 0 },
+    "peripheralLeft":  { "position": [-0.96, -0.10, -1.15], "yawDeg": 40, "pitchDeg": 0 },
+    "peripheralRight": { "position": [0.96, -0.10, -1.15], "yawDeg": -40, "pitchDeg": 0 },
+    "dock":            { "position": [0, -0.55, -1.0], "yawDeg": 0,   "pitchDeg": 20 },
+    "statusBar":       { "position": [0, 0.55, -1.4], "yawDeg": 0,   "pitchDeg": -12 },
+    "nearLeft":        { "position": [-0.32, -0.32, -0.55], "yawDeg": 0, "pitchDeg": 0 },
+    "nearRight":       { "position": [0.32, -0.32, -0.55], "yawDeg": 0, "pitchDeg": 0 }
+  },
+  "comfort": {
+    "minDepthMeters": 0.5,
+    "primaryDepthRangeMeters": [1.0, 2.0],
+    "maxConeYawDeg": 30,
+    "maxConePitchDeg": 30,
+    "minParallelPanelZSeparationMeters": 0.3,
+    "minInteractiveSeparationMeters": 0.05
+  }
+}

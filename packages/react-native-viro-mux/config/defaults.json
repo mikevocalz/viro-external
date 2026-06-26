@@ -1,0 +1,26 @@
+{
+  "texture": {
+    "resolution": { "width": 2048, "height": 2048 },
+    "colorSpace": "srgb",
+    "mipmap": "auto",
+    "maxConcurrentExternalTextures": 8,
+    "flipY": false
+  },
+  "mux": {
+    "playback": {
+      "muted": false,
+      "loop": false,
+      "preferredPeakBitRate": 0,
+      "preload": "metadata"
+    }
+  },
+  "surface": {
+    "curvatureDefault": 0,
+    "widthMeters": 1.6,
+    "heightMeters": 0.9
+  },
+  "movability": {
+    "dragTypeDefault": "FixedDistance",
+    "fixedDistanceMaxDistanceMeters": 5
+  }
+}

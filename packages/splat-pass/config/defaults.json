@@ -1,0 +1,35 @@
+{
+  "maxSplatsDefault": 1500000,
+  "sortWorkgroupSizeAdreno": 32,
+  "sortWorkgroupSizeMali": 64,
+  "sortWorkgroupSizeFallback": 32,
+  "decodeWorkgroupSize": 64,
+  "ringBufferDepth": 3,
+  "depthKeyBits": 16,
+  "splatIdBits": 16,
+  "alphaThreshold": 0.0039,
+  "shCoefficientsPerSplat": 16,
+  "expectedSplatStrideBytes": 64,
+  "deviceProfiles": {
+    "pico4-ultra": {
+      "maxSplats": 1500000,
+      "sortWorkgroupSize": 32,
+      "expectedFps": 72
+    },
+    "quest3": {
+      "maxSplats": 2000000,
+      "sortWorkgroupSize": 32,
+      "expectedFps": 90
+    },
+    "quest3s": {
+      "maxSplats": 1200000,
+      "sortWorkgroupSize": 32,
+      "expectedFps": 90
+    },
+    "unknown": {
+      "maxSplats": 500000,
+      "sortWorkgroupSize": 32,
+      "expectedFps": 60
+    }
+  }
+}
