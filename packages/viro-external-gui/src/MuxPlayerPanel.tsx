@@ -159,9 +159,9 @@ function registerMuxPanelMaterials(): void {
     [M.buffered]: { diffuseColor: "#FF4C5266", lightingModel: "Constant" },
     // Progress — MRTK-blue family.
     [M.fill]: { diffuseColor: "#FF8896C8", lightingModel: "Constant" },
-    // Near-invisible click-to-seek strips (opacity-0 is hit-test-culled —
-    // same trick as decax9's orb proxy: near-black + node opacity 0.15).
-    [M.hitStrip]: { diffuseColor: "#FF000000", lightingModel: "Constant" },
+    // Click-to-seek strips: additive-black renders (stays hit-testable, not
+    // opacity-0-culled) but adds nothing → truly invisible, no faint box.
+    [M.hitStrip]: { diffuseColor: "#FF000000", lightingModel: "Constant", blendMode: "Add" },
     // Light drawer — thumbnails read against near-white, not dark chrome.
     [M.drawer]: { diffuseColor: "#F6EDEFF4", lightingModel: "Constant" },
     [M.row]: { diffuseColor: "#14202430", lightingModel: "Constant" },

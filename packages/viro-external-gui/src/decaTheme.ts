@@ -33,6 +33,10 @@ export function registerDecaTheme(): void {
     [DecaTheme.emberHot]: { diffuseColor: "#F0FF5060", lightingModel: "Constant", blendMode: "Add" },
     [DecaTheme.emberDim]: { diffuseColor: "#48FF3040", lightingModel: "Constant", blendMode: "Add" },
     [DecaTheme.rose]: { diffuseColor: "#D8FF7888", lightingModel: "Constant", blendMode: "Add" },
-    [DecaTheme.hit]: { diffuseColor: "#000000", lightingModel: "Constant" },
+    // Hit surface: black + additive blend = renders (so it stays hit-testable,
+    // not culled) but adds nothing to the framebuffer → truly invisible on any
+    // background. Kills the faint square box behind the round menu/panel shapes.
+    // (The rotation glitch was the 72 MP 360 texture, not this — safe to keep.)
+    [DecaTheme.hit]: { diffuseColor: "#000000", lightingModel: "Constant", blendMode: "Add" },
   });
 }

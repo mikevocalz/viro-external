@@ -109,6 +109,7 @@ function Plate(props: {
   buffers: PlateBuffers;
   materials: string[];
   position?: Vec3;
+  hittable?: boolean;
 }): React.ReactElement {
   return (
     <ViroGeometry
@@ -118,7 +119,9 @@ function Plate(props: {
       triangleIndices={props.buffers.triangleIndices}
       materials={props.materials}
       position={props.position}
-      ignoreEventHandling
+      // hittable → the visible rounded plate IS the hit surface, so there's no
+      // separate rectangular ViroBox behind it (that box was the faint square).
+      ignoreEventHandling={!props.hittable}
     />
   );
 }
@@ -165,22 +168,14 @@ function Petal(props: {
         <ViroNode
           animation={{ name: micro, run: true, loop: false }}
           onHover={focus}
+          // Fire on ClickDown (state 1) — instant, no down→up round-trip lag.
           onClickState={(state: number) => {
-            if (state === 1) setPressed(true);
+            if (state === 1) { setPressed(true); if (open) onSelect(item); }
             else if (state === 2) setPressed(false);
           }}
-          onClick={() => { if (open) onSelect(item); }}
         >
-          {/* Hit surface — thin box, HolographicButton pattern. */}
-          <ViroBox
-            position={[0, midR, -0.004]}
-            width={chord * 1.05}
-            height={depth * 1.1}
-            length={0.004}
-            materials={[RM.hit]}
-            opacity={0.15}
-          />
-          <Plate buffers={plate} materials={[hovered ? RM.plateHover : RM.plate]} position={[0, 0, 0.002]} />
+          {/* The rounded plate itself is the hit surface — no square box. */}
+          <Plate buffers={plate} materials={[hovered ? RM.plateHover : RM.plate]} position={[0, 0, 0.002]} hittable />
           <Plate
             buffers={edge}
             materials={[dragging || hovered ? RM.edgeHot : RM.edge]}
@@ -243,21 +238,13 @@ function Hub(props: {
       <ViroNode
         animation={{ name: micro, run: true, loop: false }}
         onHover={focus}
+        // Fire on ClickDown (state 1) — hub opens/closes the instant you press.
         onClickState={(state: number) => {
-          if (state === 1) setPressed(true);
+          if (state === 1) { setPressed(true); onToggle(); }
           else if (state === 2) setPressed(false);
         }}
-        onClick={onToggle}
       >
-        <ViroBox
-          position={[0, 0, -0.004]}
-          width={centerR * 2.4}
-          height={centerR * 2.4}
-          length={0.004}
-          materials={[RM.hit]}
-          opacity={0.15}
-        />
-        <Plate buffers={plate} materials={[hovered ? RM.plateHover : RM.plate]} position={[0, 0, 0.002]} />
+        <Plate buffers={plate} materials={[hovered ? RM.plateHover : RM.plate]} position={[0, 0, 0.002]} hittable />
         <Plate buffers={ring} materials={[open || hovered ? RM.edgeHot : RM.edge]} position={[0, 0, 0.004]} />
         {/* Both icons stay mounted; opacity cross-fade. Swapping the image
             SOURCE mid-render is the null-texture SIGSEGV (2026-07-05). */}
@@ -375,17 +362,9 @@ export function RadialMenu3D(props: RadialMenu3DProps): React.ReactElement {
       <ViroNode
         position={[0, -(outerR + 0.07), 0]}
         onHover={(h: boolean) => setPinHovered(h)}
-        onClick={() => setPinned((p) => !p)}
+        onClickState={(state: number) => { if (state === 1) setPinned((p) => !p); }}
       >
-        <ViroBox
-          position={[0, 0, -0.004]}
-          width={0.052}
-          height={0.052}
-          length={0.004}
-          materials={[RM.hit]}
-          opacity={0.15}
-        />
-        <Plate buffers={pinPlate} materials={[pinHovered ? RM.plateHover : RM.plate]} position={[0, 0, 0.002]} />
+        <Plate buffers={pinPlate} materials={[pinHovered ? RM.plateHover : RM.plate]} position={[0, 0, 0.002]} hittable />
         <Plate buffers={pinRing} materials={[pinned ? RM.edge : RM.edgeHot]} position={[0, 0, 0.003]} />
         <LucideIcon name="pin" size={0.024} position={[0, 0, 0.005]} opacity={pinned ? 1 : 0.01} />
         <LucideIcon name="pin-off" size={0.024} position={[0, 0, 0.006]} opacity={pinned ? 0.01 : 1} />

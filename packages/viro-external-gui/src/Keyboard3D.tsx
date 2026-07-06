@@ -25,7 +25,8 @@ function registerKbMaterials(): void {
   if (kbMaterialsRegistered) return;
   kbMaterialsRegistered = true;
   ViroMaterials.createMaterials({
-    [KM.hit]: { diffuseColor: "#000000", lightingModel: "Constant" },
+    // Additive-black = hit-testable but invisible (no faint box around keys).
+    [KM.hit]: { diffuseColor: "#000000", lightingModel: "Constant", blendMode: "Add" },
   });
   ViroAnimations.registerAnimations({
     vxgKeyHoverIn: { properties: { scaleX: 1.1, scaleY: 1.1, scaleZ: 1.1 }, duration: 90, easing: "EaseOut" },
