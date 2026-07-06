@@ -28,7 +28,7 @@ let autoMaterialId = 0;
  * curvature = 1 → quarter-circle-ish arc; curvature in (0,1) interpolates the angle.
  * curvature = 0 is handled by ViroQuad — not by this function.
  */
-function buildCurvedMesh(
+export function buildCurvedMesh(
   width: number,
   height: number,
   curvature: number,

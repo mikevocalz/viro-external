@@ -19,6 +19,7 @@ type MovableNodeProps = MovableProps & {
 export function MovableNode(props: MovableNodeProps): React.ReactElement {
   const {
     movable,
+    tag,
     dragType = defaults.movability.dragTypeDefault as MovableProps["dragType"],
     dragPlane,
     axisLock,
@@ -78,9 +79,14 @@ export function MovableNode(props: MovableNodeProps): React.ReactElement {
     [onMoveEnd, pinchToScale]
   );
 
+  // `viroTag` is a real VRTNodeManager @ReactProp on every node (sets the
+  // native VRONode tag, printed by the renderer's drag logs) but the ViroNode
+  // TS props omit it — pass it through via a typed spread.
+  const tagProps = (tag !== undefined ? { viroTag: tag } : {}) as Record<string, never>;
+
   if (!movable) {
     return (
-      <ViroNode position={position} scale={scale}>
+      <ViroNode {...tagProps} position={position} scale={scale}>
         {children}
       </ViroNode>
     );
@@ -88,6 +94,7 @@ export function MovableNode(props: MovableNodeProps): React.ReactElement {
 
   return (
     <ViroNode
+      {...tagProps}
       position={position}
       scale={currentScale.current}
       dragType={dragType}

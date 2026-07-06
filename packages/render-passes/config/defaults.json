@@ -1,0 +1,5 @@
+{
+  "maxChildrenPerChoreographer": 8,
+  "defaultPriority": 0,
+  "logPrefix": "MultiplexPass"
+}

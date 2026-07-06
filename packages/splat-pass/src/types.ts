@@ -32,6 +32,16 @@ export interface SplatQuality {
 }
 
 export interface SplatPassOpts {
+  /**
+   * `findNodeHandle()` result for the host `ViroXRSceneNavigator` /
+   * `ViroVRSceneNavigator`. The native bridge resolves this tag back
+   * to a `VRT3DSceneNavigator` view, walks to `Renderer.getChoreographerRef()`,
+   * and attaches the pass against that choreographer. **Required** —
+   * the native side has no other way to know which Viro view should
+   * host the pass when multiple are present.
+   */
+  sceneNavTag: number;
+
   source: SplatSource;
 
   /**

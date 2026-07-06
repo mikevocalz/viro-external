@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo } from "react";
-import { ViroGeometry, ViroNode, ViroQuad } from "@reactvision/react-viro";
+import { ViroGeometry, ViroMaterials, ViroNode, ViroQuad, ViroText } from "@reactvision/react-viro";
 import {
   MovableNode,
-  createPlaceholderMaterial,
   type ExternalTextureHandle,
   type MovableProps,
   type Vec3,
@@ -99,15 +98,21 @@ export function ViroSlate(props: ViroSlateProps): React.ReactElement {
   } = props;
 
   const contentMaterial = useMemo(() => `viroSlate_content_${++autoMaterialId}`, []);
-  const chromeMaterial = useMemo(
-    () => `viroSlate_chrome_${variant}_${autoMaterialId}`,
-    [variant]
-  );
-
-  useEffect(() => {
-    createPlaceholderMaterial(contentMaterial);
-    createPlaceholderMaterial(chromeMaterial);
-  }, [contentMaterial, chromeMaterial]);
+  // Materials must exist BEFORE the native quads mount — registering in a
+  // useEffect leaves the first commit with an unknown material (renders
+  // white, never re-applies). Register synchronously during render.
+  // Colors are Android #AARRGGBB (alpha FIRST), not web #RRGGBBAA.
+  const chromeMaterial = useMemo(() => {
+    const name = `viroSlate_chrome_${variant}_${autoMaterialId}`;
+    ViroMaterials.createMaterials({
+      [contentMaterial]: { diffuseColor: "#F5121216", lightingModel: "Constant" },
+      [name]: {
+        diffuseColor: variant === "glass" ? "#CC3A3A46" : "#F22E2E38",
+        lightingModel: "Constant",
+      },
+    });
+    return name;
+  }, [contentMaterial, variant]);
 
   // ponytail: externalTexture binding is wired by a sibling <ViroGPUTexture> that the caller
   // composes — see doc/OffscreenRender.md. We expose the material name so they can target it.
@@ -144,7 +149,25 @@ export function ViroSlate(props: ViroSlateProps): React.ReactElement {
     />
   );
 
+  // Title bar is the grab AFFORDANCE only — the drag itself lives on the
+  // root MovableNode, so grabbing the bar moves the WHOLE slate (Babylon
+  // HolographicSlate semantics). Viro bubbles the drag from the hit quad up
+  // to the nearest ancestor with onDrag.
   const titleBar = title !== undefined ? (
+    <ViroNode position={[0, titleBarY, 0]}>
+      <ViroQuad width={widthMeters} height={titleBarHeight} materials={[chromeMaterial]} />
+      <ViroText
+        text={title}
+        color="#EDEDF2"
+        width={widthMeters * 0.9}
+        height={titleBarHeight}
+        position={[0, 0, 0.002]}
+        style={{ textAlign: "left", textAlignVertical: "center", fontWeight: "600" }}
+      />
+    </ViroNode>
+  ) : null;
+
+  return (
     <MovableNode
       movable={movable}
       dragType={dragType}
@@ -154,17 +177,14 @@ export function ViroSlate(props: ViroSlateProps): React.ReactElement {
       onMove={onMove}
       onMoveEnd={onMoveEnd}
       pinchToScale={pinchToScale}
-      position={[0, titleBarY, 0]}
+      position={position}
+      scale={scale}
     >
-      <ViroQuad width={widthMeters} height={titleBarHeight} materials={[chromeMaterial]} />
+      <ViroNode rotation={rotation}>
+        {contentSurface}
+        {titleBar}
+      </ViroNode>
     </MovableNode>
-  ) : null;
-
-  return (
-    <ViroNode position={position} rotation={rotation} scale={scale}>
-      {contentSurface}
-      {titleBar}
-    </ViroNode>
   );
 }
 

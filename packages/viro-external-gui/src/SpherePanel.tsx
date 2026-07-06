@@ -65,8 +65,10 @@ export function SpherePanel(props: SpherePanelProps): React.ReactElement {
       const x = radius * Math.cos(theta) * Math.sin(phi);
       const y = radius * Math.sin(theta);
       const z = -radius * Math.cos(theta) * Math.cos(phi);
-      // Billboard: child faces origin.
-      const yawDeg = (phi * 180) / Math.PI;
+      // Face the sphere center (the user): the +z normal must point from the
+      // cell toward the origin → yaw = -φ, pitch = +θ. (+φ was the same
+      // sideways-facing bug as CylinderPanel.)
+      const yawDeg = (-phi * 180) / Math.PI;
       const pitchDeg = (theta * 180) / Math.PI;
       return { position: [x, y, z] as Vec3, rotation: [pitchDeg, yawDeg, 0] };
     };

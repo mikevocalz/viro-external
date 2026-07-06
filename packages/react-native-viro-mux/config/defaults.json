@@ -4,7 +4,12 @@
     "colorSpace": "srgb",
     "mipmap": "auto",
     "maxConcurrentExternalTextures": 8,
-    "flipY": false
+    "flipY": false,
+    "bind": {
+      "_comment": "Android surface-producer binding retry loop. Source of truth for BIND_RETRY_MS / BIND_ATTEMPTS in HybridViroGPUTextureModule.kt — keep in sync (Kotlin cannot read this file at runtime).",
+      "retryIntervalMs": 250,
+      "maxAttempts": 40
+    }
   },
   "mux": {
     "playback": {

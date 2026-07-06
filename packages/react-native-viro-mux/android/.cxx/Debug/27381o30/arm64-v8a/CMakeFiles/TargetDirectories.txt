@@ -1,0 +1,3 @@
+/Users/mikevocalz/viro-external/packages/react-native-viro-mux/android/.cxx/Debug/27381o30/arm64-v8a/CMakeFiles/NitroViroMux.dir
+/Users/mikevocalz/viro-external/packages/react-native-viro-mux/android/.cxx/Debug/27381o30/arm64-v8a/CMakeFiles/edit_cache.dir
+/Users/mikevocalz/viro-external/packages/react-native-viro-mux/android/.cxx/Debug/27381o30/arm64-v8a/CMakeFiles/rebuild_cache.dir

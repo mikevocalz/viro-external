@@ -25,6 +25,7 @@
     "zustand": "^4 || ^5"
   },
   "devDependencies": {
+    "@expo/config-plugins": "^57.0.1",
     "@reactvision/react-viro": "2.57.0",
     "@types/react": "*",
     "react": "*",

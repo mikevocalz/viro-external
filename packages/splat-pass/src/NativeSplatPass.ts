@@ -19,16 +19,21 @@ export interface NativeSplatPassModule {
   deviceProfile(): string;
 
   /**
-   * Register a new splat pass against the active Choreographer. Returns
-   * the native pass id. Throws if the native module is absent.
+   * Register a new splat pass against the choreographer owned by the
+   * Viro scene-navigator at `sceneNavTag`. Returns the native pass id.
+   * Throws if the native module is absent or the tag is not a
+   * `VRT3DSceneNavigator`.
    */
-  registerPass(opts: {
-    uri: string;
-    format: string;
-    maxSplats: number;
-    priority: number;
-    has4D: boolean;
-  }): Promise<string>;
+  registerPass(
+    sceneNavTag: number,
+    opts: {
+      uri: string;
+      format: string;
+      maxSplats: number;
+      priority: number;
+      has4D: boolean;
+    }
+  ): Promise<string>;
 
   /** Detach and free. Idempotent. */
   unregisterPass(id: string): Promise<void>;

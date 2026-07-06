@@ -1,0 +1,37 @@
+plugins {
+  id 'com.android.library'
+  id 'kotlin-android'
+  id 'expo-module-gradle-plugin'
+}
+
+def reactNativeArchitectures() {
+  def value = project.getProperties().get("reactNativeArchitectures")
+  return value ? value.split(",") : ["arm64-v8a"]
+}
+
+group = 'expo.modules.renderpasses'
+version = '0.0.0'
+
+android {
+  if (rootProject.hasProperty("ndkPath")) {
+    ndkPath rootProject.ext.ndkPath
+  }
+  if (rootProject.hasProperty("ndkVersion")) {
+    ndkVersion rootProject.ext.ndkVersion
+  }
+
+  namespace "expo.modules.renderpasses"
+
+  defaultConfig {
+    versionCode 1
+    versionName "0.0.0"
+    // No externalNativeBuild here — the native library is built by the host
+    // app's own CMake via add_subdirectory (mirroring the splat-pass pattern).
+    // This module ships Kotlin only; System.loadLibrary("viro_external_render_passes")
+    // resolves at runtime because the host app packages the .so into jniLibs.
+    // Rationale: avoids double-build (Expo autolink CMake + host app CMake
+    // both compiling the same sources into conflicting .so outputs), and
+    // keeps splat-pass's link step trivial via `target_link_libraries(...
+    // viro_external_render_passes)` on the shared CMake target.
+  }
+}

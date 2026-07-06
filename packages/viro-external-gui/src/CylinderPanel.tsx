@@ -1,8 +1,10 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
+import { ViroNode } from "@reactvision/react-viro";
 import { MovableNode, type MovableProps, type Vec3 } from "react-native-viro-mux";
 import defaults from "../config/defaults.json";
 import { Container3D, type ArrangedChild } from "./Container3D";
 import { MovablePanelContext } from "./MovablePanelContext";
+import { PanelHeader3D } from "./PanelHeader3D";
 
 export type VolumeOrientation =
   | "FACEORIGIN_ORIENTATION"
@@ -20,6 +22,13 @@ export interface CylinderPanelProps extends MovableProps {
   itemWidth?: number;
   itemHeight?: number;
   blockLayout?: boolean;
+  /** Optional PanelHeader3D floating above the arc (title bar + pin + close). */
+  title?: string;
+  titleFontFamily?: string;
+  /** Called when the header's close button hides the panel. */
+  onClose?: () => void;
+  /** Pinned = fixed in place; unpinned = billboardY toward the user. */
+  defaultPinned?: boolean;
   position?: Vec3;
   rotation?: Vec3;
   scale?: Vec3;
@@ -66,10 +75,15 @@ export function CylinderPanel(props: CylinderPanelProps): React.ReactElement {
     itemWidth = defaults.button.widthMeters,
     itemHeight = defaults.button.heightMeters,
     blockLayout,
+    title,
+    titleFontFamily,
+    onClose,
+    defaultPinned = true,
     position,
     rotation,
     scale,
     movable,
+    tag,
     dragType,
     dragPlane,
     axisLock,
@@ -80,12 +94,28 @@ export function CylinderPanel(props: CylinderPanelProps): React.ReactElement {
     children,
   } = props;
 
+  const [pinned, setPinned] = useState(defaultPinned);
+  const [closed, setClosed] = useState(false);
+
   const { arcDegrees, stepDegrees } = deriveCylinderArc({
     radius,
     itemWidth,
     columns,
     marginRadians: margin / radius, // margin meters → radians at given radius
   });
+
+  // Header chrome above the arc, sitting at the arc's front face (cells lie
+  // at z = -radius·cosθ, so the front face is local z = -radius — the plane
+  // consumers pull to their anchor with position [0, 0, radius]).
+  const barH = Math.max(
+    defaults.holographicSlate.titleBarHeightMeters,
+    itemHeight * 0.4
+  );
+  const headerW = Math.min(
+    2 * radius * Math.sin(radians(arcDegrees) / 2), // arc chord
+    columns * (itemWidth + margin)
+  );
+  const headerY = (rows * itemHeight) / 2 + margin + barH;
 
   const arrange = useCallback(
     (kids: React.ReactNode[]): ArrangedChild[] => {
@@ -99,13 +129,17 @@ export function CylinderPanel(props: CylinderPanelProps): React.ReactElement {
         const y = ((rows - 1) / 2) * (itemHeight + margin) - row * (itemHeight + margin);
         const pos: Vec3 = [radius * Math.sin(thetaRad), y, -radius * Math.cos(thetaRad)];
 
+        // Cell sits at [r·sinθ, y, -r·cosθ]. A node yawed by φ has its +z
+        // normal at [sinφ, 0, cosφ]; facing the cylinder axis (the user)
+        // needs the normal at [-sinθ, 0, cosθ] → φ = -θ. (+θ was the
+        // "buttons point sideways" bug: off-center cells turned AWAY by 2θ.)
         let facingDeg = 0;
         switch (orientation) {
           case "FACEORIGIN_ORIENTATION":
-            facingDeg = thetaDeg;
+            facingDeg = -thetaDeg;
             break;
           case "FACEORIGIN_REVERSED":
-            facingDeg = thetaDeg + 180;
+            facingDeg = -thetaDeg + 180;
             break;
           case "FACEFORWARD_ORIENTATION":
             facingDeg = 0;
@@ -121,9 +155,12 @@ export function CylinderPanel(props: CylinderPanelProps): React.ReactElement {
     [arcDegrees, stepDegrees, columns, rows, radius, itemHeight, margin, orientation]
   );
 
+  if (closed) return <ViroNode />;
+
   return (
     <MovableNode
       movable={movable}
+      tag={tag}
       dragType={dragType}
       dragPlane={dragPlane}
       axisLock={axisLock}
@@ -134,11 +171,29 @@ export function CylinderPanel(props: CylinderPanelProps): React.ReactElement {
       position={position}
       scale={scale}
     >
-      <MovablePanelContext.Provider value={!!movable}>
-        <Container3D blockLayout={blockLayout} arrange={arrange} rotation={rotation}>
-          {children}
-        </Container3D>
-      </MovablePanelContext.Provider>
+      {/* Panel body — billboardY toward the user while unpinned (header pin). */}
+      <ViroNode rotation={rotation} transformBehaviors={pinned ? undefined : ["billboardY"]}>
+        <MovablePanelContext.Provider value={!!movable}>
+          {title !== undefined && (
+            <PanelHeader3D
+              width={headerW}
+              barHeight={barH}
+              title={title}
+              titleFontFamily={titleFontFamily}
+              pinned={pinned}
+              onTogglePin={() => setPinned((p) => !p)}
+              onClose={() => {
+                setClosed(true);
+                onClose?.();
+              }}
+              position={[0, headerY, -radius]}
+            />
+          )}
+          <Container3D blockLayout={blockLayout} arrange={arrange}>
+            {children}
+          </Container3D>
+        </MovablePanelContext.Provider>
+      </ViroNode>
     </MovableNode>
   );
 }

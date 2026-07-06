@@ -29,8 +29,11 @@
 #include <string>
 #include <functional>
 #include <mutex>
+#include <thread>
+#include <condition_variable>
 #include <vector>
 #include <cstdint>
+#include <array>
 
 namespace viroexternal {
 namespace splat {
@@ -98,6 +101,17 @@ private:
     void runSortPass(VRORenderContext *context);
     void runRasterPass(VRORenderContext *context, VRORenderPassInputOutput &inputs);
 
+    // CPU bucket-sort worker — same algorithm as three.js mkkellogg /
+    // SparkJS, but on a dedicated thread so the GL thread never blocks.
+    // Snapshot view matrix from render thread → sort → publish sortedIndex
+    // → render thread uploads on its next frame. Worker runs at whatever
+    // FPS it can (5-15Hz for 500k splats); render maintains 90Hz reading
+    // whatever's most recently sorted. IPD-driven per-eye sort diff is
+    // negligible at human viewing distances, so both eyes share one sort.
+    void startSortWorker();
+    void stopSortWorker();
+    void sortWorkerLoop();
+
     SplatPassConfig _config;
 
     bool _initialized = false;
@@ -128,6 +142,36 @@ private:
     std::mutex _pendingMutex;
     std::shared_ptr<const std::vector<uint8_t>> _pendingSource;
     GLsizei _pendingSplatCount = 0;
+
+    // CPU positions cache for sort. Populated once the first staged source
+    // drains. Immutable after that — shared with the sort worker by ref.
+    std::vector<float> _positionsXYZ;
+
+    // ── Sort worker plumbing ────────────────────────────────────────
+    // Render thread pushes the latest view matrix; worker pulls it,
+    // sorts, publishes _sortedIndexPublish. Render thread copies the
+    // latest publish into the GPU SSBO on its next frame.
+    std::thread             _sortThread;
+    std::atomic<bool>       _sortRunning { false };
+
+    std::mutex              _viewMutex;
+    std::array<float, 16>   _pendingView { {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1} };
+    bool                    _hasPendingView = false;
+    std::condition_variable _viewCv;
+
+    std::mutex              _publishMutex;
+    std::vector<uint32_t>   _sortedIndexPublish;
+    bool                    _publishReady = false;
+
+    // Render-thread scratch — refilled from _sortedIndexPublish under the
+    // publish lock, then uploaded to the SSBO without the lock held.
+    std::vector<uint32_t>   _sortedIndexUpload;
+
+    // Render-thread state: last frame for which we pushed a view matrix
+    // (gates per-frame work to once per pair of eyes) and a copy of the
+    // last-pushed view used to skip pushes when the user is stationary.
+    int                     _lastPushedFrame = -1;
+    std::array<float, 16>   _lastPushedView { {0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0} };
 };
 
 }  // namespace splat

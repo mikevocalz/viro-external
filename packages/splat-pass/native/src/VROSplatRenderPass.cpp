@@ -13,6 +13,9 @@
 #include "ShaderSources.h"   // SPLAT_VERT_GLSL, SPLAT_FRAG_GLSL, SPLAT_SORT_COMP_GLSL, SPLAT_DECODE_COMP_GLSL
 
 #include <cstring>
+#include <sys/resource.h>  // setpriority — lower worker thread nice level
+#include <sys/syscall.h>   // SYS_gettid — Linux/Android thread id
+#include <unistd.h>        // syscall()
 
 namespace viroexternal {
 namespace splat {
@@ -76,6 +79,7 @@ VROSplatRenderPass::VROSplatRenderPass(const SplatPassConfig &config)
       _buffers(std::make_unique<SplatBuffers>()) {}
 
 VROSplatRenderPass::~VROSplatRenderPass() {
+    stopSortWorker();
     if (_programDecode) glDeleteProgram(_programDecode);
     if (_programSort)   glDeleteProgram(_programSort);
     if (_programRaster) glDeleteProgram(_programRaster);
@@ -173,6 +177,184 @@ void VROSplatRenderPass::stagePendingSource(
     std::lock_guard<std::mutex> lk(_pendingMutex);
     _pendingSource = std::move(bytes);
     _pendingSplatCount = splatCount;
+    // ponytail: cache positions cpu-side so the sort thread doesn't
+    // round-trip the SSBO. 16 floats / splat in the staged buffer;
+    // pos.xyz lives in the first 3.
+    if (_pendingSource && splatCount > 0) {
+        const float *src = reinterpret_cast<const float *>(_pendingSource->data());
+        _positionsXYZ.resize(static_cast<size_t>(splatCount) * 3);
+        for (int i = 0; i < splatCount; ++i) {
+            _positionsXYZ[i * 3 + 0] = src[i * 16 + 0];
+            _positionsXYZ[i * 3 + 1] = src[i * 16 + 1];
+            _positionsXYZ[i * 3 + 2] = src[i * 16 + 2];
+        }
+        // Seed identity order so the first few frames have a valid
+        // sortedIndex before the worker publishes its first sort.
+        _sortedIndexUpload.resize(static_cast<size_t>(splatCount));
+        for (int i = 0; i < splatCount; ++i) {
+            _sortedIndexUpload[i] = static_cast<uint32_t>(i);
+        }
+        {
+            std::lock_guard<std::mutex> pubLk(_publishMutex);
+            _sortedIndexPublish = _sortedIndexUpload;
+            _publishReady = true;
+        }
+        startSortWorker();
+    }
+    pinfo("SplatPass: stagePendingSource  bytes=%zu  splatCount=%d",
+          _pendingSource ? _pendingSource->size() : 0,
+          static_cast<int>(splatCount));
+}
+
+void VROSplatRenderPass::startSortWorker() {
+    if (_sortRunning.load()) return;
+    _sortRunning.store(true);
+    _sortThread = std::thread([this]() { sortWorkerLoop(); });
+}
+
+void VROSplatRenderPass::stopSortWorker() {
+    if (!_sortRunning.load()) return;
+    _sortRunning.store(false);
+    _viewCv.notify_all();
+    if (_sortThread.joinable()) _sortThread.join();
+}
+
+void VROSplatRenderPass::sortWorkerLoop() {
+    // mkkellogg/SparkJS-style 16-bit two-pass LSD radix sort. 65 536-bucket
+    // resolution gives ~50 µm depth precision in a 3 m scene — orders of
+    // magnitude finer than an 8-bit bucket sort, which is the difference
+    // between "smooth Gaussian volume" and "muddy z-fighting layers" on a
+    // ~500k-splat capture.
+    //
+    // Layout per iteration:
+    //   keys[i]      = uint16 depth-bucket index for splat i
+    //   tempIndex[i] = splat index after low-byte (LSB) pass
+    //   outIndex[i]  = final sorted order published to the render thread
+    //
+    // Allocations are reused across iterations; only the first
+    // iteration heap-allocates.
+
+    // Lower THIS THREAD's nice level so the render thread never starves
+    // even when the sort is pegging a core. Linux extends POSIX so that
+    // setpriority(PRIO_PROCESS, tid, ...) targets a single thread when
+    // tid comes from gettid() — passing 0 would lower the whole process
+    // including the render thread. Failures are non-fatal.
+    pid_t tid = static_cast<pid_t>(syscall(SYS_gettid));
+    setpriority(PRIO_PROCESS, tid, 5);
+
+    std::vector<uint16_t> keys;
+    std::vector<uint32_t> tempIndex;
+    std::vector<uint32_t> outIndex;
+    constexpr int RADIX = 256;
+    uint32_t hist0[RADIX];
+    uint32_t hist1[RADIX];
+    uint32_t prefix0[RADIX];
+    uint32_t prefix1[RADIX];
+
+    while (_sortRunning.load()) {
+        // Wait for a view-matrix push (or shutdown).
+        std::array<float, 16> view;
+        {
+            std::unique_lock<std::mutex> lk(_viewMutex);
+            _viewCv.wait(lk, [this]() {
+                return _hasPendingView || !_sortRunning.load();
+            });
+            if (!_sortRunning.load()) return;
+            view = _pendingView;
+            _hasPendingView = false;
+        }
+
+        const int n = static_cast<int>(_splatCount.load());
+        if (n <= 0 || _positionsXYZ.size() < static_cast<size_t>(n) * 3) {
+            continue;
+        }
+
+        // Pass A — depth range across all splats. OpenGL convention:
+        // negative view-Z is in front; the most-negative depth is the
+        // farthest splat. We want farthest first (premultiplied
+        // back-to-front), so bucket 0 == minD == farthest.
+        const float *pos = _positionsXYZ.data();
+        float minD = view[2] * pos[0] + view[6] * pos[1]
+                   + view[10] * pos[2] + view[14];
+        float maxD = minD;
+        for (int i = 1; i < n; ++i) {
+            const float d = view[2] * pos[i*3+0] + view[6] * pos[i*3+1]
+                          + view[10] * pos[i*3+2] + view[14];
+            if (d < minD) minD = d;
+            else if (d > maxD) maxD = d;
+        }
+        const float range = maxD - minD;
+        // Quantize into uint16; 65535 leaves headroom on the right edge.
+        const float scale = range > 1e-6f ? 65535.0f / range : 0.0f;
+
+        // Pass B — compute keys + low-byte histogram in one loop.
+        keys.resize(static_cast<size_t>(n));
+        for (int i = 0; i < RADIX; ++i) hist0[i] = 0;
+        for (int i = 0; i < n; ++i) {
+            const float d = view[2] * pos[i*3+0] + view[6] * pos[i*3+1]
+                          + view[10] * pos[i*3+2] + view[14];
+            int q = static_cast<int>((d - minD) * scale);
+            if (q < 0) q = 0;
+            else if (q > 65535) q = 65535;
+            keys[i] = static_cast<uint16_t>(q);
+            ++hist0[q & 0xFF];
+        }
+
+        // Prefix sum → low-byte bucket starts.
+        prefix0[0] = 0;
+        for (int i = 1; i < RADIX; ++i) prefix0[i] = prefix0[i-1] + hist0[i-1];
+
+        // Pass C — scatter by low byte, also build high-byte histogram of
+        // the post-scatter sequence in the same loop (cache-warm read).
+        tempIndex.resize(static_cast<size_t>(n));
+        for (int i = 0; i < RADIX; ++i) hist1[i] = 0;
+        for (int i = 0; i < n; ++i) {
+            const uint16_t k = keys[i];
+            const uint32_t dst = prefix0[k & 0xFF]++;
+            tempIndex[dst] = static_cast<uint32_t>(i);
+        }
+        // hist1 must reflect the post-scatter order (same multiset, but
+        // counting by high byte). We can derive it directly from `keys`
+        // since shuffle doesn't change the multiset.
+        for (int i = 0; i < n; ++i) ++hist1[(keys[i] >> 8) & 0xFF];
+
+        // Prefix sum → high-byte bucket starts.
+        prefix1[0] = 0;
+        for (int i = 1; i < RADIX; ++i) prefix1[i] = prefix1[i-1] + hist1[i-1];
+
+        // Pass D — scatter from tempIndex by high byte of each splat's key.
+        outIndex.resize(static_cast<size_t>(n));
+        for (int i = 0; i < n; ++i) {
+            const uint32_t splatId = tempIndex[i];
+            const uint16_t k = keys[splatId];
+            const uint32_t dst = prefix1[(k >> 8) & 0xFF]++;
+            outIndex[dst] = splatId;
+        }
+
+        // Publish.
+        {
+            std::lock_guard<std::mutex> lk(_publishMutex);
+            _sortedIndexPublish.swap(outIndex);
+            _publishReady = true;
+        }
+        // Probe: confirm worker is running. First publish + every 60th
+        // after. Logs first/last sortedIndex so we can sanity-check the
+        // sort produced sensible output (not all-zeros, not identity).
+        static std::atomic<int> sPub{0};
+        int p = sPub.fetch_add(1, std::memory_order_relaxed);
+        if (p == 0 || p % 60 == 0) {
+            std::vector<uint32_t> snap;
+            {
+                std::lock_guard<std::mutex> lk(_publishMutex);
+                snap = _sortedIndexPublish;
+            }
+            const size_t sz = snap.size();
+            pinfo("SplatPass: sort-publish #%d  n=%zu  first=[%u,%u,%u]  last=[%u,%u,%u]",
+                  p, sz,
+                  sz > 0 ? snap[0] : 0u, sz > 1 ? snap[1] : 0u, sz > 2 ? snap[2] : 0u,
+                  sz > 2 ? snap[sz-3] : 0u, sz > 1 ? snap[sz-2] : 0u, sz > 0 ? snap[sz-1] : 0u);
+        }
+    }
 }
 
 void VROSplatRenderPass::runDecodePass(VRORenderContext *context) {
@@ -226,21 +408,34 @@ void VROSplatRenderPass::runSortPass(VRORenderContext *context) {
 void VROSplatRenderPass::runRasterPass(VRORenderContext *context,
                                        VRORenderPassInputOutput &inputs) {
     if (!_programRaster) return;
+    const GLuint count = static_cast<GLuint>(_splatCount.load());
+    if (count == 0) return;
 
     const VROMatrix4f view = context->getViewMatrix();
     const VROMatrix4f proj = context->getProjectionMatrix();
 
     glUseProgram(_programRaster);
-    GLint locView  = glGetUniformLocation(_programRaster, "u_view");
-    GLint locProj  = glGetUniformLocation(_programRaster, "u_proj");
+    GLint locView = glGetUniformLocation(_programRaster, "u_view");
+    GLint locProj = glGetUniformLocation(_programRaster, "u_proj");
     glUniformMatrix4fv(locView, 1, GL_FALSE, view.getArray());
     glUniformMatrix4fv(locProj, 1, GL_FALSE, proj.getArray());
 
+    // Binding 0: decoded splats. Binding 1: sortedIndex (CPU 16-bit radix
+    // sort on a worker thread; see sortWorkerLoop + render()).
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers->currentDecodedSplats());
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _buffers->currentSortKeys());
 
-    // Splat blend state: premultiplied alpha, depth-test against opaque,
-    // do not write depth (splats are transparency-style), no cull.
+    // Indirect draw args: {vertexCount=4, instanceCount=count, first=0, baseInstance=0}.
+    // One TRIANGLE_STRIP per instance = one isolated quad per splat
+    // (no degenerate-strip connector triangles between splats).
+    const GLuint args[4] = { 4u, count, 0u, 0u };
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, _buffers->currentIndirectArgs());
+    glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(args), args);
+
+    // Splat blend state: premultiplied alpha over opaque, depth-test
+    // against opaque writes, do not write depth (splats are
+    // transparency-style), no face cull. With the worker sort feeding
+    // back-to-front order, smooth Gaussian blending is restored.
     glDisable(GL_CULL_FACE);
     glDepthMask(GL_FALSE);
     glDepthFunc(GL_LEQUAL);
@@ -250,7 +445,6 @@ void VROSplatRenderPass::runRasterPass(VRORenderContext *context,
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
     glBindVertexArray(_emptyVAO);
-    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, _buffers->currentIndirectArgs());
     glDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr);
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
     glBindVertexArray(0);
@@ -262,6 +456,18 @@ void VROSplatRenderPass::render(std::shared_ptr<VROScene> scene,
                                  VRORenderContext *context,
                                  std::shared_ptr<VRODriver> &driver) {
     GLStateScope state_scope;
+
+    // ponytail: probe — confirms VROChoreographer is invoking the custom
+    // pass at all. Logs once on first call, then every 60th frame so
+    // logcat doesn't drown. Remove once splat-test passes end-to-end.
+    static std::atomic<int> sFrames{0};
+    int n = sFrames.fetch_add(1, std::memory_order_relaxed);
+    if (n == 0 || n % 60 == 0) {
+        pinfo("SplatPass: render() call #%d  staged=%s  splatCount=%d",
+              n,
+              _pendingSource ? "yes" : "no",
+              static_cast<int>(_splatCount.load()));
+    }
 
     if (!_initialized) lazyInit();
 
@@ -295,10 +501,49 @@ void VROSplatRenderPass::render(std::shared_ptr<VROScene> scene,
         _lastDecodedFrame = frame;
     }
 
-    // Sort runs PER EYE — depth-key depends on the eye view matrix.
-    runSortPass(context);
+    // Push the LEFT eye view matrix to the sort worker. Skips:
+    //   (a) the second eye in the same frame (both eyes share one sort —
+    //       IPD-driven order diff is negligible at human viewing distance),
+    //   (b) any frame where the view matrix is identical to the last push
+    //       (user is stationary — reusing the in-flight or previously
+    //       published sort is free and lets the worker idle).
+    if (frame != _lastPushedFrame) {
+        const VROMatrix4f view = context->getViewMatrix();
+        const float *v = view.getArray();
+        bool changed = false;
+        for (int i = 0; i < 16; ++i) {
+            if (_lastPushedView[i] != v[i]) { changed = true; break; }
+        }
+        if (changed) {
+            for (int i = 0; i < 16; ++i) _lastPushedView[i] = v[i];
+            {
+                std::lock_guard<std::mutex> lk(_viewMutex);
+                _pendingView = _lastPushedView;
+                _hasPendingView = true;
+            }
+            _viewCv.notify_one();
+        }
+        _lastPushedFrame = frame;
+    }
 
-    // Raster the splats into the bound HDR target.
+    // Pull the most recent sortedIndex published by the worker (if any)
+    // and upload to the SSBO. Worker may run at 5-15Hz for huge scenes;
+    // render thread reuses the last sortedIndex when none is fresher.
+    {
+        std::lock_guard<std::mutex> lk(_publishMutex);
+        if (_publishReady) {
+            _sortedIndexUpload.swap(_sortedIndexPublish);
+            _publishReady = false;
+        }
+    }
+    if (!_sortedIndexUpload.empty()) {
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _buffers->currentSortKeys());
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0,
+                        static_cast<GLsizeiptr>(_sortedIndexUpload.size() * sizeof(uint32_t)),
+                        _sortedIndexUpload.data());
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    }
+
     runRasterPass(context, inputs);
 }
 

@@ -82,17 +82,46 @@ Java_com_viromedia_bridge_module_ViroSplatPassModule_nativeAttach(
                 auto bytes = reinterpret_cast<const uint8_t *>(raw);
                 auto hdr = viroexternal::splat::readSpzHeader(bytes, static_cast<size_t>(len));
                 if (hdr.error == viroexternal::splat::SpzError::Ok) {
-                    auto staged = std::make_shared<std::vector<uint8_t>>(
-                        static_cast<size_t>(hdr.header.numPoints) *
-                        viroexternal::splat::DECODED_SPLAT_BYTES);
-                    auto *outFloats = reinterpret_cast<float *>(staged->data());
+                    // Clamp staged splat count to the registered cap so the
+                    // SSBO ring doesn't overflow and the raster doesn't
+                    // saturate the GPU.
+                    const uint32_t splatCap = cfg.maxSplats;
+                    const uint32_t totalN = hdr.header.numPoints;
+                    const uint32_t splatN = totalN < splatCap ? totalN : splatCap;
+
+                    // Spatial sampling: pick every Nth splat across the
+                    // file so the cap covers the whole scene rather than
+                    // the front-of-array chunk. stride = ceil(totalN/splatN).
+                    const uint32_t stride =
+                        totalN > splatN ? (totalN + splatN - 1) / splatN : 1u;
+
+                    // Decode ALL splats once into a temporary float
+                    // buffer; then copy every Nth record into the staged
+                    // buffer. The whole-file decode is ~60 MB for the
+                    // 932k raccoon scan — one-time cost at registration.
+                    std::vector<float> fullDecoded(
+                        static_cast<size_t>(totalN) * 16);
                     viroexternal::splat::decodeSpzBody(
                         hdr.header,
                         bytes + hdr.bodyOffset,
                         static_cast<size_t>(len) - hdr.bodyOffset,
-                        outFloats);
+                        fullDecoded.data());
+
+                    auto staged = std::make_shared<std::vector<uint8_t>>(
+                        static_cast<size_t>(splatN) *
+                        viroexternal::splat::DECODED_SPLAT_BYTES);
+                    auto *outFloats = reinterpret_cast<float *>(staged->data());
+                    uint32_t written = 0;
+                    for (uint32_t srcIdx = 0;
+                         srcIdx < totalN && written < splatN;
+                         srcIdx += stride) {
+                        std::memcpy(outFloats + written * 16,
+                                    fullDecoded.data() + srcIdx * 16,
+                                    16 * sizeof(float));
+                        ++written;
+                    }
                     result.pass->stagePendingSource(
-                        staged, static_cast<int>(hdr.header.numPoints));
+                        staged, static_cast<int>(written));
                 }
                 env->ReleaseByteArrayElements(jSpzBytes, raw, JNI_ABORT);
             }

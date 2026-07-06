@@ -1,5 +1,6 @@
 #include "SpzReader.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 
@@ -25,39 +26,73 @@ int32_t readI24LE(const uint8_t *p) {
 
 constexpr int FLOATS_PER_SPLAT = 16;   // vec4 × 4 = pos/scale/rot/color
 
-// Reconstruct a unit quaternion from SPZ's 3-byte encoding. SPZ stores
-// (x,y,z) as i8 in [-127, 127] mapped to [-1, 1] and reconstructs the
-// real component w = sqrt(max(0, 1 - x²- y²- z²)). The encoded quaternion
-// is forced positive-w by the writer, so this is unambiguous — no
-// largest-component index byte is used (that's a different scheme).
-void decodeQuat(const uint8_t *p, float out[4]) {
-    int8_t a = static_cast<int8_t>(p[0]);
-    int8_t b = static_cast<int8_t>(p[1]);
-    int8_t c = static_cast<int8_t>(p[2]);
-    float x = static_cast<float>(a) * (1.0f / 127.0f);
-    float y = static_cast<float>(b) * (1.0f / 127.0f);
-    float z = static_cast<float>(c) * (1.0f / 127.0f);
+// Niantic SPZ "FirstThree" quat decode (v1, v2 files): the writer
+// stores (x, y, z) as u8 mapped to [-1, 1] via (r/127.5) - 1, with the
+// quat normalized so w >= 0. Reconstruct w = sqrt(max(0, 1 - x²- y²- z²)).
+// (Niantic load-spz.cc::unpackQuaternionFirstThree)
+void decodeQuatFirstThree(const uint8_t *p, float out[4]) {
+    float x = static_cast<float>(p[0]) * (1.0f / 127.5f) - 1.0f;
+    float y = static_cast<float>(p[1]) * (1.0f / 127.5f) - 1.0f;
+    float z = static_cast<float>(p[2]) * (1.0f / 127.5f) - 1.0f;
     float wsq = 1.0f - (x*x + y*y + z*z);
     float w = wsq > 0.0f ? std::sqrt(wsq) : 0.0f;
-    // Normalize to guard against quantization drift.
-    float n = std::sqrt(x*x + y*y + z*z + w*w);
-    if (n > 0.0f) {
-        float inv = 1.0f / n;
-        x *= inv; y *= inv; z *= inv; w *= inv;
-    }
     out[0] = x; out[1] = y; out[2] = z; out[3] = w;
 }
 
-// Per-splat SH tail size, in bytes. (L+1)² - 1 directional coefficients
-// × 3 channels (RGB) × 1 byte (i8) per coefficient.
+// Niantic SPZ "SmallestThree" quat decode (v3+ files). 4 bytes
+// packed as a uint32: bits[30..31] = largest-component index; the other
+// three bits[0..29] store three 10-bit (9-bit magnitude + 1 sign-bit)
+// components scaled by sqrt(1/2). The largest is reconstructed from
+// sqrt(1 - sum_squares).
+// (Niantic load-spz.cc::unpackQuaternionSmallestThree)
+void decodeQuatSmallestThree(const uint8_t *p, float out[4]) {
+    const float kSqrt1_2 = 0.7071067811865475f;
+    uint32_t comp = static_cast<uint32_t>(p[0])
+                  | (static_cast<uint32_t>(p[1]) << 8)
+                  | (static_cast<uint32_t>(p[2]) << 16)
+                  | (static_cast<uint32_t>(p[3]) << 24);
+    constexpr uint32_t c_mask = (1u << 9u) - 1u;
+    const int iLargest = static_cast<int>(comp >> 30);
+    float sumSq = 0.0f;
+    for (int i = 3; i >= 0; --i) {
+        if (i == iLargest) continue;
+        uint32_t mag = comp & c_mask;
+        uint32_t neg = (comp >> 9u) & 0x1u;
+        comp >>= 10u;
+        float v = kSqrt1_2 * static_cast<float>(mag) / static_cast<float>(c_mask);
+        if (neg) v = -v;
+        out[i] = v;
+        sumSq += v * v;
+    }
+    out[iLargest] = std::sqrt(std::max(0.0f, 1.0f - sumSq));
+}
+
+// SH DC → linear-RGB. Niantic stores colors as quantized SH-L0
+// coefficients: stored = (sh_dc * colorScale + 0.5) * 255 with
+// colorScale = 0.15. To get the renderable [0,1] color, evaluate the
+// SH basis at the splat direction: linear = 0.5 + sh_dc * 0.2820947917
+// where 0.5/sqrt(pi) is the SH-L0 basis value Y₀⁰.
+// (Niantic load-spz.cc::unpackGaussians + colorScale = 0.15)
+float decodeColorChannel(uint8_t raw) {
+    constexpr float kColorScale = 0.15f;
+    constexpr float kShDc = 0.28209479177387814f;
+    float sh = (static_cast<float>(raw) / 255.0f - 0.5f) / kColorScale;
+    return 0.5f + sh * kShDc;
+}
+
 size_t shTailBytesPerSplat(uint8_t shDegree) {
+    // dimForDegree: 0→0, 1→3, 2→8, 3→15, 4→24 — directional coefficients
+    // per channel × 3 channels (RGB).
+    int dim = 0;
     switch (shDegree) {
-        case 0: return 0;
-        case 1: return  3 * 3;   //  3 dir × RGB
-        case 2: return  8 * 3;
-        case 3: return 15 * 3;
+        case 0: dim = 0; break;
+        case 1: dim = 3; break;
+        case 2: dim = 8; break;
+        case 3: dim = 15; break;
+        case 4: dim = 24; break;
         default: return 0;
     }
+    return static_cast<size_t>(dim) * 3;
 }
 }  // namespace
 
@@ -98,23 +133,28 @@ SpzError decodeSpzBody(const SpzHeader &header,
     const uint32_t n = header.numPoints;
     if (n == 0) return SpzError::Ok;
 
-    // Per-splat sizes (v2/v3 without SH):
-    //   positions: 9 bytes (3 × i24)
-    //   alphas:    1 byte
-    //   colors:    3 bytes
-    //   scales:    3 bytes
-    //   rotations: 3 bytes
-    const size_t POS_BYTES   = 9;
-    const size_t REST_BYTES  = 1 + 3 + 3 + 3;
-    const size_t shBytes     = shTailBytesPerSplat(header.shDegree);
-    const size_t needed      = static_cast<size_t>(n) * (POS_BYTES + REST_BYTES + shBytes);
+    // Niantic SPZ stream layout (legacy header path):
+    //   positions  3 × i24
+    //   alphas     1 × u8
+    //   colors     3 × u8   (quantized SH-L0)
+    //   scales     3 × u8   (log-encoded, value/16 - 10)
+    //   rotations  3 or 4 bytes  (FirstThree v1/v2; SmallestThree v3+)
+    //   sh         shTail × u8   (higher-order SH coefficients)
+    const size_t POS_BYTES = 9;
+    // v3+ files (MIN_SMALLEST_THREE_QUATERNIONS_VERSION = 3) use 4-byte
+    // SmallestThree quat encoding; v1/v2 use 3-byte FirstThree.
+    const bool usesSmallestThree = header.version >= 3;
+    const size_t ROT_BYTES = usesSmallestThree ? 4 : 3;
+    const size_t REST_BYTES = 1 + 3 + 3 + ROT_BYTES;
+    const size_t shBytes = shTailBytesPerSplat(header.shDegree);
+    const size_t needed = static_cast<size_t>(n) * (POS_BYTES + REST_BYTES + shBytes);
     if (bodyLength < needed) return SpzError::TooSmall;
 
-    const uint8_t *pPos    = body;
-    const uint8_t *pAlpha  = pPos    + n * POS_BYTES;
-    const uint8_t *pColor  = pAlpha  + n;
-    const uint8_t *pScale  = pColor  + n * 3;
-    const uint8_t *pRot    = pScale  + n * 3;
+    const uint8_t *pPos   = body;
+    const uint8_t *pAlpha = pPos   + n * POS_BYTES;
+    const uint8_t *pColor = pAlpha + n;
+    const uint8_t *pScale = pColor + n * 3;
+    const uint8_t *pRot   = pScale + n * 3;
 
     const float invFracDiv = 1.0f / static_cast<float>(1u << header.fractionalBits);
 
@@ -124,22 +164,28 @@ SpzError decodeSpzBody(const SpzHeader &header,
         float py = static_cast<float>(readI24LE(pPos + i * POS_BYTES + 3)) * invFracDiv;
         float pz = static_cast<float>(readI24LE(pPos + i * POS_BYTES + 6)) * invFracDiv;
 
-        // Scale: 3 × u8, log-encoded.  value/16 - 10  →  log(scale) used
-        // by the vertex shader's exp(s.scale.xyz).
+        // Scale: 3 × u8 log-encoded.  scale_log = value/16 - 10  →  the
+        // vertex shader applies exp(s.scale.xyz).
         float sx = static_cast<float>(pScale[i * 3 + 0]) * (1.0f / 16.0f) - 10.0f;
         float sy = static_cast<float>(pScale[i * 3 + 1]) * (1.0f / 16.0f) - 10.0f;
         float sz = static_cast<float>(pScale[i * 3 + 2]) * (1.0f / 16.0f) - 10.0f;
 
-        // Rotation: 3 × i8 → reconstruct unit quat (see decodeQuat).
+        // Rotation: per-version Niantic format. See decodeQuat*.
         float quat[4];
-        decodeQuat(pRot + i * 3, quat);
+        if (usesSmallestThree) {
+            decodeQuatSmallestThree(pRot + i * ROT_BYTES, quat);
+        } else {
+            decodeQuatFirstThree(pRot + i * ROT_BYTES, quat);
+        }
 
-        // Color: 3 × u8 in linear-light /255.
-        float cr = static_cast<float>(pColor[i * 3 + 0]) * (1.0f / 255.0f);
-        float cg = static_cast<float>(pColor[i * 3 + 1]) * (1.0f / 255.0f);
-        float cb = static_cast<float>(pColor[i * 3 + 2]) * (1.0f / 255.0f);
+        // Color: quantized SH-L0, decoded to linear RGB.
+        float cr = decodeColorChannel(pColor[i * 3 + 0]);
+        float cg = decodeColorChannel(pColor[i * 3 + 1]);
+        float cb = decodeColorChannel(pColor[i * 3 + 2]);
 
-        // Alpha: u8/255.
+        // Alpha: u8/255 (linear; Niantic's invSigmoid path is the
+        // logit, but for direct rendering we want the post-sigmoid
+        // value which IS the raw u8/255).
         float ca = static_cast<float>(pAlpha[i]) * (1.0f / 255.0f);
 
         float *slot = outSplats + i * FLOATS_PER_SPLAT;
@@ -229,24 +275,33 @@ int main() {
     body[13] = 160;            // scale.x → 10 - 10 = 0  → exp(0) = 1
     body[14] = 160;
     body[15] = 160;
-    body[16] = 0;              // rot.x = 0
-    body[17] = 0;              // rot.y = 0
-    body[18] = 0;              // rot.z = 0 → quat = (0,0,0,1) identity
+    // Niantic FirstThree pack: identity quat (0,0,0,w=1) →
+    //   x byte = round((0+1)*127.5) = 128
+    //   y byte = 128
+    //   z byte = 128
+    body[16] = 128;
+    body[17] = 128;
+    body[18] = 128;
 
     std::vector<float> splats(1 * 16, 0.0f);
     SpzError err = decodeSpzBody(hdr, body.data(), body.size(), splats.data());
     assert(err == SpzError::Ok);
 
-    // Verify direct float32 round-trip
+    // Position round-trip
     assert(splats[0]  == 1.0f);
     assert(splats[1]  == 2.0f);
     assert(splats[2]  == 3.0f);
-    assert(splats[4]  == 0.0f);     // scale.x log = 0
-    assert(splats[8]  == 0.0f);     // rot.x
-    assert(splats[11] == 1.0f);     // rot.w (identity)
-    assert(splats[15] == 1.0f);     // alpha
-    assert(splats[12] == 128.0f/255.0f * 1.0f);  // R premultiplied
-    std::printf("SpzReader selftest passed\n");
+    // Scale log = 0
+    assert(splats[4]  == 0.0f);
+    // Quat: byte 128 decodes to 128/127.5 - 1 = 0.00392; w = sqrt(1 - 3*0.00392²) ≈ 0.99998
+    auto nearly = [](float a, float b, float eps = 1e-3f) { return std::fabs(a - b) < eps; };
+    assert(nearly(splats[8],  0.00392f));
+    assert(nearly(splats[9],  0.00392f));
+    assert(nearly(splats[10], 0.00392f));
+    assert(nearly(splats[11], 1.0f));
+    // Alpha
+    assert(nearly(splats[15], 1.0f));
+    std::printf("SpzReader selftest passed (Niantic-compatible)\n");
     return 0;
 }
 #endif

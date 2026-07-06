@@ -28,3 +28,34 @@ export { TouchHolographicButton, type TouchHolographicButtonProps } from "./Touc
 export { MeshButton3D, type MeshButton3DProps } from "./MeshButton3D";
 export { Slider3D, type Slider3DProps, useSliderStore } from "./Slider3D";
 export { TouchHolographicMenu, type TouchHolographicMenuProps } from "./TouchHolographicMenu";
+export { FluentMaterials, registerFluentMaterials } from "./materials";
+export { Text3D, computeText3DFontSize, type Text3DProps } from "./Text3D";
+export { LucideIcon, type LucideIconName } from "./LucideIcon";
+export { ScrollPanel3D, type ScrollPanel3DProps } from "./ScrollPanel3D";
+export { PanelHeader3D, TitleBarButton, type PanelHeader3DProps } from "./PanelHeader3D";
+export { Reveal3D, type Reveal3DProps } from "./Reveal3D";
+export {
+  MuxPlayerPanel,
+  getMuxPanelState,
+  useMuxPanelStore,
+  type MuxPanelState,
+  type MuxPlayerPanelProps,
+} from "./MuxPlayerPanel";
+
+// ── Wave 5 — cyberpunk radial HUD ──
+export { RadialMenu3D, type RadialMenu3DProps, type RadialMenuItem } from "./RadialMenu3D";
+export { annularArcBuffers, annularArcOutlineBuffers } from "./annularArc";
+
+// ── Wave 4 — concentric-arc chrome math ──
+export {
+  makeArcFrame,
+  arcTheta,
+  polarPose,
+  arcPlateBuffers,
+  type ArcFrame,
+  type ArcPose,
+  type ArcPlateBuffers,
+} from "./arc";
+export { Keyboard3D, type Keyboard3DProps } from "./Keyboard3D";
+export { UserAccountPanel, type UserAccountPanelProps } from "./UserAccountPanel";
+export { DecaTheme, registerDecaTheme } from "./decaTheme";

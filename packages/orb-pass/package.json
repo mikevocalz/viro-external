@@ -1,0 +1,32 @@
+{
+  "name": "@viro-external/orb-pass",
+  "version": "0.0.1",
+  "description": "D.E.C.A. orb render pass. Renders three.js-authored orb geometry + GLSL inside Viro's OpenXR per-eye frame as a VROMultiplexRenderPass child. Not a texture bridge — an actual native pass.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "files": [
+    "src",
+    "native",
+    "app.plugin.js",
+    "plugin",
+    "AGENTS.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@reactvision/react-viro": "*",
+    "@viro-external/render-passes": "workspace:*",
+    "react": "*",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "@expo/config-plugins": "^57.0.1",
+    "@types/react": "*",
+    "@viro-external/render-passes": "workspace:*",
+    "react": "*",
+    "react-native": "*",
+    "typescript": "5.6.3"
+  },
+  "sideEffects": false
+}

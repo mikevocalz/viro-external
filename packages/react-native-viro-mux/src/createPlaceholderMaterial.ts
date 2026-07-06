@@ -14,11 +14,16 @@ const registered = new Set<string>();
 /**
  * Registers a Viro material called `name` with a 1×1 transparent placeholder
  * diffuseTexture. Safe to call multiple times — idempotent per name.
+ *
+ * cullMode "None": the SAME material feeds both the flat/curved panel mesh
+ * and the inward-facing 360 sphere (which needs a scaleY −1 V-flip that
+ * reverses triangle winding) — double-sided keeps both paths visible.
  */
 export function createPlaceholderMaterial(name: string): void {
   if (registered.has(name)) return;
   ViroMaterials.createMaterials({
     [name]: {
+      cullMode: "None",
       diffuseTexture: {
         uri: `data:image/png;base64,${ONE_BY_ONE_TRANSPARENT_PNG_BASE64}`,
       },

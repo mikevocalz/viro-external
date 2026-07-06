@@ -1,0 +1,20 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": ["viromux"],
+  "ios": {
+    "iosModuleName": "NitroViroMux"
+  },
+  "android": {
+    "androidNamespace": ["viromux"],
+    "androidCxxLibName": "NitroViroMux"
+  },
+  "autolinking": {
+    "ViroGPUTextureModule": {
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridViroGPUTextureModule"
+      }
+    }
+  },
+  "ignorePaths": ["**/node_modules"]
+}

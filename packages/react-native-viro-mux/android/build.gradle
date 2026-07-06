@@ -1,0 +1,165 @@
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+  }
+
+  dependencies {
+    classpath "com.android.tools.build:gradle:9.2.1"
+  }
+}
+
+def reactNativeArchitectures() {
+  def value = rootProject.getProperties().get("reactNativeArchitectures")
+  return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
+}
+
+def isNewArchitectureEnabled() {
+  return rootProject.hasProperty("newArchEnabled") && rootProject.getProperty("newArchEnabled") == "true"
+}
+
+apply plugin: "com.android.library"
+apply plugin: 'org.jetbrains.kotlin.android'
+apply from: '../nitrogen/generated/android/NitroViroMux+autolinking.gradle'
+apply from: "./fix-prefab.gradle"
+
+// Intentionally do not apply `com.facebook.react` here — Nitro generates the
+// Kotlin/C++ bindings via nitrogen; the RN plugin would codegen
+// ViewManagerDelegates for every package in the consumer's node_modules and
+// collide at dex merge time. (Same rationale as nitro-canvas-in-Vision.)
+
+def getExtOrDefault(name) {
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties["ViroMux_" + name]
+}
+
+def getExtOrIntegerDefault(name) {
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["ViroMux_" + name]).toInteger()
+}
+
+// Resolve the consumer's @reactvision/react-viro package so we can compile
+// against com.viro.core / com.viromedia.bridge classes. compileOnly — the
+// consumer app links the actual AARs (react_viro / viro_renderer projects).
+def viroAndroidDir = null
+try {
+  viroAndroidDir = new File(
+    providers.exec {
+      workingDir(rootProject.projectDir)
+      commandLine("node", "--print",
+        "require('path').dirname(require.resolve('@reactvision/react-viro/package.json')) + '/android'")
+    }.standardOutput.asText.get().trim()
+  )
+} catch (Exception e) {
+  logger.warn("[react-native-viro-mux] Could not resolve @reactvision/react-viro: ${e.message}")
+}
+
+android {
+  namespace "com.margelo.nitro.viromux"
+
+  ndkVersion getExtOrDefault("ndkVersion")
+  compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
+
+  defaultConfig {
+    minSdkVersion Math.max(getExtOrIntegerDefault("minSdkVersion"), 26)
+    targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
+    buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
+
+    externalNativeBuild {
+      cmake {
+        cppFlags "-frtti -fexceptions -Wall -Wextra -fstack-protector-all"
+        // ANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES keeps the .so 16KB page-aligned
+        // (PICO 4 Ultra / Android 15 requirement — see doc/Native-Android.md).
+        arguments "-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+        abiFilters (*reactNativeArchitectures())
+
+        buildTypes {
+          debug {
+            cppFlags "-O1 -g"
+          }
+          release {
+            cppFlags "-O2"
+          }
+        }
+      }
+    }
+  }
+
+  externalNativeBuild {
+    cmake {
+      path "CMakeLists.txt"
+    }
+  }
+
+  packagingOptions {
+    excludes = [
+            "META-INF",
+            "META-INF/**",
+            "**/libc++_shared.so",
+            "**/libNitroModules.so",
+            "**/libfbjni.so",
+            "**/libjsi.so",
+            "**/libfolly_json.so",
+            "**/libfolly_runtime.so",
+            "**/libglog.so",
+            "**/libhermes.so",
+            "**/libhermes-executor-debug.so",
+            "**/libhermes_executor.so",
+            "**/libreactnative.so",
+            "**/libreactnativejni.so",
+            "**/libturbomodulejsijni.so",
+            "**/libreact_nativemodule_core.so",
+            "**/libjscexecutor.so"
+    ]
+  }
+
+  buildFeatures {
+    buildConfig true
+    prefab true
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+    }
+  }
+
+  lintOptions {
+    disable "GradleCompatible"
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+}
+
+repositories {
+  mavenCentral()
+  google()
+}
+
+dependencies {
+  //noinspection GradleDynamicVersion
+  implementation "com.facebook.react:react-native:+"
+
+  // Nitro core (prefab + Kotlin base classes)
+  implementation project(":react-native-nitro-modules")
+
+  // ExoPlayer (androidx.media3) for ViroMuxPlayerModule. compileOnly on
+  // purpose: the consumer app ALREADY ships these exact artifacts for
+  // virocore's AVPlayer (decax9 android/app/build.gradle:212-215 —
+  // media3-exoplayer / media3-exoplayer-hls 1.1.1). Bundling a second copy
+  // (or version) here would duplicate classes at dex-merge time.
+  compileOnly 'androidx.media3:media3-exoplayer:1.1.1'
+  compileOnly 'androidx.media3:media3-exoplayer-hls:1.1.1'
+
+  // Viro classes (com.viro.core.*, com.viromedia.bridge.*) — compile-time
+  // only; the consumer app bundles the real AARs via :react_viro /
+  // :viro_renderer. classes.jar is extracted lazily from each AAR because AGP
+  // rejects direct local .aar dependencies in library modules.
+  if (viroAndroidDir != null && viroAndroidDir.exists()) {
+    compileOnly files(zipTree(new File(viroAndroidDir, "react_viro/react_viro-release.aar")).matching { include "classes.jar" })
+    compileOnly files(zipTree(new File(viroAndroidDir, "viro_renderer/viro_renderer-release.aar")).matching { include "classes.jar" })
+  } else {
+    logger.warn("[react-native-viro-mux] @reactvision/react-viro not found — Kotlin compile will fail without it")
+  }
+}

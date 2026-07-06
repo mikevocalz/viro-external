@@ -20,10 +20,18 @@ import type React from "react";
  *
  * `kind` lets the native side resolve the handle without a per-platform branch
  * in JS. Producers (WebGPU/Skia/FBO/Compute) tag their output accordingly.
+ *
+ * `"surface-producer"` (v0.1.1) inverts ownership: the RENDERER allocates a
+ * SurfaceTexture-backed GL_TEXTURE_EXTERNAL_OES texture and exposes an
+ * android.view.Surface the producer renders into. This is the Android v1
+ * path — a raw GL texture name from a foreign EGL context cannot be imported
+ * directly (contexts are not shared), so `"gl-2d"` / `"gl-external-oes"`
+ * remain reserved for producers that already share the Viro EGL context.
+ * See doc/TextureBridge.md changelog.
  */
 export interface ExternalTextureHandle {
   readonly id: number;
-  readonly kind: "iosurface" | "gl-2d" | "gl-external-oes";
+  readonly kind: "iosurface" | "gl-2d" | "gl-external-oes" | "surface-producer";
   readonly width: number;
   readonly height: number;
   readonly colorSpace: "srgb" | "linear";
@@ -93,6 +101,12 @@ export type AxisLock = "x" | "y" | "z";
 export interface MovableProps {
   /** Wraps the component in a ViroNode and wires onDrag. */
   movable?: boolean;
+  /**
+   * Native node tag (Viro `viroTag`). Shows up in the renderer's
+   * `VROInput: drag START ... node=<tag>` logcat lines — the on-device way to
+   * verify WHICH panel a drag grabbed. Additive, non-breaking (v0.x).
+   */
+  tag?: string;
   dragType?: ViroDragType;
   dragPlane?: ViroDragPlane;
   /**

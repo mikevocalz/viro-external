@@ -1,0 +1,11 @@
+# ninja log v5
+7	8772	1783309210048783928	CMakeFiles/NitroViroMux.dir/Users/mikevocalz/viro-external/packages/react-native-viro-mux/nitrogen/generated/shared/c++/HybridViroGPUTextureModuleSpec.cpp.o	4cdbe12480c9d05c
+7	7614	1783309208880769840	CMakeFiles/NitroViroMux.dir/Users/mikevocalz/viro-external/packages/react-native-viro-mux/nitrogen/generated/android/c++/JHybridViroGPUTextureModuleSpec.cpp.o	35dc36e33aad0ecf
+8772	9199	1783309210484066271	../../../../build/intermediates/cxx/Debug/27381o30/obj/x86_64/libNitroViroMux.so	15d66a35c213356f
+6	5844	1783309207133281820	CMakeFiles/NitroViroMux.dir/Users/mikevocalz/viro-external/packages/react-native-viro-mux/nitrogen/generated/android/NitroViroMuxOnLoad.cpp.o	4b9b84f55ac1d678
+6	1708	1783309203004233809	CMakeFiles/NitroViroMux.dir/src/main/cpp/cpp-adapter.cpp.o	d5b0d1cf18a9bf4a
+3	2107	1783335503014804384	CMakeFiles/NitroViroMux.dir/src/main/cpp/cpp-adapter.cpp.o	d5b0d1cf18a9bf4a
+2	4578	1783335505483994352	CMakeFiles/NitroViroMux.dir/Users/mikevocalz/viro-external/packages/react-native-viro-mux/nitrogen/generated/android/NitroViroMuxOnLoad.cpp.o	4b9b84f55ac1d678
+3	5506	1783335506401527444	CMakeFiles/NitroViroMux.dir/Users/mikevocalz/viro-external/packages/react-native-viro-mux/nitrogen/generated/android/c++/JHybridViroGPUTextureModuleSpec.cpp.o	35dc36e33aad0ecf
+3	5881	1783335506753144052	CMakeFiles/NitroViroMux.dir/Users/mikevocalz/viro-external/packages/react-native-viro-mux/nitrogen/generated/shared/c++/HybridViroGPUTextureModuleSpec.cpp.o	4cdbe12480c9d05c
+5881	5985	1783335506891381040	../../../../build/intermediates/cxx/Debug/27381o30/obj/x86_64/libNitroViroMux.so	15d66a35c213356f

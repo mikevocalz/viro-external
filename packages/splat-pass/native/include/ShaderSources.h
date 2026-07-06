@@ -19,6 +19,10 @@ namespace splat {
 inline constexpr const char *SPLAT_VERT_GLSL = R"GLSL(#version 310 es
 precision highp float;
 
+// Instanced draw: count=4, instanceCount=splatCount
+//   gl_VertexID  ∈ [0, 4) → quad corner
+//   gl_InstanceID ∈ [0, N) → splat index into decodedSplats[]
+
 struct Splat {
     vec4 position;
     vec4 scale;
@@ -30,6 +34,9 @@ layout(std430, binding = 0) readonly buffer DecodedSplats {
     Splat splats[];
 };
 
+// CPU bucket-sort emits one uint per splat, back-to-front order.
+// gl_InstanceID indexes into this array; the value is the splat id
+// to read from DecodedSplats.
 layout(std430, binding = 1) readonly buffer SortedIndices {
     uint sortedIndex[];
 };
@@ -37,10 +44,9 @@ layout(std430, binding = 1) readonly buffer SortedIndices {
 uniform mat4 u_view;
 uniform mat4 u_proj;
 
-out vec4  v_color;
-out vec2  v_uv;
-out vec3  v_conic;
-flat out uint v_splatId;
+out vec4 v_color;
+out vec2 v_uv;
+out vec3 v_conic;
 
 mat3 quatToMat3(vec4 q) {
     float xx = q.x * q.x, yy = q.y * q.y, zz = q.z * q.z;
@@ -66,16 +72,24 @@ mat3 projectionJacobian(vec3 viewPos, mat4 proj) {
 }
 
 void main() {
-    uint quadVert = uint(gl_VertexID) & 3u;
-    uint splatRank = uint(gl_VertexID) >> 2u;
-    uint sid = sortedIndex[splatRank];
-    Splat s = splats[sid];
+    uint quadVert = uint(gl_VertexID);
+    uint sid = uint(gl_InstanceID);
+    // sortedIndex maps from draw-order index (back-to-front) to splat id.
+    uint splatId = sortedIndex[sid];
+    Splat s = splats[splatId];
 
-    v_splatId = sid;
-    v_color   = s.color;
+    v_color = s.color;
 
     vec4 viewPos4 = u_view * vec4(s.position.xyz, 1.0);
     vec3 viewPos  = viewPos4.xyz;
+
+    // Cull behind-camera splats (OpenGL convention: in-view z < 0).
+    if (viewPos.z >= 0.0) {
+        gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+        v_uv = vec2(0.0);
+        v_conic = vec3(0.0);
+        return;
+    }
 
     mat3 R = quatToMat3(normalize(s.rotation));
     vec3 sxyz = exp(s.scale.xyz);
@@ -92,8 +106,8 @@ void main() {
     mat3 T = J * W;
     mat3 cov2D3 = T * cov3D * transpose(T);
     mat2 cov2D = mat2(cov2D3[0].xy, cov2D3[1].xy);
-    cov2D[0][0] += 0.3;
-    cov2D[1][1] += 0.3;
+    cov2D[0][0] += 0.0003;
+    cov2D[1][1] += 0.0003;
 
     float det = cov2D[0][0] * cov2D[1][1] - cov2D[0][1] * cov2D[1][0];
     if (det <= 0.0) {
@@ -108,15 +122,30 @@ void main() {
                     cov2D[0][0] * invDet);
 
     float mid = 0.5 * (cov2D[0][0] + cov2D[1][1]);
-    float lambda = mid + sqrt(max(0.1, mid * mid - det));
-    float radius = ceil(3.0 * sqrt(lambda));
+    float lambda = mid + sqrt(max(0.000001, mid * mid - det));
+    float radius = 3.0 * sqrt(lambda);
+
+    // SAFETY CAP: discard pathologically oversized splats so a broken
+    // quat/scale decode can't pin the GPU through full-screen overdraw.
+    // Real splats from a well-encoded SPZ are ~0.001..0.05 NDC; the
+    // synthetic grid uses radii up to ~0.5 NDC. Keep the cap loose
+    // until the decoder matches the on-disk encoding precisely.
+    if (radius > 0.5) {
+        gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+        v_uv = vec2(0.0);
+        v_conic = vec3(0.0);
+        return;
+    }
 
     vec4 clipCenter = u_proj * viewPos4;
     vec2 corner = vec2(((quadVert & 1u) != 0u) ? 1.0 : -1.0,
                        ((quadVert & 2u) != 0u) ? 1.0 : -1.0);
-    vec2 pxOffset = corner * radius;
-    gl_Position = clipCenter + vec4(pxOffset, 0.0, 0.0);
-    v_uv = pxOffset;
+    vec2 ndcOffset = corner * radius;
+
+    // Multiply offset by w so the post-perspective-divide size is right.
+    gl_Position = vec4(clipCenter.xy + ndcOffset * clipCenter.w,
+                       clipCenter.zw);
+    v_uv = ndcOffset;
 }
 )GLSL";
 
@@ -126,7 +155,6 @@ precision highp float;
 in vec4 v_color;
 in vec2 v_uv;
 in vec3 v_conic;
-flat in uint v_splatId;
 
 layout(location = 0) out vec4 fragColor;
 
@@ -145,7 +173,11 @@ void main() {
     if (alpha < ALPHA_CUTOFF) {
         discard;
     }
-    fragColor = vec4(v_color.rgb * gauss, alpha);
+    // Premultiplied alpha output to match the blend func (ONE,
+    // ONE_MINUS_SRC_ALPHA). Source RGB must equal source_alpha * color;
+    // outputting raw color * gauss without the alpha factor was the
+    // cause of the over-bright "mud" appearance on layered splats.
+    fragColor = vec4(v_color.rgb * alpha, alpha);
 }
 )GLSL";
 

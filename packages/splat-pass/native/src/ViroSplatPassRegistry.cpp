@@ -1,9 +1,14 @@
 #include "ViroSplatPassRegistry.h"
 
-#include <sstream>
-
 #include "VROSplatRenderPass.h"
 #include "VROChoreographer.h"
+
+// From @viro-external/render-passes — splat-pass links against
+// libviro_external_render_passes.so to reach this. Direct
+// setCustomPostOpaquePass calls are deprecated: a second registrant would
+// silently overwrite splat, so the multiplex is now the sole owner of the
+// choreographer's custom-post-opaque slot. See render-passes/doc/§0.
+#include "ViroExternalPassRegistry.h"
 
 namespace viroexternal {
 namespace splat {
@@ -17,32 +22,25 @@ RegisterResult ViroSplatPassRegistry::attach(
         const std::shared_ptr<VROChoreographer> &choreo,
         const SplatPassConfig &cfg) {
     auto pass = std::make_shared<VROSplatRenderPass>(cfg);
-    choreo->setCustomPostOpaquePass(pass);
-
-    std::ostringstream oss;
-    oss << "splat-" << _idCounter.fetch_add(1, std::memory_order_relaxed);
-    std::string id = oss.str();
+    auto result = viroexternal::renderpasses::ViroExternalPassRegistry::shared()
+                      .attachChild(choreo, pass, cfg.priority);
 
     {
         std::lock_guard<std::mutex> lock(_mutex);
-        _entries.emplace(id, Entry{pass, choreo});
+        _entries.emplace(result.id, Entry{pass, choreo});
     }
-    return {id, pass};
+    return {result.id, pass};
 }
 
 bool ViroSplatPassRegistry::detach(const std::string &id) {
-    Entry entry;
     {
         std::lock_guard<std::mutex> lock(_mutex);
         auto it = _entries.find(id);
         if (it == _entries.end()) return false;
-        entry = std::move(it->second);
         _entries.erase(it);
     }
-    if (auto choreo = entry.choreo.lock()) {
-        choreo->setCustomPostOpaquePass(nullptr);
-    }
-    return true;
+    return viroexternal::renderpasses::ViroExternalPassRegistry::shared()
+        .detachChild(id);
 }
 
 std::shared_ptr<VROSplatRenderPass> ViroSplatPassRegistry::find(

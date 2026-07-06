@@ -27,7 +27,7 @@ export type ViroMuxVideoProps = {
   materialName: string;
 } & ViroMuxVideoEvents;
 
-function buildHlsUrl(playbackId: string, tokens?: MuxTokens): string {
+export function buildHlsUrl(playbackId: string, tokens?: MuxTokens): string {
   const base = `https://stream.mux.com/${encodeURIComponent(playbackId)}.m3u8`;
   if (!tokens?.playback && !tokens?.drm) return base;
   const params = new URLSearchParams();

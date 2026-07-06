@@ -70,6 +70,19 @@ add_library(viro_renderer SHARED IMPORTED)
 set_target_properties(viro_renderer PROPERTIES
     IMPORTED_LOCATION "${VIROCORE_LIB_DIR}/libviro_renderer.so")
 
+# @viro-external/render-passes hosts the multiplex + ViroExternalPassRegistry.
+# Splat-pass now attaches through the multiplex, so it's a hard link dep.
+# The host is expected to `add_subdirectory` render-passes BEFORE splat-pass,
+# which registers the `viro_external_render_passes` target with propagated
+# PUBLIC includes. No `IMPORTED` fallback — this matches the pattern the
+# host CMake already uses for splat-pass itself.
+if(NOT TARGET viro_external_render_passes)
+    message(FATAL_ERROR
+        "splat_pass: expected CMake target `viro_external_render_passes`. "
+        "Host must add_subdirectory @viro-external/render-passes/native BEFORE splat-pass. "
+        "See render-passes/TASKS.md host-wiring step.")
+endif()
+
 target_link_libraries(splat_pass
     PRIVATE
     ${log_lib}
@@ -77,6 +90,7 @@ target_link_libraries(splat_pass
     ${EGL_lib}
     ${GLESv3_lib}
     viro_renderer
+    viro_external_render_passes
 )
 
 target_compile_options(splat_pass PRIVATE

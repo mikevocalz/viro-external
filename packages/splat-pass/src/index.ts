@@ -75,7 +75,7 @@ export async function registerSplatPass(
     useSplatPassStore.getState().deviceProfile.maxSplats ??
     defaults.maxSplatsDefault;
 
-  const id = await native.registerPass({
+  const id = await native.registerPass(opts.sceneNavTag, {
     uri: opts.source.uri,
     format: opts.source.format,
     maxSplats,

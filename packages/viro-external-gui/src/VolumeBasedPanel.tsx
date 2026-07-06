@@ -44,6 +44,7 @@ export function VolumeBasedPanel(props: VolumeBasedPanelProps): React.ReactEleme
     rotation,
     scale,
     movable,
+    tag,
     dragType,
     dragPlane,
     axisLock,
@@ -72,6 +73,7 @@ export function VolumeBasedPanel(props: VolumeBasedPanelProps): React.ReactEleme
   return (
     <MovableNode
       movable={movable}
+      tag={tag}
       dragType={dragType}
       dragPlane={dragPlane}
       axisLock={axisLock}
