@@ -60,3 +60,4 @@ export {
 export { Keyboard3D, type Keyboard3DProps } from "./Keyboard3D";
 export { UserAccountPanel, type UserAccountPanelProps } from "./UserAccountPanel";
 export { DecaTheme, registerDecaTheme } from "./decaTheme";
+export { ClippedImage3D, type ClippedImage3DProps } from "./ClippedImage3D";

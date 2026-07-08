@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   ViroAnimations,
   ViroBox,
@@ -147,8 +147,13 @@ function Petal(props: {
   const { item, rotDeg, plate, edge, midR, chord, depth, open, delayMs, dragging, onSelect, onFocus } = props;
   const [hovered, setHovered] = useState(false);
   const [pressed, setPressed] = useState(false);
+  const downSeen = useRef(false); // DOWN arrived for the in-flight press
   const micro = pressed ? "vxgMicroPress" : hovered ? "vxgMicroHoverIn" : "vxgMicroHoverOut";
-  const focus = (h: boolean) => { setHovered(h); if (h) onFocus?.(); };
+  const focus = (h: boolean) => {
+    console.log(`[VXG] petal "${item.label ?? item.icon}" hover=${h}`);
+    setHovered(h);
+    if (h) onFocus?.();
+  };
 
   return (
     <ViroNode rotation={[0, 0, rotDeg]}>
@@ -169,9 +174,17 @@ function Petal(props: {
           animation={{ name: micro, run: true, loop: false }}
           onHover={focus}
           // Fire on ClickDown (state 1) — instant, no down→up round-trip lag.
+          // The fork intermittently SWALLOWS the DOWN (ray target flickers at
+          // press; verified on-device 2026-07-08: clickState=2 with no 1) — UP
+          // is always delivered, so select on UP when DOWN never arrived.
           onClickState={(state: number) => {
-            if (state === 1) { setPressed(true); if (open) onSelect(item); }
-            else if (state === 2) setPressed(false);
+            console.log(`[VXG] petal "${item.label ?? item.icon}" clickState=${state} open=${open}`);
+            if (state === 1) { downSeen.current = true; setPressed(true); if (open) onSelect(item); }
+            else if (state === 2) {
+              setPressed(false);
+              if (!downSeen.current && open) onSelect(item);
+              downSeen.current = false;
+            }
           }}
         >
           {/* Hit surface — thin box (reliable hit-testing) with additive-black
@@ -226,6 +239,7 @@ function Hub(props: {
   const { centerR, open, onToggle, onFocus } = props;
   const [hovered, setHovered] = useState(false);
   const [pressed, setPressed] = useState(false);
+  const downSeen = useRef(false); // DOWN arrived for the in-flight press
   const micro = pressed ? "vxgMicroPress" : hovered ? "vxgMicroHoverIn" : "vxgMicroHoverOut";
   const focus = (h: boolean) => { setHovered(h); if (h) onFocus?.(); };
   const plate = useMemo(
@@ -249,9 +263,14 @@ function Hub(props: {
         animation={{ name: micro, run: true, loop: false }}
         onHover={focus}
         // Fire on ClickDown (state 1) — hub opens/closes the instant you press.
+        // UP-fallback: the fork intermittently swallows DOWN (see Petal).
         onClickState={(state: number) => {
-          if (state === 1) { setPressed(true); onToggle(); }
-          else if (state === 2) setPressed(false);
+          if (state === 1) { downSeen.current = true; setPressed(true); onToggle(); }
+          else if (state === 2) {
+            setPressed(false);
+            if (!downSeen.current) onToggle();
+            downSeen.current = false;
+          }
         }}
       >
         <ViroBox
@@ -284,6 +303,7 @@ export function RadialMenu3D(props: RadialMenu3DProps): React.ReactElement {
   const [pinned, setPinned] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [pinHovered, setPinHovered] = useState(false);
+  const pinDownSeen = useRef(false); // DOWN arrived for the in-flight pin press
 
   const centerR = radius * 0.23;
   const innerR = radius * 0.44;
@@ -380,7 +400,14 @@ export function RadialMenu3D(props: RadialMenu3DProps): React.ReactElement {
       <ViroNode
         position={[0, -(outerR + 0.07), 0]}
         onHover={(h: boolean) => setPinHovered(h)}
-        onClickState={(state: number) => { if (state === 1) setPinned((p) => !p); }}
+        // UP-fallback: the fork intermittently swallows DOWN (see Petal).
+        onClickState={(state: number) => {
+          if (state === 1) { pinDownSeen.current = true; setPinned((p) => !p); }
+          else if (state === 2) {
+            if (!pinDownSeen.current) setPinned((p) => !p);
+            pinDownSeen.current = false;
+          }
+        }}
       >
         <ViroBox
           position={[0, 0, 0.008]}

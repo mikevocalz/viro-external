@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   ViroAnimations,
   ViroGeometry,
-  ViroImage,
   ViroMaterials,
   ViroNode,
   ViroQuad,
@@ -21,6 +20,7 @@ import {
   type ViroMuxPlaylistEntry,
 } from "react-native-viro-mux";
 import { create } from "zustand";
+import { ClippedImage3D } from "./ClippedImage3D";
 import { FluentMaterials, registerFluentMaterials } from "./materials";
 import { roundedPlateBuffers } from "./roundedPlate";
 import { arcPlateBuffers, makeArcFrame, polarPose, type ArcFrame } from "./arc";
@@ -339,15 +339,16 @@ export function MuxPlayerPanel(props: MuxPlayerPanelProps): React.ReactElement {
   const entries = playlist ?? [];
   const drawerW = Math.max(0.44, width * 0.36);
   const entryH = 0.13;
-  const drawerH = Math.max(entryH * entries.length + 0.04, entryH + 0.04);
-  // Closed: tucked over the video's left region (opacity 0 → invisible AND
-  // hit-test-culled); open: fully clear of the panel's left edge. The node
-  // stays MOUNTED — flat: positionX+opacity animate; arc: the drawer hangs
-  // off a pivot at the cylinder AXIS and rotateY+opacity animate, so it
-  // swings along the same concentric arc.
-  const drawerClosedX = -width / 2 + drawerW / 2 - 0.06;
+  // FULL component height — header top edge down to control-bar bottom edge
+  // (the drawer is a sibling of the whole dock, not a floating strip).
+  const drawerH = height + headerH + ctrlH + 0.08;
+  const drawerY = (headerH - ctrlH) / 2;
+  // The drawer lives BEHIND the video plane (larger radius on the arc,
+  // −z flat) and slides out laterally from behind the video's left edge —
+  // closed it is angularly CENTERED on the video, fully occluded.
+  const DRAWER_DZ = -0.022;
+  const drawerClosedX = 0;
   const drawerOpenX = -width / 2 - drawerW / 2 - 0.05;
-  const drawerY = height / 2 - drawerH / 2;
 
   // Arc drawer pivot angles. Content is built centered at φ=0 (axis-local);
   // pivot rotateY ρ shows content at world angle −ρ (right-handed +Y), so
@@ -358,7 +359,7 @@ export function MuxPlayerPanel(props: MuxPlayerPanelProps): React.ReactElement {
     const thetaD = drawerW / Rc;
     const thetaLeftEdge = -arcF.arcAngle / 2;
     const thetaOpen = thetaLeftEdge - 0.05 / Rc - thetaD / 2;
-    const thetaClosed = thetaLeftEdge + thetaD / 2 - 0.06 / Rc;
+    const thetaClosed = 0; // dead-center behind the video
     return {
       openDeg: (-thetaOpen * 180) / Math.PI,
       closedDeg: (-thetaClosed * 180) / Math.PI,
@@ -385,6 +386,17 @@ export function MuxPlayerPanel(props: MuxPlayerPanelProps): React.ReactElement {
     }
     return { open, close };
   }, [animKey, arcDrawer, drawerOpenX, drawerClosedX]);
+
+  // STABLE animation object — a fresh identity every render (poll ticks every
+  // 500ms) re-arms the native animation mid-flight and stutters the slide.
+  const drawerAnim = useMemo(
+    () => ({
+      name: panel.drawerOpen ? drawerAnims.open : drawerAnims.close,
+      run: true,
+      loop: false,
+    }),
+    [panel.drawerOpen, drawerAnims]
+  );
 
   // ── Transport ─────────────────────────────────────────────────────────
   const activeUrl = useMemo(() => {
@@ -469,6 +481,17 @@ export function MuxPlayerPanel(props: MuxPlayerPanelProps): React.ReactElement {
     const s = getMuxPanelState(panelId);
     const id = s.textureId;
     if (id != null) {
+      // The surface only ever loads the FIRST url — if the persisted/queued
+      // selection is a different entry, switch to it now (native play() on
+      // the same texture re-prepares with the new source).
+      const activeEntry = entries[Math.min(s.activeIndex, entries.length - 1)];
+      if (activeEntry && initialUrl.current) {
+        const wantUrl = buildHlsUrl(activeEntry.playbackId, tokens);
+        if (wantUrl !== initialUrl.current) {
+          console.log(`[VXMUX] panel ${panelId}: bind → switch to persisted "${activeEntry.title}"`);
+          getPlayer().play(id, wantUrl, loop, muted);
+        }
+      }
       const resume = s.positionByIndex[s.activeIndex] ?? s.positionSec;
       if (resume > 2 && typeof getPlayer().seekTo === "function") {
         getPlayer().seekTo(id, resume);
@@ -479,7 +502,7 @@ export function MuxPlayerPanel(props: MuxPlayerPanelProps): React.ReactElement {
       }
     }
     onReady?.();
-  }, [panelId, onReady]);
+  }, [panelId, entries, tokens, loop, muted, onReady]);
 
   const togglePlay = useCallback(() => {
     const s = getMuxPanelState(panelId);
@@ -496,19 +519,22 @@ export function MuxPlayerPanel(props: MuxPlayerPanelProps): React.ReactElement {
       const s = getMuxPanelState(panelId);
       const entry = entries[index];
       if (!entry || !s.drawerOpen) return;
-      if (s.textureId == null) {
-        console.log(`[VXMUX] panel ${panelId}: select ignored — texture not bound yet`);
-        return;
-      }
       const nextUrl = buildHlsUrl(entry.playbackId, tokens);
       console.log(`[VXMUX] panel ${panelId}: playlist → "${entry.title}" (${entry.playbackId})`);
-      getPlayer().play(s.textureId, nextUrl, loop, muted);
       // Remember where the OUTGOING entry was; restore the incoming one.
       const positionByIndex = { ...s.positionByIndex, [s.activeIndex]: s.positionSec };
       const resume = positionByIndex[index] ?? 0;
-      if (resume > 2 && typeof getPlayer().seekTo === "function") {
-        getPlayer().seekTo(s.textureId, resume);
-        console.log(`[VXMUX] resume at ${resume.toFixed(1)}s`);
+      // NEVER drop a select: if the texture isn't bound yet (cold open,
+      // rebind in flight) the store still moves to the chosen entry —
+      // handleReady plays the ACTIVE entry once the surface binds.
+      if (s.textureId != null) {
+        getPlayer().play(s.textureId, nextUrl, loop, muted);
+        if (resume > 2 && typeof getPlayer().seekTo === "function") {
+          getPlayer().seekTo(s.textureId, resume);
+          console.log(`[VXMUX] resume at ${resume.toFixed(1)}s`);
+        }
+      } else {
+        console.log(`[VXMUX] panel ${panelId}: select queued — plays on bind`);
       }
       const immersive = entry.projection === "360";
       if (immersive !== s.immersive) console.log(`[VXMUX] mode → ${immersive ? "immersive" : "panel"}`);
@@ -548,13 +574,38 @@ export function MuxPlayerPanel(props: MuxPlayerPanelProps): React.ReactElement {
   // sphere stops rendering and the panel returns, then the cover lifts.
   const [exitPhase, setExitPhase] = React.useState<"idle" | "cover" | "lift">("idle");
   const exitSmooth = React.useCallback(() => {
+    // Exiting 360 PAUSES playback — the video must not keep playing (or
+    // sounding) behind the returning panel (user requirement, 2026-07-08).
+    const s = getMuxPanelState(panelId);
+    if (s.textureId != null) {
+      try {
+        getPlayer().pause(s.textureId);
+      } catch {
+        // native module missing — nothing to pause
+      }
+      patchPanel(panelId, { isPlaying: false });
+    }
     setExitPhase("cover");
     setTimeout(() => {
       setImmersive(false);
       setExitPhase("lift");
       setTimeout(() => setExitPhase("idle"), 360);
     }, 240);
-  }, [setImmersive]);
+  }, [panelId, setImmersive]);
+
+  // Exit pill press: fire on DOWN (instant), UP-fallback for the fork's
+  // intermittently swallowed DOWN events (see RadialMenu3D Petal).
+  const exitDownSeen = useRef(false);
+  const exitClickState = React.useCallback(
+    (state: number) => {
+      if (state === 1) { exitDownSeen.current = true; exitSmooth(); }
+      else if (state === 2) {
+        if (!exitDownSeen.current) exitSmooth();
+        exitDownSeen.current = false;
+      }
+    },
+    [exitSmooth]
+  );
 
   // Keep the sphere mounted through its 300ms fade-out.
   const [sphereLinger, setSphereLinger] = React.useState(panel.immersive);
@@ -673,11 +724,11 @@ export function MuxPlayerPanel(props: MuxPlayerPanelProps): React.ReactElement {
     [arcF, trackLeft, trackW, playedFrac]
   );
   const drawerPlate = useMemo(
-    () => (arcF ? arcPlateBuffers(arcF, -drawerW / 2, drawerW / 2, drawerH, 0) : null),
+    () => (arcF ? arcPlateBuffers(arcF, -drawerW / 2, drawerW / 2, drawerH, DRAWER_DZ) : null),
     [arcF, drawerW, drawerH]
   );
   const rowPlate = useMemo(
-    () => (arcF ? arcPlateBuffers(arcF, -(drawerW - 0.02) / 2, (drawerW - 0.02) / 2, entryH - 0.012, 0.004) : null),
+    () => (arcF ? arcPlateBuffers(arcF, -(drawerW - 0.02) / 2, (drawerW - 0.02) / 2, entryH - 0.012, DRAWER_DZ + 0.004) : null),
     [arcF, drawerW, entryH]
   );
   const pillPlate = useMemo(() => roundedPlateBuffers(0.36, 0.1, 0.05), []);
@@ -720,19 +771,16 @@ export function MuxPlayerPanel(props: MuxPlayerPanelProps): React.ReactElement {
   const drawerRows = entries.map((entry, i) => {
     const rowY = drawerH / 2 - 0.02 - entryH / 2 - i * entryH;
     const active = i === panel.activeIndex;
-    const thumbPoseRow = arcF ? polarPose(arcF, -drawerW / 2 + 0.1, 0.009) : { position: [-drawerW / 2 + 0.1, 0, 0.003] as Vec3, rotation: undefined };
-    const textPoseRow = arcF ? polarPose(arcF, 0.1, 0.009) : { position: [0.1, 0, 0.003] as Vec3, rotation: undefined };
+    const thumbPoseRow = arcF ? polarPose(arcF, -drawerW / 2 + 0.1, DRAWER_DZ + 0.009) : { position: [-drawerW / 2 + 0.1, 0, 0.003] as Vec3, rotation: undefined };
+    const textPoseRow = arcF ? polarPose(arcF, 0.1, DRAWER_DZ + 0.009) : { position: [0.1, 0, 0.003] as Vec3, rotation: undefined };
     return (
       <ViroNode
         key={`${entry.playbackId}-${i}`}
         position={[0, rowY, arcF ? 0 : 0.004]}
-        opacity={0.15}
-        animation={{
-          name: panel.drawerOpen ? "vxgMuxEntryIn" : "vxgMuxEntryOut",
-          run: true,
-          loop: false,
-          delay: panel.drawerOpen ? 60 + i * 50 : 0,
-        }}
+        // No per-row stagger animation: N concurrent opacity animations on top
+        // of the pivot swing stutter the slide (verified on-device 2026-07-08).
+        // The drawer's single rotateY+opacity animation IS the reveal — row
+        // opacity is inherited multiplicatively from the drawer node.
         dragType={GIZMO}
         onDrag={noopDrag}
         onClick={() => selectEntry(i)}
@@ -750,7 +798,7 @@ export function MuxPlayerPanel(props: MuxPlayerPanelProps): React.ReactElement {
                 them. Flat additive-black strip catches the click (the seek
                 bar's proven hitStrip pattern) — invisible, rides proud of the
                 thumbnail/text at 14mm. */}
-            <ViroNode {...polarPose(arcF, 0, 0.014)}>
+            <ViroNode {...polarPose(arcF, 0, DRAWER_DZ + 0.014)}>
               <ViroQuad
                 width={drawerW - 0.02}
                 height={entryH - 0.012}
@@ -766,11 +814,12 @@ export function MuxPlayerPanel(props: MuxPlayerPanelProps): React.ReactElement {
           <ViroQuad width={drawerW - 0.02} height={entryH - 0.012} materials={[active ? M.rowHover : M.row]} />
         )}
         <ViroNode position={thumbPoseRow.position} rotation={thumbPoseRow.rotation}>
-          <ViroImage
+          {/* Geometry-clipped rounded corners — no square spill on the row. */}
+          <ClippedImage3D
             source={{ uri: `https://image.mux.com/${entry.playbackId}/thumbnail.png?width=256` }}
             width={0.17}
             height={0.0956}
-            ignoreEventHandling
+            cornerRadius={0.012}
           />
         </ViroNode>
         <ViroNode position={textPoseRow.position} rotation={textPoseRow.rotation}>
@@ -819,11 +868,7 @@ export function MuxPlayerPanel(props: MuxPlayerPanelProps): React.ReactElement {
                 position={[0, drawerY, arcF.axisZ]}
                 rotation={[0, arcDrawer.closedDeg, 0]}
                 opacity={0.01}
-                animation={{
-                  name: panel.drawerOpen ? drawerAnims.open : drawerAnims.close,
-                  run: true,
-                  loop: false,
-                }}
+                animation={drawerAnim}
               >
                 <ViroGeometry
                   vertices={drawerPlate.vertices}
@@ -838,13 +883,9 @@ export function MuxPlayerPanel(props: MuxPlayerPanelProps): React.ReactElement {
               </ViroNode>
             ) : (
               <ViroNode
-                position={[drawerClosedX, drawerY, -0.02]}
+                position={[drawerClosedX, drawerY, DRAWER_DZ]}
                 opacity={0.01}
-                animation={{
-                  name: panel.drawerOpen ? drawerAnims.open : drawerAnims.close,
-                  run: true,
-                  loop: false,
-                }}
+                animation={drawerAnim}
               >
                 <ViroQuad width={drawerW} height={drawerH} materials={[M.drawer]} dragType={GIZMO} onDrag={noopDrag} />
                 {drawerRows}
@@ -1150,12 +1191,15 @@ export function MuxPlayerPanel(props: MuxPlayerPanelProps): React.ReactElement {
             visible={panel.immersive}
             animation={{ name: panel.immersive ? "vxgMuxFadeIn300" : "vxgMuxFadeOut300", run: true, loop: false }}
           >
+            {/* NO scale V-flip: verified on-device 2026-07-08 — with
+                scale [1,-1,1] the 360 video reads upside down (the OES
+                material path already lands frames right-side-up on sphere
+                UVs; only the FLAT mesh needs the JS texcoord flip). */}
             <ViroSphere
               radius={10}
               widthSegmentCount={30}
               heightSegmentCount={30}
               facesOutward={false}
-              scale={[1, -1, 1]}
               position={[0, 0, 2.0]}
               materials={[videoMaterial]}
               ignoreEventHandling
@@ -1171,19 +1215,21 @@ export function MuxPlayerPanel(props: MuxPlayerPanelProps): React.ReactElement {
             opacity={0}
             animation={{ name: "vxgMuxFadeIn300", run: true, loop: false }}
           >
-            <ViroNode dragType={GIZMO} onDrag={noopDrag} onClick={exitSmooth}>
+            <ViroNode dragType={GIZMO} onDrag={noopDrag} onClickState={exitClickState}>
               {/* SAFETY: the pill plate is custom ViroGeometry — rays miss it
                   (drawer-row bug). Without this flat hitStrip the exit is
-                  unclickable and the user is trapped in 360. Never remove. */}
+                  unclickable and the user is trapped in 360. Oversized 2×
+                  beyond the pill — an escape hatch wants a forgiving target.
+                  Never remove. */}
               <ViroQuad
-                width={0.38}
-                height={0.12}
+                width={0.6}
+                height={0.22}
                 position={[0, 0, 0.006]}
                 materials={[M.hitStrip]}
                 opacity={0.15}
                 dragType={GIZMO}
                 onDrag={noopDrag}
-                onClick={exitSmooth}
+                onClickState={exitClickState}
               />
               <ViroGeometry
                 vertices={pillPlate.vertices}

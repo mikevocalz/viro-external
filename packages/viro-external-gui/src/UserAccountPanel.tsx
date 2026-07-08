@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { ViroImage, ViroGeometry, ViroNode } from "@reactvision/react-viro";
+import { ViroGeometry, ViroNode } from "@reactvision/react-viro";
+import { ClippedImage3D } from "./ClippedImage3D";
 import type { Vec3 } from "react-native-viro-mux";
 import { roundedPlateBuffers } from "./roundedPlate";
 import { annularArcOutlineBuffers } from "./annularArc";
@@ -67,9 +68,11 @@ export function UserAccountPanel(props: UserAccountPanelProps): React.ReactEleme
         materials={[hovered ? DecaTheme.plateHover : DecaTheme.plate]}
         onHover={(h: boolean) => setHovered(h)}
       />
-      {/* Avatar + ember ring. */}
+      {/* Avatar + ember ring. ClippedImage3D = geometry-clipped circle — a
+          bare ViroImage renders the full square source past the ring
+          (there is no overflow:hidden in 3D; clipping IS the mesh). */}
       {source !== undefined && source !== null && (
-        <ViroImage source={source} width={AV} height={AV} position={[avX, 0, 0.004]} ignoreEventHandling />
+        <ClippedImage3D source={source} width={AV} height={AV} position={[avX, 0, 0.004]} />
       )}
       <ViroGeometry
         vertices={avRing.vertices} normals={avRing.normals} texcoords={avRing.texcoords}

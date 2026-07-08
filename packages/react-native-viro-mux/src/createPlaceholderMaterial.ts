@@ -24,11 +24,11 @@ export function createPlaceholderMaterial(name: string): void {
   ViroMaterials.createMaterials({
     [name]: {
       cullMode: "None",
-      // Opaque bucket: video must sort BEFORE alpha chrome on nearby planes —
-      // the default Alpha blend puts it in the transparent bucket where it
-      // sorts ambiguously against the control bar / header (chrome "fades
-      // over video"). PLAYER-ARCHITECTURE.md Q1 lever.
-      blendMode: "None",
+      // NO blendMode override. blendMode:"None" (opaque bucket) renders the
+      // OES external texture WHITE on this fork (verified on-device
+      // 2026-07-08) — the opaque pass doesn't get the samplerExternalOES
+      // shader rewrite. Chrome-sort issues must use the OTHER Q1 lever
+      // (chrome off the video plane), never this one.
       diffuseTexture: {
         uri: `data:image/png;base64,${ONE_BY_ONE_TRANSPARENT_PNG_BASE64}`,
       },
