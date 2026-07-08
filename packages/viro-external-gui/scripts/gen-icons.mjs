@@ -5,7 +5,7 @@ import { createRequire } from "node:module";
 import sharp from "sharp";
 
 const require = createRequire(import.meta.url);
-const ICONS = ["x", "pin", "pin-off", "chevron-up", "chevron-down", "play", "pause", "volume-2", "volume-x", "menu", "globe", "mic", "video", "image", "settings", "message-square", "eye"];
+const ICONS = ["x", "pin", "pin-off", "chevron-up", "chevron-down", "play", "pause", "volume-2", "volume-x", "menu", "globe", "mic", "video", "image", "settings", "message-square", "eye", "rewind", "fast-forward", "skip-back", "skip-forward"];
 const SIZE = 128;
 
 for (const name of ICONS) {

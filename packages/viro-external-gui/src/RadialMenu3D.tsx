@@ -174,7 +174,17 @@ function Petal(props: {
             else if (state === 2) setPressed(false);
           }}
         >
-          {/* The rounded plate itself is the hit surface — no square box. */}
+          {/* Hit surface — thin box (reliable hit-testing) with additive-black
+              material: renders so it's not culled, adds nothing so no visible
+              box. The plate is also hittable as a fallback. */}
+          <ViroBox
+            position={[0, midR, 0.008]}
+            width={chord * 1.05}
+            height={depth * 1.1}
+            length={0.004}
+            materials={[RM.hit]}
+            opacity={0.15}
+          />
           <Plate buffers={plate} materials={[hovered ? RM.plateHover : RM.plate]} position={[0, 0, 0.002]} hittable />
           <Plate
             buffers={edge}
@@ -244,6 +254,14 @@ function Hub(props: {
           else if (state === 2) setPressed(false);
         }}
       >
+        <ViroBox
+          position={[0, 0, 0.008]}
+          width={centerR * 2.4}
+          height={centerR * 2.4}
+          length={0.004}
+          materials={[RM.hit]}
+          opacity={0.15}
+        />
         <Plate buffers={plate} materials={[hovered ? RM.plateHover : RM.plate]} position={[0, 0, 0.002]} hittable />
         <Plate buffers={ring} materials={[open || hovered ? RM.edgeHot : RM.edge]} position={[0, 0, 0.004]} />
         {/* Both icons stay mounted; opacity cross-fade. Swapping the image
@@ -364,6 +382,14 @@ export function RadialMenu3D(props: RadialMenu3DProps): React.ReactElement {
         onHover={(h: boolean) => setPinHovered(h)}
         onClickState={(state: number) => { if (state === 1) setPinned((p) => !p); }}
       >
+        <ViroBox
+          position={[0, 0, 0.008]}
+          width={0.052}
+          height={0.052}
+          length={0.004}
+          materials={[RM.hit]}
+          opacity={0.15}
+        />
         <Plate buffers={pinPlate} materials={[pinHovered ? RM.plateHover : RM.plate]} position={[0, 0, 0.002]} hittable />
         <Plate buffers={pinRing} materials={[pinned ? RM.edge : RM.edgeHot]} position={[0, 0, 0.003]} />
         <LucideIcon name="pin" size={0.024} position={[0, 0, 0.005]} opacity={pinned ? 1 : 0.01} />

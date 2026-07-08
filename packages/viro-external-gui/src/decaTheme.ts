@@ -37,6 +37,9 @@ export function registerDecaTheme(): void {
     // not culled) but adds nothing to the framebuffer → truly invisible on any
     // background. Kills the faint square box behind the round menu/panel shapes.
     // (The rotation glitch was the 72 MP 360 texture, not this — safe to keep.)
-    [DecaTheme.hit]: { diffuseColor: "#000000", lightingModel: "Constant", blendMode: "Add" },
+    // writesToDepthBuffer:false — else the invisible box still carves a
+    // box-shaped DEPTH hole over whatever renders behind it (360 background),
+    // showing up as a phantom box. Same fix as decax9's orbProxy.
+    [DecaTheme.hit]: { diffuseColor: "#000000", lightingModel: "Constant", blendMode: "Add", writesToDepthBuffer: false },
   });
 }

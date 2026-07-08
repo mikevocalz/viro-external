@@ -10,6 +10,7 @@ export {
   deriveCylinderArc,
 } from "./CylinderPanel";
 export { HolographicSlate, type HolographicSlateProps } from "./HolographicSlate";
+export { DecaSlate, type DecaSlateProps, type SlateMode } from "./DecaSlate";
 export { SceneZone, SCENE_ZONES, type SceneZoneProps, type SceneZoneName } from "./SceneZone";
 export { MovablePanelContext, useInsideMovablePanel } from "./MovablePanelContext";
 export { useGuiStore, type GuiState } from "./guiStore";

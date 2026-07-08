@@ -209,6 +209,10 @@ export function ViroMuxBridgeSurface(props: ViroMuxBridgeSurfaceProps): React.Re
       return;
     }
     handleRef.current = handle;
+    // Lifecycle forensics: the effect cleanup is the ONLY caller of native
+    // stop() — logging register/cleanup makes a mid-playback teardown
+    // attributable (deps change vs unmount) instead of invisible.
+    console.log(`[VXMUX] surface register mat=${materialName} url=${resolvedUrl}`);
 
     const startedAt = Date.now();
     const poll = setInterval(() => {
@@ -237,6 +241,7 @@ export function ViroMuxBridgeSurface(props: ViroMuxBridgeSurfaceProps): React.Re
     }, READY_POLL_MS);
 
     return () => {
+      console.log(`[VXMUX] surface CLEANUP mat=${materialName} tex=${handle.id} — stopping player`);
       cancelled = true;
       clearInterval(poll);
       startedRef.current = false;

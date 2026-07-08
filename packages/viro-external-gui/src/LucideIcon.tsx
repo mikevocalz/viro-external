@@ -24,6 +24,10 @@ const ICONS = {
   settings: require("../assets/icons/settings.png"),
   "message-square": require("../assets/icons/message-square.png"),
   eye: require("../assets/icons/eye.png"),
+  rewind: require("../assets/icons/rewind.png"),
+  "fast-forward": require("../assets/icons/fast-forward.png"),
+  "skip-back": require("../assets/icons/skip-back.png"),
+  "skip-forward": require("../assets/icons/skip-forward.png"),
 } as const;
 
 export type LucideIconName = keyof typeof ICONS;

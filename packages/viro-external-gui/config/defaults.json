@@ -34,24 +34,112 @@
   "holographicSlate": {
     "titleBarHeightMeters": 0.05,
     "titleBarMargin": 0.01,
-    "dimensions": { "width": 1.6, "height": 0.9 },
+    "dimensions": {
+      "width": 1.6,
+      "height": 0.9
+    },
     "renderingGroupId": 0
   },
   "zones": {
-    "primary":         { "position": [0, -0.10, -1.5], "yawDeg": 0,    "pitchDeg": 0 },
-    "peripheralLeft":  { "position": [-0.96, -0.10, -1.15], "yawDeg": 40, "pitchDeg": 0 },
-    "peripheralRight": { "position": [0.96, -0.10, -1.15], "yawDeg": -40, "pitchDeg": 0 },
-    "dock":            { "position": [0, -0.55, -1.0], "yawDeg": 0,   "pitchDeg": 20 },
-    "statusBar":       { "position": [0, 0.55, -1.4], "yawDeg": 0,   "pitchDeg": -12 },
-    "nearLeft":        { "position": [-0.32, -0.32, -0.55], "yawDeg": 0, "pitchDeg": 0 },
-    "nearRight":       { "position": [0.32, -0.32, -0.55], "yawDeg": 0, "pitchDeg": 0 }
+    "primary": {
+      "position": [
+        0,
+        -0.1,
+        -1.5
+      ],
+      "yawDeg": 0,
+      "pitchDeg": 0
+    },
+    "peripheralLeft": {
+      "position": [
+        -0.96,
+        -0.1,
+        -1.15
+      ],
+      "yawDeg": 40,
+      "pitchDeg": 0
+    },
+    "peripheralRight": {
+      "position": [
+        0.96,
+        -0.1,
+        -1.15
+      ],
+      "yawDeg": -40,
+      "pitchDeg": 0
+    },
+    "dock": {
+      "position": [
+        0,
+        -0.55,
+        -1.0
+      ],
+      "yawDeg": 0,
+      "pitchDeg": 20
+    },
+    "statusBar": {
+      "position": [
+        0,
+        0.55,
+        -1.4
+      ],
+      "yawDeg": 0,
+      "pitchDeg": -12
+    },
+    "nearLeft": {
+      "position": [
+        -0.32,
+        -0.32,
+        -0.55
+      ],
+      "yawDeg": 0,
+      "pitchDeg": 0
+    },
+    "nearRight": {
+      "position": [
+        0.32,
+        -0.32,
+        -0.55
+      ],
+      "yawDeg": 0,
+      "pitchDeg": 0
+    },
+    "presence": {
+      "position": [
+        0,
+        -0.15,
+        -2.3
+      ],
+      "yawDeg": 0,
+      "pitchDeg": 0
+    }
   },
   "comfort": {
     "minDepthMeters": 0.5,
-    "primaryDepthRangeMeters": [1.0, 2.0],
+    "primaryDepthRangeMeters": [
+      1.0,
+      2.0
+    ],
     "maxConeYawDeg": 30,
     "maxConePitchDeg": 30,
     "minParallelPanelZSeparationMeters": 0.3,
     "minInteractiveSeparationMeters": 0.05
+  },
+  "slateStates": {
+    "pill": {
+      "width": 0.62,
+      "height": 0.16
+    },
+    "panel": {
+      "width": 1.2,
+      "height": 0.72
+    },
+    "wide": {
+      "width": 1.6,
+      "height": 0.9
+    },
+    "morphDurationMs": 300,
+    "contentStaggerMs": 80,
+    "easing": "EaseOut"
   }
 }

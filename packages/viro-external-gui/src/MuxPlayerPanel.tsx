@@ -161,7 +161,9 @@ function registerMuxPanelMaterials(): void {
     [M.fill]: { diffuseColor: "#FF8896C8", lightingModel: "Constant" },
     // Click-to-seek strips: additive-black renders (stays hit-testable, not
     // opacity-0-culled) but adds nothing → truly invisible, no faint box.
-    [M.hitStrip]: { diffuseColor: "#FF000000", lightingModel: "Constant", blendMode: "Add" },
+    // writesToDepthBuffer:false — invisible hit surfaces must never carve
+    // depth holes over content behind them (phantom-box bug).
+    [M.hitStrip]: { diffuseColor: "#FF000000", lightingModel: "Constant", blendMode: "Add", writesToDepthBuffer: false },
     // Light drawer — thumbnails read against near-white, not dark chrome.
     [M.drawer]: { diffuseColor: "#F6EDEFF4", lightingModel: "Constant" },
     [M.row]: { diffuseColor: "#14202430", lightingModel: "Constant" },
@@ -736,13 +738,30 @@ export function MuxPlayerPanel(props: MuxPlayerPanelProps): React.ReactElement {
         onClick={() => selectEntry(i)}
       >
         {arcF && rowPlate ? (
-          <ViroGeometry
-            vertices={rowPlate.vertices}
-            normals={rowPlate.normals}
-            texcoords={rowPlate.texcoords}
-            triangleIndices={rowPlate.triangleIndices}
-            materials={[active ? M.rowHover : M.row]}
-          />
+          <>
+            <ViroGeometry
+              vertices={rowPlate.vertices}
+              normals={rowPlate.normals}
+              texcoords={rowPlate.texcoords}
+              triangleIndices={rowPlate.triangleIndices}
+              materials={[active ? M.rowHover : M.row]}
+            />
+            {/* Curved row plates are custom ViroGeometry — controller rays miss
+                them. Flat additive-black strip catches the click (the seek
+                bar's proven hitStrip pattern) — invisible, rides proud of the
+                thumbnail/text at 14mm. */}
+            <ViroNode {...polarPose(arcF, 0, 0.014)}>
+              <ViroQuad
+                width={drawerW - 0.02}
+                height={entryH - 0.012}
+                materials={[M.hitStrip]}
+                opacity={0.15}
+                dragType={GIZMO}
+                onDrag={noopDrag}
+                onClick={() => selectEntry(i)}
+              />
+            </ViroNode>
+          </>
         ) : (
           <ViroQuad width={drawerW - 0.02} height={entryH - 0.012} materials={[active ? M.rowHover : M.row]} />
         )}
@@ -1153,6 +1172,19 @@ export function MuxPlayerPanel(props: MuxPlayerPanelProps): React.ReactElement {
             animation={{ name: "vxgMuxFadeIn300", run: true, loop: false }}
           >
             <ViroNode dragType={GIZMO} onDrag={noopDrag} onClick={exitSmooth}>
+              {/* SAFETY: the pill plate is custom ViroGeometry — rays miss it
+                  (drawer-row bug). Without this flat hitStrip the exit is
+                  unclickable and the user is trapped in 360. Never remove. */}
+              <ViroQuad
+                width={0.38}
+                height={0.12}
+                position={[0, 0, 0.006]}
+                materials={[M.hitStrip]}
+                opacity={0.15}
+                dragType={GIZMO}
+                onDrag={noopDrag}
+                onClick={exitSmooth}
+              />
               <ViroGeometry
                 vertices={pillPlate.vertices}
                 normals={pillPlate.normals}
