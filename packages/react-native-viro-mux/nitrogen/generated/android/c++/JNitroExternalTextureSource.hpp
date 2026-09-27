@@ -20,7 +20,7 @@ namespace margelo::nitro::viromux {
   using namespace facebook;
 
   /**
-   * The C++ JNI bridge between the C++ struct "NitroExternalTextureSource" and the the Kotlin data class "NitroExternalTextureSource".
+   * The C++ JNI bridge between the C++ struct "NitroExternalTextureSource" and the Kotlin data class "NitroExternalTextureSource".
    */
   struct JNitroExternalTextureSource final: public jni::JavaClass<JNitroExternalTextureSource> {
   public:

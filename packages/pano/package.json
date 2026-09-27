@@ -1,0 +1,36 @@
+{
+  "name": "@viro-external/pano",
+  "version": "0.1.0",
+  "description": "360 pano background for Viro OpenXR: native pano-pass, dual-sampler transitions, preload pipeline (Nitro control plane).",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "files": [
+    "src",
+    "android",
+    "cpp",
+    "nitrogen",
+    "nitro.json",
+    "react-native.config.js",
+    "DECISIONS.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "specs": "nitrogen"
+  },
+  "peerDependencies": {
+    "@reactvision/react-viro": "2.57.x",
+    "react": "*",
+    "react-native": "0.86.0",
+    "react-native-nitro-modules": "0.36.1",
+    "react-native-viro-mux": "workspace:*"
+  },
+  "devDependencies": {
+    "@reactvision/react-viro": "2.57.x",
+    "@types/react": "*",
+    "nitrogen": "0.36.1",
+    "react": "*",
+    "react-native": "0.86.0",
+    "react-native-nitro-modules": "0.36.1",
+    "typescript": "5.6.3"
+  }
+}

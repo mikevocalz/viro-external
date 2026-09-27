@@ -23,18 +23,18 @@
     "specs": "nitrogen"
   },
   "peerDependencies": {
-    "@reactvision/react-viro": "2.56.0",
+    "@reactvision/react-viro": "2.57.x",
     "react": "*",
     "react-native": "0.86.0",
-    "react-native-nitro-modules": "0.35.9"
+    "react-native-nitro-modules": "0.36.1"
   },
   "devDependencies": {
-    "@reactvision/react-viro": "2.56.0",
+    "@reactvision/react-viro": "2.57.x",
     "@types/react": "*",
-    "nitrogen": "0.35.9",
+    "nitrogen": "0.36.1",
     "react": "*",
     "react-native": "0.86.0",
-    "react-native-nitro-modules": "0.35.9",
+    "react-native-nitro-modules": "0.36.1",
     "typescript": "5.6.3"
   }
 }

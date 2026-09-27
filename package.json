@@ -4,5 +4,10 @@
   "packageManager": "pnpm@9.0.0",
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "pnpm": {
+    "overrides": {
+      "@reactvision/react-viro": "link:../viro"
+    }
+  }
 }

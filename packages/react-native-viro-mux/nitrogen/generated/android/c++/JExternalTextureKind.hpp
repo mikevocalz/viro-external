@@ -15,7 +15,7 @@ namespace margelo::nitro::viromux {
   using namespace facebook;
 
   /**
-   * The C++ JNI bridge between the C++ enum "ExternalTextureKind" and the the Kotlin enum "ExternalTextureKind".
+   * The C++ JNI bridge between the C++ enum "ExternalTextureKind" and the Kotlin enum "ExternalTextureKind".
    */
   struct JExternalTextureKind final: public jni::JavaClass<JExternalTextureKind> {
   public:

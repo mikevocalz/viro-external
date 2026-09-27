@@ -15,7 +15,7 @@ namespace margelo::nitro::viromux {
   using namespace facebook;
 
   /**
-   * The C++ JNI bridge between the C++ enum "ExternalTextureColorSpace" and the the Kotlin enum "ExternalTextureColorSpace".
+   * The C++ JNI bridge between the C++ enum "ExternalTextureColorSpace" and the Kotlin enum "ExternalTextureColorSpace".
    */
   struct JExternalTextureColorSpace final: public jni::JavaClass<JExternalTextureColorSpace> {
   public:

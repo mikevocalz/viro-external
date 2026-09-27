@@ -15,6 +15,10 @@
 #include <fbjni/fbjni.h>
 #include <NitroModules/HybridObjectRegistry.hpp>
 
+#include "JHybridMuxPlayerSpec.hpp"
+#include "JFunc_void_MuxPlayerState.hpp"
+#include "JFunc_void_double_double.hpp"
+#include "JFunc_void_std__string_std__string.hpp"
 #include "JHybridViroGPUTextureModuleSpec.hpp"
 #include <NitroModules/DefaultConstructableObject.hpp>
 
@@ -34,12 +38,24 @@ struct JHybridViroGPUTextureModuleSpecImpl: public jni::JavaClass<JHybridViroGPU
     return javaPart->getJHybridViroGPUTextureModuleSpec();
   }
 };
+struct JHybridMuxPlayerSpecImpl: public jni::JavaClass<JHybridMuxPlayerSpecImpl, JHybridMuxPlayerSpec::JavaPart> {
+  static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/viromux/HybridMuxPlayer;";
+  static std::shared_ptr<JHybridMuxPlayerSpec> create() {
+    static const auto constructorFn = javaClassStatic()->getConstructor<JHybridMuxPlayerSpecImpl::javaobject()>();
+    jni::local_ref<JHybridMuxPlayerSpec::JavaPart> javaPart = javaClassStatic()->newObject(constructorFn);
+    return javaPart->getJHybridMuxPlayerSpec();
+  }
+};
 
 void registerAllNatives() {
   using namespace margelo::nitro;
   using namespace margelo::nitro::viromux;
 
   // Register native JNI methods
+  margelo::nitro::viromux::JHybridMuxPlayerSpec::CxxPart::registerNatives();
+  margelo::nitro::viromux::JFunc_void_MuxPlayerState_cxx::registerNatives();
+  margelo::nitro::viromux::JFunc_void_double_double_cxx::registerNatives();
+  margelo::nitro::viromux::JFunc_void_std__string_std__string_cxx::registerNatives();
   margelo::nitro::viromux::JHybridViroGPUTextureModuleSpec::CxxPart::registerNatives();
 
   // Register Nitro Hybrid Objects
@@ -47,6 +63,12 @@ void registerAllNatives() {
     "ViroGPUTextureModule",
     []() -> std::shared_ptr<HybridObject> {
       return JHybridViroGPUTextureModuleSpecImpl::create();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "MuxPlayer",
+    []() -> std::shared_ptr<HybridObject> {
+      return JHybridMuxPlayerSpecImpl::create();
     }
   );
 }

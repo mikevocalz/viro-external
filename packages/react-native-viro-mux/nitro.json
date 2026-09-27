@@ -14,6 +14,12 @@
         "language": "kotlin",
         "implementationClassName": "HybridViroGPUTextureModule"
       }
+    },
+    "MuxPlayer": {
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridMuxPlayer"
+      }
     }
   },
   "ignorePaths": ["**/node_modules"]

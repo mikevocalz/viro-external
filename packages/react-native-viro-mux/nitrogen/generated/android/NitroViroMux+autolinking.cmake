@@ -33,8 +33,10 @@ target_sources(
   # Autolinking Setup
   ../nitrogen/generated/android/NitroViroMuxOnLoad.cpp
   # Shared Nitrogen C++ sources
+  ../nitrogen/generated/shared/c++/HybridMuxPlayerSpec.cpp
   ../nitrogen/generated/shared/c++/HybridViroGPUTextureModuleSpec.cpp
   # Android-specific Nitrogen C++ sources
+  ../nitrogen/generated/android/c++/JHybridMuxPlayerSpec.cpp
   ../nitrogen/generated/android/c++/JHybridViroGPUTextureModuleSpec.cpp
 )
 

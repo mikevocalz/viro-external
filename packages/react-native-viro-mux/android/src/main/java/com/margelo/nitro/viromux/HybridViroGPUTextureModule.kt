@@ -113,7 +113,7 @@ class HybridViroGPUTextureModule : HybridViroGPUTextureModuleSpec() {
                 val material = entry.boundMaterial
                 val texture = entry.texture
                 if (material != null && texture != null && material.diffuseTexture === texture) {
-                    material.setDiffuseTexture(null)
+                    Log.i(TAG, "releaseTexture($key): releasing bound external texture without null diffuse reset")
                 }
                 texture?.dispose()
             } catch (t: Throwable) {
@@ -164,6 +164,7 @@ class HybridViroGPUTextureModule : HybridViroGPUTextureModuleSpec() {
             val texture = ExternalSurfaceTexture(viroContext, entry.width, entry.height) { surface: Surface ->
                 // Renderer thread. Publish only; no GL work here.
                 if (!entry.released) {
+                    Log.i(TAG, "bind($id): surface callback ready surface=$surface")
                     ViroGPUTextureSurfaces.publish(id, surface)
                     entry.surfaceReady = true
                 }

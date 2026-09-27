@@ -1,9 +1,0 @@
-{
-  "enabled": true,
-  "prefabPath": "/Users/mikevocalz/.gradle/caches/modules-2/files-2.1/com.google.prefab/cli/2.1.0/aa32fec809c44fa531f01dcfb739b5b3304d3050/cli-2.1.0-all.jar",
-  "packages": [
-    "/Users/mikevocalz/.gradle/caches/9.3.1/transforms/e34c881ac1b85a96a13850d4b3e5bd50/transformed/react-android-0.86.0-debug/prefab",
-    "/Users/mikevocalz/decax9/node_modules/react-native-nitro-modules/android/build/intermediates/prefab_package/debug/prefab",
-    "/Users/mikevocalz/.gradle/caches/9.3.1/transforms/a380509ee370312f3a5187e825a1b544/transformed/fbjni-0.7.0/prefab"
-  ]
-}

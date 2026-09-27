@@ -1,6 +1,0 @@
-/Users/mikevocalz/viro-external/packages/react-native-viro-mux/android/.cxx/Debug/27381o30/prefab/x86_64/prefab/lib/x86_64-linux-android/cmake/ReactAndroid/ReactAndroidConfig.cmake
-/Users/mikevocalz/viro-external/packages/react-native-viro-mux/android/.cxx/Debug/27381o30/prefab/x86_64/prefab/lib/x86_64-linux-android/cmake/ReactAndroid/ReactAndroidConfigVersion.cmake
-/Users/mikevocalz/viro-external/packages/react-native-viro-mux/android/.cxx/Debug/27381o30/prefab/x86_64/prefab/lib/x86_64-linux-android/cmake/fbjni/fbjniConfig.cmake
-/Users/mikevocalz/viro-external/packages/react-native-viro-mux/android/.cxx/Debug/27381o30/prefab/x86_64/prefab/lib/x86_64-linux-android/cmake/fbjni/fbjniConfigVersion.cmake
-/Users/mikevocalz/viro-external/packages/react-native-viro-mux/android/.cxx/Debug/27381o30/prefab/x86_64/prefab/lib/x86_64-linux-android/cmake/react-native-nitro-modules/react-native-nitro-modulesConfig.cmake
-/Users/mikevocalz/viro-external/packages/react-native-viro-mux/android/CMakeLists.txt

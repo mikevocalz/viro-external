@@ -1,5 +1,6 @@
 package com.margelo.nitro.viromux
 
+import android.util.Log
 import android.view.Surface
 import java.util.concurrent.ConcurrentHashMap
 
@@ -23,13 +24,17 @@ object ViroGPUTextureSurfaces {
 
     internal fun publish(id: Int, surface: Surface) {
         surfaces[id] = surface
+        Log.i(TAG, "publish($id): surface=$surface keys=${surfaces.keys.sorted()}")
     }
 
     internal fun remove(id: Int) {
         surfaces.remove(id)
+        Log.i(TAG, "remove($id): keys=${surfaces.keys.sorted()}")
     }
 
     /** The producer-facing Surface for a registered handle id, or null while binding. */
     @JvmStatic
     fun getSurface(id: Int): Surface? = surfaces[id]
+
+    private const val TAG = "ViroGPUTextureSurfaces"
 }
