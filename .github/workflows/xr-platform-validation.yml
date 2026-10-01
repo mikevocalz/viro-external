@@ -1,0 +1,73 @@
+name: XR platform adapters
+
+on:
+  push:
+    branches:
+      - feat/xr-platform-contract
+      - feat/webspatial-adapter
+      - feat/meta-wearables-dat
+      - feat/snap-specs-adapter
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xr-platform-adapters-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout viro-external
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Enable pnpm 12.8.1
+        run: |
+          corepack enable
+          corepack prepare pnpm@12.8.1 --activate
+          pnpm --version
+
+      - name: Checkout Viro 3 sibling
+        run: |
+          rm -rf ../viro
+          git clone --depth 1 --branch v3.0.1 https://github.com/ReactVision/viro.git ../viro
+          node -p "require('../viro/package.json').version"
+
+      - name: Install workspace
+        run: pnpm install --no-frozen-lockfile --strict-peer-dependencies=false
+
+      - name: Typecheck workspace
+        run: pnpm typecheck
+
+      - name: Verify XR package manifests
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          const expectations = {
+            'packages/xr-platform-contract/package.json': '@viro-external/xr-contract',
+            'packages/webspatial/package.json': '@viro-external/webspatial',
+            'packages/meta-wearables/package.json': '@viro-external/meta-wearables',
+            'packages/specs/package.json': '@viro-external/specs',
+          };
+
+          for (const [file, name] of Object.entries(expectations)) {
+            if (!fs.existsSync(file)) continue;
+            const pkg = JSON.parse(fs.readFileSync(file, 'utf8'));
+            if (pkg.name !== name) throw new Error(`${file}: unexpected package name`);
+            if (pkg.scripts?.typecheck !== 'tsc --noEmit') {
+              throw new Error(`${file}: missing typecheck script`);
+            }
+          }
+          NODE
