@@ -45,6 +45,13 @@ jobs:
       - name: Install SDK 58 dependency graph
         run: pnpm install --no-frozen-lockfile --strict-peer-dependencies=false
 
+      - name: Hydrate linked Viro type resolution
+        run: |
+          mkdir -p ../viro/node_modules/@types
+          ln -sfn "$GITHUB_WORKSPACE/packages/react-native-viro-mux/node_modules/react" ../viro/node_modules/react
+          ln -sfn "$GITHUB_WORKSPACE/packages/react-native-viro-mux/node_modules/react-native" ../viro/node_modules/react-native
+          ln -sfn "$GITHUB_WORKSPACE/packages/react-native-viro-mux/node_modules/@types/react" ../viro/node_modules/@types/react
+
       - name: Regenerate Nitro bindings
         run: pnpm specs
 
