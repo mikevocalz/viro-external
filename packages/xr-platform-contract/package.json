@@ -1,0 +1,13 @@
+{
+  "name": "@viro-external/xr-contract",
+  "version": "0.1.0",
+  "description": "Vendor-neutral spatial surface, capability, portable scene, and interaction contracts for Viro platform adapters.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "files": [
+    "src",
+    "README.md",
+    "doc"
+  ]
+}
