@@ -38,6 +38,27 @@ const json = JSON.stringify(result.scene);
 
 Supported portable node kinds in this first contract are `group`, `text`, `image`, `model`, and `panel`. Viro-specific render passes, physics internals, portals and native texture handles are intentionally not serialized.
 
+## Runtime detection
+
+The Specs adapter now exposes Expo-Horizon-style runtime detection:
+
+```ts
+import { SpecsRuntime, isSpecsDevice, useSpecs } from "@viro-external/specs";
+
+if (isSpecsDevice()) {
+  // Physical Spectacles.
+}
+
+const specs = useSpecs();
+// specs.isDevice, specs.isEditor, specs.isBuild, specs.isRuntime
+```
+
+The implementation uses Snap's `global.deviceInfoSystem.isSpectacles()` and
+`isEditor()`. Editor builds use an explicit `__VIRO_SPECS_BUILD__` marker so
+an unrelated Lens Studio preview is never misidentified as a Specs build.
+
+See `doc/RuntimeDetection.md` for exact semantics and examples.
+
 ## Lens Studio runtime boundary
 
 The Lens Studio side implements `SpecsRuntimeTransport`:
