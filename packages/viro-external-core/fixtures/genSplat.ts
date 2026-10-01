@@ -175,7 +175,13 @@ export function encodeFixture(splats: SyntheticSplat[], opts: { durationMs: numb
 }
 
 // Self-check: encode/round-trip-ish — header magic written at byte 0.
-if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") {
+const nodeEnv = (
+  globalThis as typeof globalThis & {
+    process?: { env?: { NODE_ENV?: string } };
+  }
+).process?.env?.NODE_ENV;
+
+if (nodeEnv === "test") {
   const splats = generateSplats({ count: 16, seed: 42, temporal: true });
   console.assert(splats.length === 16, "splat count");
   const t0 = evaluateGroundTruthMean(splats[0]!, 0);
