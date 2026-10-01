@@ -10,9 +10,18 @@
     "README.md",
     "doc"
   ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "peerDependencies": {
     "@viro-external/xr-contract": "workspace:*",
     "@webspatial/core-sdk": "^2.0.0",
     "@webspatial/react-sdk": "^2.0.0"
+  },
+  "devDependencies": {
+    "@viro-external/xr-contract": "workspace:*",
+    "@webspatial/core-sdk": "^2.0.0",
+    "@webspatial/react-sdk": "^2.0.0",
+    "typescript": "7.0.2"
   }
 }
