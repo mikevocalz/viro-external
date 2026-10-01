@@ -131,7 +131,13 @@ export function Slider3D(props: Slider3DProps): React.ReactElement {
 }
 
 // Self-check: snap respects step.
-if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") {
+const nodeEnv = (
+  globalThis as typeof globalThis & {
+    process?: { env?: { NODE_ENV?: string } };
+  }
+).process?.env?.NODE_ENV;
+
+if (nodeEnv === "test") {
   console.assert(snap(0.37, 0.1, 0) === 0.4 || snap(0.37, 0.1, 0) === 0.30000000000000004, "snap rounds to nearest step");
   console.assert(clamp(2, 0, 1) === 1, "clamp upper bound");
 }
