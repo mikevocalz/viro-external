@@ -12,9 +12,20 @@
     "README.md",
     "doc"
   ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "peerDependencies": {
+    "@expo/config-plugins": ">=58.0.0 <59.0.0",
     "@viro-external/xr-contract": "workspace:*",
-    "expo": ">=57.0.0 <59.0.0",
-    "react-native": ">=0.86.0 <0.89.0"
+    "expo": ">=58.0.0 <59.0.0",
+    "react-native": ">=0.88.0-rc.0 <0.89.0"
+  },
+  "devDependencies": {
+    "@expo/config-plugins": "^58.0.4",
+    "@viro-external/xr-contract": "workspace:*",
+    "expo": "58.0.0",
+    "react-native": "0.88.0-rc.3",
+    "typescript": "7.0.2"
   }
 }
