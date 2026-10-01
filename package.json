@@ -11,13 +11,5 @@
   },
   "workspaces": [
     "packages/*"
-  ],
-  "pnpm": {
-    "overrides": {
-      "@reactvision/react-viro": "link:../viro"
-    },
-    "onlyBuiltDependencies": [
-      "sharp"
-    ]
-  }
+  ]
 }
