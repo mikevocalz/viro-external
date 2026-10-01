@@ -12,6 +12,7 @@ The July 2026 dependency matrix is historical. The active workspace baseline is 
 | `react` | **19.3.0** |
 | `react-native-nitro-modules` / `nitrogen` | **0.37.1 / 0.37.1** |
 | `@expo/config-plugins` | **58.0.4** |
+| `expo-modules-core` | **58.0.9** |
 | `zustand` | **5.0.15** |
 | `sharp` | **0.35.4** |
 | `lucide-static` | **1.49.0** |
@@ -26,6 +27,7 @@ The July 2026 dependency matrix is historical. The active workspace baseline is 
 4. Nitro runtime and Nitrogen codegen move together. After a Nitro version change, regenerate the committed `nitrogen/generated` trees before merging.
 5. Package peers are ranges for consumers; workspace dev dependencies are pinned to the validated SDK 58 toolchain.
 6. TypeScript is a build-time tool here, so the workspace tracks the current stable compiler rather than Expo's starter-template TypeScript pin. CI/typecheck is the gate for compiler compatibility.
+7. pnpm 12 stays pinned for CI, but `pmOnFail: ignore` keeps `pnpm-lock.yaml` single-document so GitHub's dependency graph and Dependabot can continue to read the project dependency graph.
 
 ## 2026-07-09 — PROMPT 21 Phase 0: version manifest re-resolution
 
