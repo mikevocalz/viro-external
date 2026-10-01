@@ -67,6 +67,15 @@ pinch/trigger   -> select-start / select-end
 drag            -> drag
 ```
 
+
+## Moyo layout reuse
+
+The Moyo Learn three-slot XR composition is useful here because its `worldSlot` transform is engine-independent. The same left/center/right poses that Viro uses can be serialized into `PortableXRNode` transforms and applied to Lens Studio SceneObjects.
+
+That means we keep one authored spatial composition instead of creating a Snap-specific set of magic numbers.
+
+See `doc/Architecture.md` for the ownership and validation rules.
+
 ## Camera example
 
 Camera remains a Snap-native capability rather than a Viro texture contract. On Spectacles, Lens Scripting exposes `LensStudio:CameraModule`, including high-resolution still capture suitable for OCR-style workflows:
