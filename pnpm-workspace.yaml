@@ -1,2 +1,8 @@
 packages:
   - "packages/*"
+
+overrides:
+  "@reactvision/react-viro": "link:../viro"
+
+allowBuilds:
+  sharp: true
