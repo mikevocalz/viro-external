@@ -124,3 +124,5 @@ export class SpecsAdapter implements XRPlatformAdapter {
     return this.transport.dispose();
   }
 }
+
+export * from "./runtime";
