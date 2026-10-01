@@ -6,3 +6,7 @@ overrides:
 
 allowBuilds:
   sharp: true
+
+# Keep pnpm 12 while emitting a single-document lockfile so GitHub's
+# dependency graph/Dependabot can continue to parse project dependencies.
+pmOnFail: ignore
