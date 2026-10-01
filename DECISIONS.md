@@ -1,5 +1,32 @@
 # viro-external — DECISIONS.md (workspace-level)
 
+## 2026-10-01 — Viro 3 / Expo SDK 58 baseline
+
+The July 2026 dependency matrix is historical. The active workspace baseline is now:
+
+| Package / tool | Active baseline |
+|---|---|
+| `@reactvision/react-viro` | **3.0.1** upstream; local Moyo fork is **3.0.1-moyo.0** |
+| `expo` | **SDK 58 / 58.x** |
+| `react-native` | **0.88.0-rc.3** (SDK 58 line) |
+| `react` | **19.3.0** |
+| `react-native-nitro-modules` / `nitrogen` | **0.37.1 / 0.37.1** |
+| `@expo/config-plugins` | **58.0.4** |
+| `zustand` | **5.0.15** |
+| `sharp` | **0.35.4** |
+| `lucide-static` | **1.49.0** |
+| `typescript` | **7.0.2** |
+| `pnpm` | **12.8.1** |
+
+### Compatibility rules
+
+1. **Viro 2.x is no longer a valid workspace target.** Every external package must declare a Viro 3 peer range.
+2. **Expo SDK 58 wins over the generic npm `react-native@latest` tag.** SDK 58 is on the React Native 0.88 line; do not downgrade to RN 0.87 just because npm's generic latest tag temporarily points there.
+3. The root `pnpm.overrides["@reactvision/react-viro"] = "link:../viro"` is intentional for side-by-side development against the Moyo Viro fork. That sibling checkout must be Viro 3.x.
+4. Nitro runtime and Nitrogen codegen move together. After a Nitro version change, regenerate the committed `nitrogen/generated` trees before merging.
+5. Package peers are ranges for consumers; workspace dev dependencies are pinned to the validated SDK 58 toolchain.
+6. TypeScript is a build-time tool here, so the workspace tracks the current stable compiler rather than Expo's starter-template TypeScript pin. CI/typecheck is the gate for compiler compatibility.
+
 ## 2026-07-09 — PROMPT 21 Phase 0: version manifest re-resolution
 
 Re-resolved against npm + Google Maven (`npm view`, `dl.google.com/android/maven2`):
