@@ -1,0 +1,76 @@
+name: Viro 3 / Expo 58 dependency refresh
+
+on:
+  push:
+    branches:
+      - chore/viro3-expo58-latest-deps
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: viro3-expo58-refresh-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  refresh-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout viro-external
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Enable pnpm 12.8.1
+        run: |
+          corepack enable
+          corepack prepare pnpm@12.8.1 --activate
+          pnpm --version
+
+      - name: Checkout Viro 3 sibling
+        run: |
+          rm -rf ../viro
+          git clone --depth 1 --branch v3.0.1 https://github.com/ReactVision/viro.git ../viro
+          node -p "require('../viro/package.json').version"
+
+      - name: Install SDK 58 dependency graph
+        run: pnpm install --no-frozen-lockfile --strict-peer-dependencies=false
+
+      - name: Regenerate Nitro bindings
+        run: pnpm specs
+
+      - name: Typecheck all packages
+        run: pnpm typecheck
+
+      - name: Verify no Viro 2 package peers remain
+        run: |
+          if grep -R --include=package.json -nE '"@reactvision/react-viro"[[:space:]]*:[[:space:]]*"[^"]*2\.(56|57)' packages; then
+            echo "::error::Viro 2.x dependency remains in a workspace package"
+            exit 1
+          fi
+
+      - name: Commit refreshed lockfile and generated bindings
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add pnpm-lock.yaml
+          find packages -path '*/nitrogen/generated/*' -type f -print0 | xargs -0 -r git add
+
+          if git diff --cached --quiet; then
+            echo "Lockfile and generated bindings are already current."
+            exit 0
+          fi
+
+          git commit -m "chore(deps): refresh lockfile and Nitro 0.37 bindings"
+          git push origin "HEAD:${{ github.ref_name }}"
