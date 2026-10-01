@@ -47,42 +47,7 @@ jobs:
 
       - name: Verify GitHub-readable pnpm lockfile
         run: |
-          separators="$(grep -c '^---        run: |
-          mkdir -p ../viro/node_modules/@types
-          ln -sfn "$GITHUB_WORKSPACE/packages/react-native-viro-mux/node_modules/react" ../viro/node_modules/react
-          ln -sfn "$GITHUB_WORKSPACE/packages/react-native-viro-mux/node_modules/react-native" ../viro/node_modules/react-native
-          ln -sfn "$GITHUB_WORKSPACE/packages/react-native-viro-mux/node_modules/@types/react" ../viro/node_modules/@types/react
-
-      - name: Regenerate Nitro bindings
-        run: pnpm specs
-
-      - name: Typecheck all packages
-        run: pnpm typecheck
-
-      - name: Verify no Viro 2 package peers remain
-        run: |
-          if grep -R --include=package.json -nE '"@reactvision/react-viro"[[:space:]]*:[[:space:]]*"[^"]*2\.(56|57)' packages; then
-            echo "::error::Viro 2.x dependency remains in a workspace package"
-            exit 1
-          fi
-
-      - name: Commit refreshed lockfile and generated bindings
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add pnpm-lock.yaml
-          find packages -path '*/nitrogen/generated/*' -type f -print0 | xargs -0 -r git add
-
-          if git diff --cached --quiet; then
-            echo "Lockfile and generated bindings are already current."
-            exit 0
-          fi
-
-          git commit -m "chore(deps): refresh lockfile and Nitro 0.37 bindings"
-          git push origin "HEAD:${{ github.ref_name }}"
- pnpm-lock.yaml || true)"
+          separators="$(grep -c '^---$' pnpm-lock.yaml || true)"
           if [ "$separators" -ne 0 ]; then
             echo "::error::pnpm-lock.yaml contains $separators YAML document separators; GitHub dependency tooling can miss the project graph."
             exit 1
