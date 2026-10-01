@@ -22,6 +22,7 @@ export interface Control3DProps {
 
 const CLICK_DOWN = 1;
 const CLICK_UP = 2;
+const CLICKED = 3;
 
 /**
  * Base spatial control. Owns pointer state (hover/press), Babylon-style observable
@@ -70,16 +71,11 @@ export function Control3D(props: Control3DProps): React.ReactElement {
       } else if (clickState === CLICK_UP) {
         setPressed(false);
         onPointerUp?.({ position });
+      } else if (clickState === CLICKED) {
+        onPointerClick?.({ position });
       }
     },
-    [onPointerDown, onPointerUp]
-  );
-
-  const handleClick = useCallback(
-    (position: [number, number, number]) => {
-      onPointerClick?.({ position });
-    },
-    [onPointerClick]
+    [onPointerDown, onPointerUp, onPointerClick]
   );
 
   const stateScale = pressed
@@ -103,7 +99,6 @@ export function Control3D(props: Control3DProps): React.ReactElement {
       scale={effectiveScale}
       onHover={handleHover}
       onClickState={handleClickState}
-      onClick={handleClick}
     >
       {children}
     </ViroNode>
