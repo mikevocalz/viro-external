@@ -139,7 +139,13 @@ export function buildCylinderGeometry(opts: BuildCylinderOptions): CylinderGeome
 }
 
 // Self-check: closed cylinder vertex/index counts match the formula.
-if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") {
+const nodeEnv = (
+  globalThis as typeof globalThis & {
+    process?: { env?: { NODE_ENV?: string } };
+  }
+).process?.env?.NODE_ENV;
+
+if (nodeEnv === "test") {
   const g = buildCylinderGeometry({
     height: 1, radiusTop: 0.5, radiusBottom: 0.5,
     radialSegments: 8, heightSegments: 1,
