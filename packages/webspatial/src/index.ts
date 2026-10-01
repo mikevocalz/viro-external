@@ -120,7 +120,6 @@ export class WebSpatialAdapter implements XRPlatformAdapter {
       "spatial-web": spatialState,
       "system-window": spatialState,
       display: "supported",
-      touch: undefined as never,
     };
   }
 
