@@ -1,13 +1,23 @@
 {
   "name": "viro-external-workspace",
   "private": true,
-  "packageManager": "pnpm@9.0.0",
+  "packageManager": "pnpm@12.8.1",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r --if-present typecheck",
+    "specs": "pnpm -r --if-present specs"
+  },
   "workspaces": [
     "packages/*"
   ],
   "pnpm": {
     "overrides": {
       "@reactvision/react-viro": "link:../viro"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "sharp"
+    ]
   }
 }
