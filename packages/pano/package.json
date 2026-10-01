@@ -18,19 +18,19 @@
     "specs": "nitrogen"
   },
   "peerDependencies": {
-    "@reactvision/react-viro": "2.57.x",
-    "react": "*",
-    "react-native": "0.86.0",
-    "react-native-nitro-modules": "0.36.1",
+    "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
+    "react": ">=19.3.0 <20.0.0",
+    "react-native": ">=0.88.0-rc.0 <0.89.0",
+    "react-native-nitro-modules": "^0.37.1",
     "react-native-viro-mux": "workspace:*"
   },
   "devDependencies": {
-    "@reactvision/react-viro": "2.57.x",
-    "@types/react": "*",
-    "nitrogen": "0.36.1",
-    "react": "*",
-    "react-native": "0.86.0",
-    "react-native-nitro-modules": "0.36.1",
-    "typescript": "5.6.3"
+    "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
+    "@types/react": "19.3.0",
+    "nitrogen": "0.37.1",
+    "react": "19.3.0",
+    "react-native": "0.88.0-rc.3",
+    "react-native-nitro-modules": "0.37.1",
+    "typescript": "7.0.2"
   }
 }
