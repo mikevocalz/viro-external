@@ -111,7 +111,13 @@ export function ScatterPanel(props: ScatterPanelProps): React.ReactElement {
 }
 
 // Self-check: deterministic given seed.
-if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") {
+const nodeEnv = (
+  globalThis as typeof globalThis & {
+    process?: { env?: { NODE_ENV?: string } };
+  }
+).process?.env?.NODE_ENV;
+
+if (nodeEnv === "test") {
   const a = scatterAndRelax({ count: 8, iteration: 50, seed: 42, minSep: 0.2, areaWidth: 1.6, areaHeight: 0.9 });
   const b = scatterAndRelax({ count: 8, iteration: 50, seed: 42, minSep: 0.2, areaWidth: 1.6, areaHeight: 0.9 });
   console.assert(a.length === b.length, "scatter deterministic count");

@@ -10,7 +10,6 @@ package com.margelo.nitro.viromux
 import androidx.annotation.Keep
 import com.facebook.jni.HybridData
 import com.facebook.proguard.annotations.DoNotStrip
-import dalvik.annotation.optimization.FastNative
 
 
 /**
@@ -59,7 +58,6 @@ class Func_void_MuxPlayerState_cxx: Func_void_MuxPlayerState {
   override fun invoke(state: MuxPlayerState): Unit
     = invoke_cxx(state)
 
-  @FastNative
   private external fun invoke_cxx(state: MuxPlayerState): Unit
 }
 
