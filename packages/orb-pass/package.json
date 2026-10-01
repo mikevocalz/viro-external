@@ -15,18 +15,19 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@reactvision/react-viro": "*",
+    "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
     "@viro-external/render-passes": "workspace:*",
-    "react": "*",
-    "react-native": "*"
+    "react": ">=19.3.0 <20.0.0",
+    "react-native": ">=0.88.0-rc.0 <0.89.0"
   },
   "devDependencies": {
-    "@expo/config-plugins": "^57.0.1",
-    "@types/react": "*",
+    "@expo/config-plugins": "^58.0.4",
+    "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
+    "@types/react": "19.3.0",
     "@viro-external/render-passes": "workspace:*",
-    "react": "*",
-    "react-native": "*",
-    "typescript": "5.6.3"
+    "react": "19.3.0",
+    "react-native": "0.88.0-rc.3",
+    "typescript": "7.0.2"
   },
   "sideEffects": false
 }

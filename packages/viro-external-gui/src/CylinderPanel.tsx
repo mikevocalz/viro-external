@@ -199,7 +199,13 @@ export function CylinderPanel(props: CylinderPanelProps): React.ReactElement {
 }
 
 // Self-check.
-if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") {
+const nodeEnv = (
+  globalThis as typeof globalThis & {
+    process?: { env?: { NODE_ENV?: string } };
+  }
+).process?.env?.NODE_ENV;
+
+if (nodeEnv === "test") {
   const a = deriveCylinderArc({ radius: 1, itemWidth: 0.18, columns: 6, marginRadians: 0.04 });
   console.assert(a.stepDegrees > 0 && a.arcDegrees <= 360, "arc within bounds");
   let threw = false;

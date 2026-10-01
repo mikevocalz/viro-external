@@ -149,7 +149,13 @@ export function ViroMuxSurface(props: ViroMuxSurfaceProps): React.ReactElement {
 }
 
 // Self-check: curvature=0 returns null mesh (flat path); curvature>0 builds non-empty geometry.
-if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") {
+const nodeEnv = (
+  globalThis as typeof globalThis & {
+    process?: { env?: { NODE_ENV?: string } };
+  }
+).process?.env?.NODE_ENV;
+
+if (nodeEnv === "test") {
   const flat = (() => {
     const m = (curvature: number) =>
       curvature <= 0 ? null : buildCurvedMesh(1.6, 0.9, curvature, 24);
