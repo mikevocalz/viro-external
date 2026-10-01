@@ -1,0 +1,18 @@
+{
+  "name": "@viro-external/webspatial",
+  "version": "0.1.0",
+  "description": "WebSpatial 2.x layout adapter for Viro-compatible spatial web surfaces, with PICO OS 6 and ordinary-web fallback.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "files": [
+    "src",
+    "README.md",
+    "doc"
+  ],
+  "peerDependencies": {
+    "@viro-external/xr-contract": "workspace:*",
+    "@webspatial/core-sdk": "^2.0.0",
+    "@webspatial/react-sdk": "^2.0.0"
+  }
+}
