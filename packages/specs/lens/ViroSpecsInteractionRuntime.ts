@@ -86,6 +86,7 @@ export class ViroSpecsInteractionRuntime {
     }
 
     const target = this.findBestInteractionTarget(node);
+    target.name = "viro-interactable:" + nodeId;
     this.ensureCollider(target);
 
     let interactable = target.getComponent(
@@ -196,12 +197,13 @@ export class ViroSpecsInteractionRuntime {
   }
 
   private emitDrag(nodeId: string): void {
-    const node = this.host.getNode(nodeId);
-    if (!node) {
+    const target =
+      this.records.get(nodeId)?.target ?? this.host.getNode(nodeId);
+    if (!target) {
       return;
     }
 
-    const world = node.getTransform().getWorldPosition();
+    const world = target.getTransform().getWorldPosition();
     this.emit({
       source: "hand",
       phase: "drag",

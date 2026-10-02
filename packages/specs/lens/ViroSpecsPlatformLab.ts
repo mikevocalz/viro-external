@@ -1,4 +1,4 @@
-import type { ViroViroSpecsSceneSnapshot } from "./ViroSpecsProtocol";
+import type { ViroSpecsSceneSnapshot } from "./ViroSpecsProtocol";
 import { ViroSpecsInteractionHost } from "./ViroSpecsInteractionHost";
 import { ViroSpecsRuntimeHost } from "./ViroSpecsRuntimeHost";
 
@@ -9,6 +9,7 @@ import { ViroSpecsRuntimeHost } from "./ViroSpecsRuntimeHost";
  */
 @component
 export class ViroSpecsPlatformLab extends BaseScriptComponent {
+  private unsubscribeInteraction: (() => void) | null = null;
   @input
   runtimeHostObject: SceneObject;
 
@@ -20,6 +21,10 @@ export class ViroSpecsPlatformLab extends BaseScriptComponent {
 
   onAwake(): void {
     this.createEvent("OnStartEvent").bind(() => this.startLab());
+    this.createEvent("OnDestroyEvent").bind(() => {
+      this.unsubscribeInteraction?.();
+      this.unsubscribeInteraction = null;
+    });
   }
 
   private startLab(): void {
@@ -72,6 +77,13 @@ export class ViroSpecsPlatformLab extends BaseScriptComponent {
           kind: "panel",
           position: [0.24, -0.14, 0.01],
         },
+        {
+          id: "platform-lab-status",
+          parentId: "platform-lab-root",
+          kind: "text",
+          text: "ready",
+          position: [0, -0.28, 0.01],
+        },
       ],
     };
 
@@ -79,5 +91,30 @@ export class ViroSpecsPlatformLab extends BaseScriptComponent {
     interactionHost.setInteractable("platform-lab-button", true);
     interactionHost.setInteractable("platform-lab-model", true);
     interactionHost.setManipulationEnabled("platform-lab-model", true);
+
+    const statusObject = runtimeHost.getNode("platform-lab-status");
+    const statusText = statusObject?.getComponent(
+      "Component.Text"
+    ) as Text | null;
+
+    this.unsubscribeInteraction = interactionHost.subscribe((event) => {
+      if (!statusText) {
+        return;
+      }
+
+      if (
+        event.targetId === "platform-lab-button" &&
+        event.phase === "select-end"
+      ) {
+        statusText.text = "button:selected";
+      }
+
+      if (
+        event.targetId === "platform-lab-model" &&
+        event.phase === "drag"
+      ) {
+        statusText.text = "model:drag";
+      }
+    });
   }
 }

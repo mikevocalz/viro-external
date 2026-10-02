@@ -66,6 +66,7 @@ const dependencies = {
     "SpecsNavigationKit.lspkg",
   ],
   editorValidationPackages: [
+    "Leaf.lspkg",
     "AiPreviewAgentInspect.lspkg",
     "AiPreviewAgentInteract.lspkg",
   ],
