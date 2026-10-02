@@ -1,0 +1,156 @@
+{
+  "top_level": [
+    {
+      "name": "ProcessFrame",
+      "n": "271",
+      "avg_ms": "14.299",
+      "p50_ms": "13.163",
+      "p90_ms": "16.226",
+      "p99_ms": "47.435",
+      "max_ms": "123.114"
+    },
+    {
+      "name": "CoreManagerRender",
+      "n": "271",
+      "avg_ms": "6.733",
+      "p50_ms": "5.864",
+      "p90_ms": "8.331",
+      "p99_ms": "25.112",
+      "max_ms": "83.07"
+    }
+  ],
+  "worst_events": [
+    {
+      "id": "4570",
+      "name": "ProcessFrame",
+      "depth": "0",
+      "parent_id": "",
+      "ms": "123.114"
+    },
+    {
+      "id": "2330",
+      "name": "ProcessFrame",
+      "depth": "0",
+      "parent_id": "",
+      "ms": "117.273"
+    },
+    {
+      "id": "2331",
+      "name": "Track",
+      "depth": "1",
+      "parent_id": "2330",
+      "ms": "115.011"
+    },
+    {
+      "id": "4654",
+      "name": "CoreManagerRender",
+      "depth": "0",
+      "parent_id": "",
+      "ms": "83.07"
+    },
+    {
+      "id": "4655",
+      "name": "ScnFrame",
+      "depth": "1",
+      "parent_id": "4654",
+      "ms": "80.094"
+    },
+    {
+      "id": "9570",
+      "name": "ProcessFrame",
+      "depth": "0",
+      "parent_id": "",
+      "ms": "58.072"
+    },
+    {
+      "id": "80",
+      "name": "ProcessFrame",
+      "depth": "0",
+      "parent_id": "",
+      "ms": "42.877"
+    },
+    {
+      "id": "4614",
+      "name": "CoreManagerRender",
+      "depth": "0",
+      "parent_id": "",
+      "ms": "30.464"
+    }
+  ],
+  "worst_top_level_children": [
+    {
+      "name": "Track",
+      "depth": "1",
+      "ms": "115.011",
+      "parent_id": "2330"
+    },
+    {
+      "name": "ScnFrame",
+      "depth": "1",
+      "ms": "80.094",
+      "parent_id": "4654"
+    },
+    {
+      "name": "Track",
+      "depth": "1",
+      "ms": "22.853",
+      "parent_id": "4570"
+    },
+    {
+      "name": "PfttThrottle",
+      "depth": "1",
+      "ms": "2.709",
+      "parent_id": "4654"
+    }
+  ],
+  "visuals": [
+    {
+      "component": "component_30",
+      "n": "271",
+      "avg_ms": "0.554",
+      "p50_ms": "0.466",
+      "p99_ms": "2.08",
+      "max_ms": "9.133"
+    },
+    {
+      "component": "component_28",
+      "n": "271",
+      "avg_ms": "0.521",
+      "p50_ms": "0.46",
+      "p99_ms": "1.826",
+      "max_ms": "7.109"
+    },
+    {
+      "component": "component_37",
+      "n": "271",
+      "avg_ms": "0.136",
+      "p50_ms": "0.115",
+      "p99_ms": "0.697",
+      "max_ms": "2.056"
+    },
+    {
+      "component": "component_31",
+      "n": "30",
+      "avg_ms": "0.05",
+      "p50_ms": "0.03",
+      "p99_ms": "0.403",
+      "max_ms": "0.536"
+    },
+    {
+      "component": "Render Mesh Visual",
+      "n": "271",
+      "avg_ms": "0.046",
+      "p50_ms": "0.039",
+      "p99_ms": "0.158",
+      "max_ms": "0.762"
+    },
+    {
+      "component": "component_41",
+      "n": "271",
+      "avg_ms": "0.037",
+      "p50_ms": "0.024",
+      "p99_ms": "0.105",
+      "max_ms": "2.067"
+    }
+  ]
+}

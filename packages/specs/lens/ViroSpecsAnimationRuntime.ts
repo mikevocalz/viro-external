@@ -1,8 +1,8 @@
 import { setTimeout } from "SpectaclesInteractionKit.lspkg/Utils/FunctionTimingUtils";
 import type {
-  ViroViroSpecsAnimationEasing,
-  ViroViroSpecsAnimationTrackPlan,
-  ViroViroSpecsNativeAnimationPlan,
+  ViroSpecsAnimationEasing,
+  ViroSpecsAnimationTrackPlan,
+  ViroSpecsNativeAnimationPlan,
 } from "./ViroSpecsProtocol";
 import { ViroSpecsRuntimeHost } from "./ViroSpecsRuntimeHost";
 
@@ -44,7 +44,8 @@ export class ViroSpecsAnimationRuntime {
 
       const asset = AnimationAsset.create();
       asset.addLayer(object.name, layer);
-      asset.createEvent(plan.completionEvent, 1.0);
+      const completionEvent = plan.completionEvent + ":" + clipName;
+      asset.createEvent(completionEvent, 1.0);
 
       const clip = AnimationClip.createFromAnimation(clipName, asset);
       clip.playbackMode =
@@ -62,8 +63,10 @@ export class ViroSpecsAnimationRuntime {
       }
 
       if (onComplete && plan.playbackMode === "single") {
-        player.onEvent.add((args: AnimationPlayerOnEventArgs) => {
-          if (args.eventName === plan.completionEvent) {
+        const completionPlayer = player;
+        const registration = player.onEvent.add((args: AnimationPlayerOnEventArgs) => {
+          if (args.eventName === completionEvent) {
+            completionPlayer.onEvent.remove(registration);
             onComplete();
           }
         });

@@ -3,9 +3,9 @@ import { VolumetricLine } from "VolumetricLine.lspkg/Scripts/VolumetricLine";
 import { GeoLocationPlace } from "SpecsNavigationKit.lspkg/NavigationDataComponent/GeoLocationPlace";
 import { NavigationDataComponent } from "SpecsNavigationKit.lspkg/NavigationDataComponent/NavigationDataComponent";
 import type {
-  ViroViroSpecsGeoCoordinate,
-  ViroViroSpecsNavigationPlan,
-  ViroViroSpecsVolumetricLinePlan,
+  ViroSpecsGeoCoordinate,
+  ViroSpecsNavigationPlan,
+  ViroSpecsVolumetricLinePlan,
 } from "./ViroSpecsProtocol";
 import { ViroSpecsAssetRegistry } from "./ViroSpecsAssetRegistry";
 
@@ -34,17 +34,16 @@ export class ViroSpecsNavigationRuntime {
       .onUserPositionUpdated.add(() => this.refreshRouteGeometry());
   }
 
-  presentRoute(plan: ViroSpecsNavigationPlan): void {
+  presentRoute(plan: ViroSpecsNavigationPlan): boolean {
     this.clearRoute();
-    this.currentRoute = plan;
 
     const userPosition = this.navigation.getUserPosition();
     if (!userPosition.getGeoPosition()) {
-      throw new Error(
-        "Specs navigation requires an available geo position. Check location permission/GPS state."
-      );
+      print("Viro Specs navigation unavailable: no geo position. Route cleared.");
+      return false;
     }
 
+    this.currentRoute = plan;
     this.routePlaces = plan.route.points.map((coordinate, index) => {
       return new GeoLocationPlace(
         this.toGeoPosition(coordinate),
@@ -84,8 +83,10 @@ export class ViroSpecsNavigationRuntime {
         "",
         userPosition
       );
+      this.routePlaces.push(destination);
       this.navigation.navigateToPlace(destination);
     }
+    return true;
   }
 
   presentPolyline(plan: ViroSpecsVolumetricLinePlan): void {
@@ -110,10 +111,13 @@ export class ViroSpecsNavigationRuntime {
   clearRoute(): void {
     this.navigation.stopNavigation();
     this.currentRoute = null;
+    for (const place of this.routePlaces) {
+      this.navigation.removePlace(place);
+    }
     this.routePlaces = [];
 
     if (this.liveLine) {
-      this.liveLine.root.destroy();
+      if (!isNull(this.liveLine.root)) this.liveLine.root.destroy();
       this.liveLine = null;
     }
   }
@@ -166,11 +170,13 @@ export class ViroSpecsNavigationRuntime {
     line.useRelativeToComponent = true;
     line.autoCorrectOffset = false;
     line.continuousUpdate = false;
+    line.smoothUpdate = false;
 
     // Runtime-created script components may receive lifecycle callbacks before
     // all public properties have been assigned. Defer one turn, then either
     // update the initialized component or invoke its public startup path once.
     setTimeout(() => {
+      if (isNull(root)) return;
       const visual = root.getComponent(
         "Component.RenderMeshVisual"
       ) as RenderMeshVisual | null;

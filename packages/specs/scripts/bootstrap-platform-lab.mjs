@@ -35,7 +35,7 @@ if (doctor.status !== 0) {
 
 const sync = spawnSync(
   process.execPath,
-  [syncScript, "--project", project, "--clean"],
+  [syncScript, "--project", project],
   { stdio: "inherit" }
 );
 if (sync.status !== 0) {

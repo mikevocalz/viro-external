@@ -5,6 +5,7 @@ import { ViroSpecsRuntimeHost } from "./ViroSpecsRuntimeHost";
 
 type InteractionRecord = {
   target: SceneObject;
+  root: SceneObject;
   interactable: Interactable;
   manipulation?: InteractableManipulation;
 };
@@ -38,8 +39,12 @@ export class ViroSpecsInteractionRuntime {
         InteractableManipulation.getTypeName()
       ) as InteractableManipulation;
 
+      record.manipulation.setManipulateRoot(record.root.getTransform());
       record.manipulation.setCanRotate(false);
       record.manipulation.setCanScale(false);
+      // Portable Viro drag positions are linear world translations. SIK's
+      // optional depth amplification otherwise changes Z on lateral motion.
+      record.manipulation.enableStretchZ = false;
 
       record.manipulation.onManipulationStart.add(() => {
         this.activeDrags.add(nodeId);
@@ -133,6 +138,7 @@ export class ViroSpecsInteractionRuntime {
 
     const record: InteractionRecord = {
       target,
+      root: node,
       interactable,
     };
 
@@ -164,11 +170,15 @@ export class ViroSpecsInteractionRuntime {
         collider.fitVisual = false;
       }
 
-      collider.intangible = true;
+      collider.intangible = false;
     }
   }
 
   private findBestInteractionTarget(root: SceneObject): SceneObject {
+    if (root.getComponent(Interactable.getTypeName())) {
+      return root;
+    }
+
     const hasVisual =
       root.getComponent("Component.RenderMeshVisual") ||
       root.getComponent("Component.Image") ||
@@ -180,7 +190,7 @@ export class ViroSpecsInteractionRuntime {
 
     for (const child of root.children) {
       const target = this.findBestInteractionTarget(child);
-      if (target !== child || this.hasVisual(child)) {
+      if (target !== child || this.hasVisual(child) || child.getComponent(Interactable.getTypeName())) {
         return target;
       }
     }
@@ -198,7 +208,7 @@ export class ViroSpecsInteractionRuntime {
 
   private emitDrag(nodeId: string): void {
     const target =
-      this.records.get(nodeId)?.target ?? this.host.getNode(nodeId);
+      this.records.get(nodeId)?.root ?? this.host.getNode(nodeId);
     if (!target) {
       return;
     }

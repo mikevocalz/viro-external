@@ -1,7 +1,7 @@
 import { NavigationDataComponent } from "SpecsNavigationKit.lspkg/NavigationDataComponent/NavigationDataComponent";
 import type {
-  ViroViroSpecsNavigationPlan,
-  ViroViroSpecsVolumetricLinePlan,
+  ViroSpecsNavigationPlan,
+  ViroSpecsVolumetricLinePlan,
 } from "./ViroSpecsProtocol";
 import { ViroSpecsAssetRegistry } from "./ViroSpecsAssetRegistry";
 import { ViroSpecsNavigationRuntime } from "./ViroSpecsNavigationRuntime";
@@ -56,8 +56,8 @@ export class ViroSpecsNavigationHost extends BaseScriptComponent {
     );
   }
 
-  presentRoute(plan: ViroSpecsNavigationPlan): void {
-    this.requireRuntime().presentRoute(plan);
+  presentRoute(plan: ViroSpecsNavigationPlan): boolean {
+    return this.requireRuntime().presentRoute(plan);
   }
 
   presentPolyline(plan: ViroSpecsVolumetricLinePlan): void {
