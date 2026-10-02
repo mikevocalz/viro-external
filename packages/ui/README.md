@@ -37,3 +37,11 @@ SpatialScrollView uses explicit viewport virtualization and visible up/down cont
 ## Media
 
 VideoPlayerPanel composes @viro-external/media. It is provider-neutral and does not depend on the legacy Mux/Nitro player.
+
+
+## Controller-driven video panels
+
+`SpatialVideoPlayerPanel` consumes a long-lived `SpatialVideoPlayer`.
+`MuxSpatialPlayerPanel` is the Mux convenience wrapper. The panel chrome no
+longer owns a second copy of paused/muted/time state; controls operate on the
+same player controller that drives the Viro surface.
