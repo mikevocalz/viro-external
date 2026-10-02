@@ -120,6 +120,19 @@ importers:
         specifier: 5.0.15
         version: 5.0.15(@types/react@19.3.0)(react@19.3.0)
 
+  packages/specs:
+    dependencies:
+      smol-toml:
+        specifier: 1.9.0
+        version: 1.9.0
+    devDependencies:
+      '@viro-external/xr-contract':
+        specifier: workspace:*
+        version: link:../xr-platform-contract
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
   packages/splat-pass:
     dependencies:
       '@reactvision/react-viro':
@@ -231,6 +244,12 @@ importers:
       react-native:
         specifier: 0.88.0-rc.3
         version: 0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
+  packages/xr-platform-contract:
+    devDependencies:
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -2634,6 +2653,10 @@ packages:
         optional: true
       use-sync-external-store:
         optional: true
+
+  smol-toml@1.9.0:
+    resolution: {integrity: sha512-hpd+HLON7HdZXqYchMM/+LaTTbdK0AU3NngIJ4KVyWbY9bfQqdL9cD+4yf6dUoU2Ap4VsU0JkQi6FxAI1B2mXQ==}
+    engines: {node: '>= 18'}
 
 snapshots:
 
@@ -5274,3 +5297,5 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
       react: 19.3.0
+
+  smol-toml@1.9.0: {}

@@ -1,3 +1,4 @@
+import { validateNativeAnimation, validatePolyline, validateWorldPlacement } from "./ViroSpecsRuntimeValidation";
 import { Scenario } from "Leaf.lspkg/Scenarios/scenario/Scenario";
 import { findSceneObjectByName } from "Leaf.lspkg/Utils/common/Utils";
 import { expect } from "Leaf.lspkg/Utils/common/Expect";
@@ -13,6 +14,7 @@ export class ViroSpecsLeafSceneSmokeScenario extends Scenario {
     const panel = findSceneObjectByName("viro:platform-lab-panel");
     const title = findSceneObjectByName("viro:platform-lab-title");
     const model = findSceneObjectByName("viro:platform-lab-model");
+    const button = findSceneObjectByName("viro:platform-lab-button");
     const status = findSceneObjectByName("viro:platform-lab-status");
 
     expect(root).toBeTruthy();
@@ -20,6 +22,7 @@ export class ViroSpecsLeafSceneSmokeScenario extends Scenario {
     expect(title).toBeTruthy();
     expect(model).toBeTruthy();
     expect(status).toBeTruthy();
+    expect(button).toBeTruthy();
 
     const rootPosition = root.getTransform().getLocalPosition();
     expect(Math.abs(rootPosition.z + 150)).toBeLessThan(0.5);
@@ -31,5 +34,8 @@ export class ViroSpecsLeafSceneSmokeScenario extends Scenario {
     expect(statusText).toBeTruthy();
     expect(titleText?.text).toBe("Viro Specs Platform Lab");
     expect(statusText?.text).toBe("ready");
+    await validateNativeAnimation();
+    await validatePolyline();
+    await validateWorldPlacement();
   }
 }

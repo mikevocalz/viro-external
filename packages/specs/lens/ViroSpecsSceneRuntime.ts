@@ -1,7 +1,7 @@
 import type {
-  ViroViroSpecsRenderCommand,
-  ViroViroSpecsRenderPlan,
-  ViroViroSpecsRenderPrimitive,
+  ViroSpecsRenderCommand,
+  ViroSpecsRenderPlan,
+  ViroSpecsRenderPrimitive,
 } from "./ViroSpecsProtocol";
 import { ViroSpecsAssetRegistry } from "./ViroSpecsAssetRegistry";
 
@@ -47,13 +47,13 @@ export class ViroSpecsSceneRuntime {
       return;
     }
 
-    record.object.destroy();
+    if (!isNull(record.object)) record.object.destroy();
     this.nodes.delete(id);
   }
 
   clear(): void {
     for (const record of this.nodes.values()) {
-      record.object.destroy();
+      if (!isNull(record.object)) record.object.destroy();
     }
     this.nodes.clear();
   }
@@ -107,6 +107,12 @@ export class ViroSpecsSceneRuntime {
     switch (primitive) {
       case "text":
         record.text = object.createComponent("Component.Text") as Text;
+        if (this.assets.defaultFont) record.text.font = this.assets.defaultFont;
+        record.text.depthTest = true;
+        record.text.size = 48;
+        record.text.horizontalAlignment = HorizontalAlignment.Center;
+        record.text.horizontalOverflow = HorizontalOverflow.Overflow;
+        record.text.layoutRect = Rect.create(-36, 36, -4, 4);
         break;
 
       case "image":

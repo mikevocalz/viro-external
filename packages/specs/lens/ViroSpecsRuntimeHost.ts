@@ -1,7 +1,7 @@
 import {
   compileLensRenderPlan,
-  type ViroViroSpecsRenderPlan,
-  type ViroViroSpecsSceneSnapshot,
+  type ViroSpecsRenderPlan,
+  type ViroSpecsSceneSnapshot,
 } from "./ViroSpecsProtocol";
 import { ViroSpecsAssetRegistry } from "./ViroSpecsAssetRegistry";
 import { ViroSpecsSceneRuntime } from "./ViroSpecsSceneRuntime";
@@ -44,7 +44,7 @@ export class ViroSpecsRuntimeHost extends BaseScriptComponent {
   }
 
   applySceneSnapshot(scene: ViroSpecsSceneSnapshot): void {
-    this.applyRenderPlan(compileViroSpecsRenderPlan(scene.nodes));
+    this.applyRenderPlan(compileLensRenderPlan(scene));
   }
 
   applyRenderPlan(plan: ViroSpecsRenderPlan): void {

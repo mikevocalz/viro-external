@@ -1,7 +1,7 @@
 import type {
   ViroSpecsCapabilityReport,
   ViroSpecsPortableInteraction,
-  ViroViroSpecsSceneSnapshot,
+  ViroSpecsSceneSnapshot,
 } from "./ViroSpecsProtocol";
 import { createSpecsLensCapabilityReport } from "./ViroSpecsCapabilities";
 import { ViroSpecsInteractionHost } from "./ViroSpecsInteractionHost";

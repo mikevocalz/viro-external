@@ -1,4 +1,4 @@
-import type { ViroViroSpecsNativeAnimationPlan } from "./ViroSpecsProtocol";
+import type { ViroSpecsNativeAnimationPlan } from "./ViroSpecsProtocol";
 import { ViroSpecsAnimationRuntime } from "./ViroSpecsAnimationRuntime";
 import { ViroSpecsRuntimeHost } from "./ViroSpecsRuntimeHost";
 
