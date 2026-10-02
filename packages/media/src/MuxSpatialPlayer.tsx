@@ -301,7 +301,7 @@ export const MuxSpatialPlayer = forwardRef<
         },
         async setMaxResolution(maxResolution) {
           ensureActive();
-          if (muxSource.tokens?.playback && maxResolution) {
+          if (normalizeMuxSource(muxSource).playbackToken && maxResolution) {
             throw new Error(
               "Signed Mux playback requires max resolution to be encoded in the playback JWT."
             );
