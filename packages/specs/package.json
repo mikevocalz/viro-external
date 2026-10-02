@@ -25,4 +25,4 @@
     "@viro-external/xr-contract": "workspace:*",
     "typescript": "7.0.2"
   }
-}\n
+}
