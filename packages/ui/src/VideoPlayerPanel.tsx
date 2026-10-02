@@ -43,6 +43,9 @@ export function VideoPlayerPanel({
   const [paused, setPaused] = useState(defaultPaused);
   const [muted, setMuted] = useState(defaultMuted);
   const [mode, setMode] = useState<VideoPresentation>(presentation);
+  const [currentTime, setCurrentTime] = useState(0);
+  const basePresentation: VideoPresentation =
+    presentation === "360" ? "flat" : presentation;
 
   const videoWidth = width * 0.92;
   const videoHeight = height * 0.65;
@@ -64,7 +67,7 @@ export function VideoPlayerPanel({
           label: mode === "360" ? "2D" : "360",
           onPress: () =>
             setMode((current) =>
-              current === "360" ? presentation : "360"
+              current === "360" ? basePresentation : "360"
             ),
         },
       ]}
@@ -79,6 +82,7 @@ export function VideoPlayerPanel({
         position={[0, height * 0.08, 0.02]}
         paused={paused}
         muted={muted}
+        onUpdateTime={(time) => setCurrentTime(time)}
       />
 
       <ViroNode position={[0, controlsY, 0.03]}>
@@ -96,13 +100,21 @@ export function VideoPlayerPanel({
         />
         <PanelButton
           label="-10s"
-          width={0.2}
-          onPress={() => {
-            // Seek is exposed on the native Viro player. The caller can layer
-            // richer timeline state above this without any Nitro player.
-            videoRef.current?.seekToTime(0);
-          }}
-          position={[0.27, 0, 0]}
+          width={0.18}
+          onPress={() =>
+            videoRef.current?.seekToTime(
+              Math.max(0, currentTime - 10)
+            )
+          }
+          position={[0.23, 0, 0]}
+        />
+        <PanelButton
+          label="+10s"
+          width={0.18}
+          onPress={() =>
+            videoRef.current?.seekToTime(currentTime + 10)
+          }
+          position={[0.44, 0, 0]}
         />
       </ViroNode>
     </SpatialPanel>
