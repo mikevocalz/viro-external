@@ -1,5 +1,5 @@
 import type { XRCapabilityReport } from "@viro-external/xr-contract";
-import { getSpecsRuntime, type SpecsRuntimeInfo } from "./runtime";
+import { getSpecsRuntime, type SpecsRuntimeInfo } from "./runtime.js";
 
 export type ViroRuntimeCapabilityState =
   | "supported"
@@ -31,7 +31,6 @@ export type ViroRuntimeProviderLike = {
 const CAPABILITY_ALIASES: Record<string, string> = {
   controller: "controllers",
   planes: "plane-detection",
-  "audio-output": "spatial-audio",
 };
 
 function normalizeCapabilityName(name: string): string {
