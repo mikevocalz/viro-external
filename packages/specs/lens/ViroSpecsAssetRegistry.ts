@@ -27,8 +27,20 @@ export class ViroSpecsAssetRegistry extends BaseScriptComponent {
   materials: Material[] = [];
 
   @input
+  videoIds: string[] = [];
+
+  // Lens imports a video as a Texture backed by a VideoTextureProvider, so this
+  // stays a Texture array and the provider is read off control at playback.
+  @input
+  videoTextures: Texture[] = [];
+
+  @input
   @allowUndefined
   defaultPanelPrefab: ObjectPrefab | null = null;
+
+  @input
+  @allowUndefined
+  defaultScrollPrefab: ObjectPrefab | null = null;
 
   @input
   @allowUndefined
@@ -48,6 +60,10 @@ export class ViroSpecsAssetRegistry extends BaseScriptComponent {
 
   resolveMaterial(source: string): Material | null {
     return this.resolveById(source, this.materialIds, this.materials);
+  }
+
+  resolveVideo(source: string): Texture | null {
+    return this.resolveById(source, this.videoIds, this.videoTextures);
   }
 
   private resolveById<T>(

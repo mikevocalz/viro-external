@@ -6,7 +6,9 @@ export type SpecsRenderPrimitive =
   | "text"
   | "image"
   | "render-mesh"
-  | "ui-frame";
+  | "ui-frame"
+  | "scroll-window"
+  | "video-surface";
 
 export type SpecsRenderDiagnostic = {
   level: "warning" | "error";
@@ -63,6 +65,13 @@ const RENDER_MAPPING: Record<
     primitive: "ui-frame",
     backendPackage: "SpecsInteractionKitExamples",
   },
+  // ScrollWindow ships in the same UIKit reference set the panel prefab comes from.
+  scroll: {
+    primitive: "scroll-window",
+    backendPackage: "SpecsInteractionKitExamples",
+  },
+  // Video is a core Lens Texture driven by VideoTextureProvider, no upstream package.
+  video: { primitive: "video-surface" },
 };
 
 function addPackage(

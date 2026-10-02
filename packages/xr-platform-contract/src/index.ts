@@ -68,7 +68,9 @@ export type PortableXRNodeKind =
   | "text"
   | "image"
   | "model"
-  | "panel";
+  | "panel"
+  | "scroll"
+  | "video";
 
 export interface PortableXRNode {
   id: string;

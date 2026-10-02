@@ -11,6 +11,9 @@ type NodeRecord = {
   text?: Text;
   image?: Image;
   instantiatedModel?: SceneObject;
+  /** Scroll children attach here, not to the node itself. */
+  content?: SceneObject;
+  video?: Image;
 };
 
 /**
@@ -95,8 +98,9 @@ export class ViroSpecsSceneRuntime {
       this.removeNode(id);
     }
 
-    const parent = parentId
-      ? this.requireNode(parentId).object
+    const parentRecord = parentId ? this.requireNode(parentId) : null;
+    const parent = parentRecord
+      ? parentRecord.content ?? parentRecord.object
       : this.root;
 
     const object = global.scene.createSceneObject("viro:" + id);
@@ -125,6 +129,24 @@ export class ViroSpecsSceneRuntime {
       case "ui-frame":
         if (this.assets.defaultPanelPrefab) {
           this.assets.defaultPanelPrefab.instantiate(object);
+        }
+        break;
+
+      // UIKit's ScrollWindow is @input-driven, so it only initializes correctly
+      // from a prefab — createComponent leaves its inputs null. Children go on a
+      // dedicated content object so the prefab's own hierarchy stays intact.
+      case "scroll-window":
+        if (this.assets.defaultScrollPrefab) {
+          this.assets.defaultScrollPrefab.instantiate(object);
+        }
+        record.content = global.scene.createSceneObject("viro:content");
+        record.content.setParent(object);
+        break;
+
+      case "video-surface":
+        record.video = object.createComponent("Component.Image") as Image;
+        if (this.assets.defaultImageMaterial) {
+          record.video.mainMaterial = this.assets.defaultImageMaterial.clone();
         }
         break;
 
@@ -202,6 +224,11 @@ export class ViroSpecsSceneRuntime {
       return;
     }
 
+    if (record.primitive === "video-surface") {
+      this.applyVideoSource(record, command.source, command.id);
+      return;
+    }
+
     throw new Error(
       "Source content is unsupported for Specs primitive " +
         record.primitive +
@@ -236,6 +263,42 @@ export class ViroSpecsSceneRuntime {
     }
 
     record.image.mainPass.baseTex = texture;
+  }
+
+  private applyVideoSource(
+    record: NodeRecord,
+    source: string,
+    id: string
+  ): void {
+    if (!record.video) {
+      throw new Error("Missing Image component for Specs video node " + id);
+    }
+
+    const texture = this.assets.resolveVideo(source);
+    if (!texture) {
+      throw new Error(
+        "Specs video asset is not registered: " + source + " (" + id + ")"
+      );
+    }
+
+    if (!record.video.mainMaterial) {
+      throw new Error(
+        "Specs video node requires an Image material before setting source: " + id
+      );
+    }
+
+    record.video.mainPass.baseTex = texture;
+
+    // An imported video is a Texture whose control drives playback. Guard the
+    // cast: a still assigned to a video node would otherwise fail silently.
+    const control = texture.control as VideoTextureProvider | null;
+    if (!control || typeof control.play !== "function") {
+      throw new Error(
+        "Specs video asset has no VideoTextureProvider: " + source + " (" + id + ")"
+      );
+    }
+    // Negative playCount loops indefinitely.
+    control.play(-1);
   }
 
   private applyModelSource(

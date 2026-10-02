@@ -12,7 +12,9 @@ export type ViroSpecsNodeKind =
   | "text"
   | "image"
   | "model"
-  | "panel";
+  | "panel"
+  | "scroll"
+  | "video";
 
 export type ViroSpecsSceneNode = {
   id: string;
@@ -36,7 +38,9 @@ export type ViroSpecsRenderPrimitive =
   | "text"
   | "image"
   | "render-mesh"
-  | "ui-frame";
+  | "ui-frame"
+  | "scroll-window"
+  | "video-surface";
 
 export type ViroSpecsRenderDiagnostic = {
   level: "warning" | "error";
@@ -227,6 +231,8 @@ const PRIMITIVES: Record<ViroSpecsNodeKind, ViroSpecsRenderPrimitive> = {
   image: "image",
   model: "render-mesh",
   panel: "ui-frame",
+  scroll: "scroll-window",
+  video: "video-surface",
 };
 
 export function compileLensRenderPlan(

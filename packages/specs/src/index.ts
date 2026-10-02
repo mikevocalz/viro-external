@@ -10,7 +10,9 @@ export type SpecsSupportedNodeKind =
   | "text"
   | "image"
   | "model"
-  | "panel";
+  | "panel"
+  | "scroll"
+  | "video";
 
 export type SpecsSceneSnapshot = {
   version: 1;
@@ -29,7 +31,7 @@ export type SpecsCompileResult = {
 };
 
 const SUPPORTED = new Set<SpecsSupportedNodeKind>([
-  "group", "text", "image", "model", "panel",
+  "group", "text", "image", "model", "panel", "scroll", "video",
 ]);
 
 /**
@@ -68,6 +70,15 @@ export function compileSpecsScene(
         level: "error",
         nodeId: node.id,
         message: "Model nodes require a source asset.",
+      });
+      continue;
+    }
+
+    if (node.kind === "video" && !node.source) {
+      diagnostics.push({
+        level: "error",
+        nodeId: node.id,
+        message: "Video nodes require a source asset.",
       });
       continue;
     }
