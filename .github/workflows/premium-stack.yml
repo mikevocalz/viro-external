@@ -80,7 +80,6 @@ jobs:
             "packages/ui/package.json",
             "packages/viro-external-core/package.json",
             "packages/pano/package.json",
-            "packages/viro-external-meta/package.json",
           ];
 
           for (const file of roots) {
@@ -101,7 +100,7 @@ jobs:
             }
           }
 
-          console.log("Premium dependency manifests are Nitro/Mux-free.");
+          console.log("Premium dependency manifests are Nitro/Mux-free; legacy meta is validated separately.");
           NODE
 
       - name: Typecheck premium packages
