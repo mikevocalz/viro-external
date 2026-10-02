@@ -7,11 +7,16 @@ export {
 } from "@viro-external/core";
 
 export {
+  MuxSpatialPlayer,
   SpatialPanorama,
   SpatialVideo,
   VideoSurface,
   buildMuxPlaybackUrl,
+  buildMuxStoryboardVttUrl,
+  buildMuxThumbnailUrl,
   muxSource,
+  normalizeMuxSource,
+  parseMuxStoryboardVtt,
   resolveMediaSource,
 } from "@viro-external/media";
 
