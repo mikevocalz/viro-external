@@ -1,11 +1,14 @@
 {
   "name": "@viro-external/media",
-  "version": "0.1.0",
-  "description": "Provider-neutral premium spatial video for Viro: flat, curved and 360 playback without Nitro.",
+  "version": "0.2.0",
+  "description": "Premium spatial media for Viro: controller-driven flat, curved and 360 playback with provider adapters and no Nitro.",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "sideEffects": false,
-  "files": ["src", "README.md"],
+  "files": [
+    "src",
+    "README.md"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
@@ -15,8 +18,8 @@
       "default": "./src/index.ts"
     },
     "./mux": {
-      "types": "./src/providers/mux.ts",
-      "default": "./src/providers/mux.ts"
+      "types": "./src/mux.ts",
+      "default": "./src/mux.ts"
     }
   },
   "peerDependencies": {
