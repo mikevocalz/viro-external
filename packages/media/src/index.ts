@@ -38,6 +38,7 @@ export {
   buildMuxStoryboardVttUrl,
   buildMuxThumbnailUrl,
   muxImageHost,
+  muxPlaybackFingerprint,
   muxResolutionSupport,
   muxSource,
   normalizeMuxSource,
