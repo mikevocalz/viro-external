@@ -23,7 +23,7 @@
     "specs:go": "node scripts/go-clad.mjs",
     "specs:test-runner": "node --test scripts/go-clad.test.mjs",
     "build": "tsc -p tsconfig.build.json",
-    "prepack": "pnpm build && pnpm specs:validate-lens && pnpm specs:test-runner"
+    "prepack": "pnpm --filter @viro-external/xr-contract build && pnpm build && node -e \"require('./dist/index.js')\" && pnpm specs:validate-lens && pnpm specs:test-runner"
   },
   "peerDependencies": {
     "@viro-external/xr-contract": ">=0.2.0-rc.1 <0.3.0"
@@ -35,5 +35,12 @@
   "dependencies": {
     "smol-toml": "1.9.0"
   },
-  "module": "dist/index.js"
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  }
 }
