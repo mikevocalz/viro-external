@@ -281,7 +281,7 @@ export const MuxSpatialPlayer = forwardRef<
         return statusRef.current;
       },
     }),
-    [poster, presentation]
+    [muxSource, poster, presentation]
   );
 
   return (
