@@ -131,3 +131,5 @@ export * from "./render";
 export * from "./animation";
 export * from "./interaction";
 export * from "./ar";
+export * from "./navigation";
+export * from "./testing";
