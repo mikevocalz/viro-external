@@ -60,6 +60,9 @@ jobs:
       - name: Typecheck workspace
         run: pnpm typecheck
 
+      - name: Validate Lens Studio runtime sources
+        run: pnpm --filter @viro-external/specs specs:validate-lens
+
       - name: Verify XR package manifests
         run: |
           node <<'NODE'
