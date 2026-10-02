@@ -1,12 +1,12 @@
 {
   "name": "@viro-external/specs",
-  "version": "0.1.0",
+  "version": "0.2.0-rc.1",
   "description": "Portable Viro scene and interaction adapter foundation for Snap Specs / Spectacles Lens Studio runtimes.",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "sideEffects": false,
   "files": [
-    "src",
+    "dist",
     "lens",
     "scripts",
     "README.md",
@@ -20,10 +20,12 @@
     "specs:doctor": "node scripts/doctor-lens-project.mjs",
     "specs:bootstrap": "node scripts/bootstrap-platform-lab.mjs",
     "specs:go": "node scripts/go-clad.mjs",
-    "specs:test-runner": "node --test scripts/go-clad.test.mjs"
+    "specs:test-runner": "node --test scripts/go-clad.test.mjs",
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "pnpm build && pnpm specs:validate-lens && pnpm specs:test-runner"
   },
   "peerDependencies": {
-    "@viro-external/xr-contract": "workspace:*"
+    "@viro-external/xr-contract": ">=0.2.0-rc.1 <0.3.0"
   },
   "devDependencies": {
     "@viro-external/xr-contract": "workspace:*",
@@ -31,5 +33,6 @@
   },
   "dependencies": {
     "smol-toml": "1.9.0"
-  }
+  },
+  "module": "dist/index.js"
 }
