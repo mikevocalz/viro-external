@@ -59,7 +59,7 @@ jobs:
           node -p "require('../viro/package.json').version"
 
       - name: Install workspace
-        run: pnpm install --frozen-lockfile --strict-peer-dependencies=false
+        run: pnpm install --no-frozen-lockfile --strict-peer-dependencies=false
 
       - name: Hydrate linked Viro type resolution without legacy mux
         run: |
