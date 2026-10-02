@@ -1,11 +1,8 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { ViroQuad } from "@reactvision/react-viro";
-import {
-  MovableNode,
-  createPlaceholderMaterial,
-  type MovableProps,
-  type Vec3,
-} from "react-native-viro-mux";
+import { MovableNode } from "../MovableNode";
+import { createPlaceholderMaterial } from "../createPlaceholderMaterial";
+import type { MovableProps, Vec3 } from "../spatialTypes";
 import defaults from "../../config/defaults.json";
 import {
   fallbackDeviceProfile,

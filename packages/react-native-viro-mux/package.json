@@ -1,7 +1,7 @@
 {
   "name": "react-native-viro-mux",
   "version": "0.1.1",
-  "description": "Native texture bridge for Viro: Mux video + external GPU texture seam (ViroGPUTexture).",
+  "description": "Legacy Nitro external-texture bridge for older Viro apps. New video uses @viro-external/media.",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "files": [

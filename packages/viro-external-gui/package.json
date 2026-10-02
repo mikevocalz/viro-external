@@ -1,7 +1,7 @@
 {
   "name": "@viro-external/gui",
   "version": "0.1.0",
-  "description": "Babylon GUI3D control tree ported to ViroReact — pure TS composition on @viro-external/core + react-native-viro-mux.",
+  "description": "Legacy GUI compatibility package. New premium spatial UI lives in @viro-external/ui.",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "files": [
