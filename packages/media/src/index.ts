@@ -1,4 +1,23 @@
 export {
+  SpatialVideoPlayer,
+  createSpatialVideoPlayer,
+  useSpatialVideoPlayer,
+  useSpatialVideoPlayerSnapshot,
+} from "./SpatialVideoPlayer";
+
+export {
+  SpatialVideoPlayerView,
+  type SpatialVideoPlayerViewProps,
+} from "./SpatialVideoPlayerView";
+
+export {
+  MuxSpatialPlayerController,
+  createMuxSpatialPlayerController,
+  useMuxSpatialPlayerController,
+  type MuxSpatialPlayerSource,
+} from "./MuxSpatialPlayerController";
+
+export {
   MuxSpatialPlayer,
   type MuxPosterSource,
   type MuxSpatialPlayerHandle,
@@ -39,9 +58,12 @@ export {
   buildMuxThumbnailUrl,
   muxImageHost,
   muxPlaybackFingerprint,
+  muxPlaybackModifierClaims,
   muxResolutionSupport,
+  muxStreamHost,
   muxSource,
   normalizeMuxSource,
+  type MuxPlaybackModifierClaims,
   type MuxThumbnailFitMode,
   type MuxThumbnailOptions,
   type NormalizedMuxMediaSource,
@@ -66,6 +88,7 @@ export type {
   SpatialPlaybackStatus,
   SpatialPlayerStatus,
   SpatialVideoHandle,
+  SpatialVideoPlayerSnapshot,
   UrlMediaSource,
   Vec3,
   VideoPresentation,
