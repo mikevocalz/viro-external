@@ -68,6 +68,10 @@ jobs:
           pnpm --filter @viro-external/xr-contract build
           pnpm --filter @viro-external/specs build
 
+      - name: Smoke-test built ESM entrypoints in Node
+        run: |
+          node -e "Promise.all([import('./packages/xr-platform-contract/dist/index.js'), import('./packages/specs/dist/index.js')]).then(() => console.log('ESM imports OK'))"
+
       - name: Pack SPECS package
         run: |
           mkdir -p /tmp/viro-specs-pack
