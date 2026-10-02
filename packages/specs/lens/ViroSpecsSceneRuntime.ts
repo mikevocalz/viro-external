@@ -14,6 +14,7 @@ type NodeRecord = {
   image?: Image;
   instantiatedModel?: SceneObject;
   scroll?: ScrollWindow;
+  screenTransform?: ScreenTransform;
   frame?: Frame;
   video?: Image;
 };
@@ -153,6 +154,10 @@ export class ViroSpecsSceneRuntime {
         scroll.vertical = true;
         scroll.horizontal = false;
         record.scroll = scroll;
+        // A ScrollBar would give the region a visible affordance, but the
+        // installed SpectaclesUIKit 0.18.0 keeps ScrollBar.scrollWindow and
+        // .slider private and ships no initialize(), unlike its docs. It has to
+        // be wired from the editor, so a scroll node stays bar-less for now.
         break;
       }
 
@@ -207,6 +212,15 @@ export class ViroSpecsSceneRuntime {
         record,
         command.sizeMeters[0],
         command.sizeMeters[1]
+      );
+    }
+
+    // A ScreenTransform owns its object's layout, so setLocalPosition above is
+    // ignored for these and every sibling collapses onto the parent's centre.
+    // Place them through the same offsets rect that sizes them.
+    if (command.position && record.screenTransform) {
+      record.screenTransform.offsets.setCenter(
+        new vec2(command.position[0] * 100, command.position[1] * 100)
       );
     }
 
@@ -269,10 +283,10 @@ export class ViroSpecsSceneRuntime {
     screenTransform.anchors.right = 0;
     screenTransform.anchors.bottom = 0;
     screenTransform.anchors.top = 0;
-    screenTransform.offsets.left = -width / 2;
-    screenTransform.offsets.right = width / 2;
-    screenTransform.offsets.bottom = -height / 2;
-    screenTransform.offsets.top = height / 2;
+    // setSize keeps the current centre, so a later position command can move it
+    // without the size resetting it back to the parent's middle.
+    screenTransform.offsets.setSize(new vec2(width, height));
+    record.screenTransform = screenTransform;
   }
 
   private applyContent(
