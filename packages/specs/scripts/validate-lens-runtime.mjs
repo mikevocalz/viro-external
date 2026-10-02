@@ -8,6 +8,7 @@ const packageRoot = path.resolve(here, "..");
 const lensRoot = path.join(packageRoot, "lens");
 
 const requiredFiles = [
+  "ViroSpecsProtocol.ts",
   "ViroSpecsAssetRegistry.ts",
   "ViroSpecsSceneRuntime.ts",
   "ViroSpecsRuntimeHost.ts",
