@@ -1,20 +1,20 @@
 import type {
-  SpecsRenderCommand,
-  SpecsRenderPlan,
-  SpecsRenderPrimitive,
-} from "../src/render";
+  ViroViroSpecsRenderCommand,
+  ViroViroSpecsRenderPlan,
+  ViroViroSpecsRenderPrimitive,
+} from "./ViroSpecsProtocol";
 import { ViroSpecsAssetRegistry } from "./ViroSpecsAssetRegistry";
 
 type NodeRecord = {
   object: SceneObject;
-  primitive: SpecsRenderPrimitive;
+  primitive: ViroSpecsRenderPrimitive;
   text?: Text;
   image?: Image;
   instantiatedModel?: SceneObject;
 };
 
 /**
- * Executes SpecsRenderPlan against live Lens Studio SceneObjects.
+ * Executes ViroSpecsRenderPlan against live Lens Studio SceneObjects.
  *
  * This class deliberately owns only renderer mechanics. Scene compilation,
  * Viro semantics, and diagnostics stay in the portable TypeScript package.
@@ -27,7 +27,7 @@ export class ViroSpecsSceneRuntime {
     private readonly assets: ViroSpecsAssetRegistry
   ) {}
 
-  apply(plan: SpecsRenderPlan): void {
+  apply(plan: ViroSpecsRenderPlan): void {
     const errors = plan.diagnostics.filter((diagnostic) => diagnostic.level === "error");
     if (errors.length > 0) {
       throw new Error(
@@ -62,7 +62,7 @@ export class ViroSpecsSceneRuntime {
     return this.nodes.get(id)?.object ?? null;
   }
 
-  private applyCommand(command: SpecsRenderCommand): void {
+  private applyCommand(command: ViroSpecsRenderCommand): void {
     switch (command.op) {
       case "create":
         this.createNode(
@@ -88,7 +88,7 @@ export class ViroSpecsSceneRuntime {
 
   private createNode(
     id: string,
-    primitive: SpecsRenderPrimitive,
+    primitive: ViroSpecsRenderPrimitive,
     parentId?: string
   ): void {
     if (this.nodes.has(id)) {
@@ -128,7 +128,7 @@ export class ViroSpecsSceneRuntime {
   }
 
   private applyTransform(
-    command: Extract<SpecsRenderCommand, { op: "transform" }>
+    command: Extract<ViroSpecsRenderCommand, { op: "transform" }>
   ): void {
     const transform = this.requireNode(command.id).object.getTransform();
 
@@ -166,7 +166,7 @@ export class ViroSpecsSceneRuntime {
   }
 
   private applyContent(
-    command: Extract<SpecsRenderCommand, { op: "content" }>
+    command: Extract<ViroSpecsRenderCommand, { op: "content" }>
   ): void {
     const record = this.requireNode(command.id);
 
