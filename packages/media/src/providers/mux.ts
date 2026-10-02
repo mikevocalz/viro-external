@@ -26,6 +26,10 @@ export type NormalizedMuxMediaSource = MuxMediaSource & {
   provider: "mux";
   playbackId: string;
   renditionOrder: MuxRenditionOrder;
+  playbackToken?: string;
+  drmToken?: string;
+  thumbnailToken?: string;
+  storyboardToken?: string;
 };
 
 export type MuxThumbnailFitMode =
@@ -41,6 +45,14 @@ export type MuxThumbnailOptions = {
   height?: number;
   fitMode?: MuxThumbnailFitMode;
   token?: string;
+};
+
+export type MuxPlaybackModifierClaims = {
+  min_resolution?: MuxMinResolution;
+  max_resolution?: MuxMaxResolution;
+  rendition_order?: "desc";
+  asset_start_time?: number;
+  asset_end_time?: number;
 };
 
 function cleanDomain(value?: string): string | undefined {
@@ -60,7 +72,16 @@ export function normalizeMuxSource(
     throw new Error("Mux media source requires a non-empty playbackId.");
   }
 
-  if (source.tokens?.drm && !source.tokens.playback) {
+  const playbackToken =
+    source.playbackToken ?? source.tokens?.playback;
+  const drmToken =
+    source.drmToken ?? source.tokens?.drm;
+  const thumbnailToken =
+    source.thumbnailToken ?? source.tokens?.thumbnail;
+  const storyboardToken =
+    source.storyboardToken ?? source.tokens?.storyboard;
+
+  if (drmToken && !playbackToken) {
     throw new Error(
       "Mux DRM playback requires both drm and playback tokens."
     );
@@ -100,10 +121,14 @@ export function normalizeMuxSource(
     playbackId,
     customDomain: cleanDomain(source.customDomain),
     renditionOrder: source.renditionOrder ?? "default",
+    playbackToken,
+    drmToken,
+    thumbnailToken,
+    storyboardToken,
   };
 }
 
-function muxStreamHost(customDomain?: string): string {
+export function muxStreamHost(customDomain?: string): string {
   const domain = cleanDomain(customDomain);
   return domain ? `stream.${domain}` : "stream.mux.com";
 }
@@ -113,16 +138,33 @@ export function muxImageHost(customDomain?: string): string {
   return domain ? `image.${domain}` : "image.mux.com";
 }
 
+export function muxPlaybackModifierClaims(
+  sourceInput: MuxMediaSource
+): MuxPlaybackModifierClaims {
+  const source = normalizeMuxSource(sourceInput);
+  return {
+    ...(source.minResolution
+      ? { min_resolution: source.minResolution }
+      : {}),
+    ...(source.maxResolution
+      ? { max_resolution: source.maxResolution }
+      : {}),
+    ...(source.renditionOrder === "desc"
+      ? { rendition_order: "desc" as const }
+      : {}),
+    ...(source.clipping?.assetStartTime != null
+      ? { asset_start_time: source.clipping.assetStartTime }
+      : {}),
+    ...(source.clipping?.assetEndTime != null
+      ? { asset_end_time: source.clipping.assetEndTime }
+      : {}),
+  };
+}
+
 function hasPublicPlaybackModifiers(
   source: NormalizedMuxMediaSource
 ): boolean {
-  return Boolean(
-    source.minResolution ||
-      source.maxResolution ||
-      source.renditionOrder === "desc" ||
-      source.clipping?.assetStartTime != null ||
-      source.clipping?.assetEndTime != null
-  );
+  return Object.keys(muxPlaybackModifierClaims(source)).length > 0;
 }
 
 export function buildMuxPlaybackUrl(
@@ -139,7 +181,7 @@ export function buildMuxPlaybackUrl(
       : sourceOrPlaybackId
   );
 
-  if (source.tokens?.drm) {
+  if (source.drmToken) {
     throw new Error(
       "Mux DRM requires native FairPlay/Widevine integration. The current Viro HLS path does not provide that backend yet."
     );
@@ -147,34 +189,17 @@ export function buildMuxPlaybackUrl(
 
   const query = new URLSearchParams();
 
-  if (source.tokens?.playback) {
+  if (source.playbackToken) {
     if (hasPublicPlaybackModifiers(source)) {
       throw new Error(
-        "Mux playback modifiers for signed playback must be encoded into the playback JWT. Do not append min/max resolution, rendition order, or clipping as query parameters."
+        "Mux playback modifiers for signed playback must be encoded into the playback JWT. Use muxPlaybackModifierClaims() when minting the token instead of appending public query parameters."
       );
     }
-    query.set("token", source.tokens.playback);
+    query.set("token", source.playbackToken);
   } else {
-    if (source.minResolution) {
-      query.set("min_resolution", source.minResolution);
-    }
-    if (source.maxResolution) {
-      query.set("max_resolution", source.maxResolution);
-    }
-    if (source.renditionOrder === "desc") {
-      query.set("rendition_order", "desc");
-    }
-    if (source.clipping?.assetStartTime != null) {
-      query.set(
-        "asset_start_time",
-        String(source.clipping.assetStartTime)
-      );
-    }
-    if (source.clipping?.assetEndTime != null) {
-      query.set(
-        "asset_end_time",
-        String(source.clipping.assetEndTime)
-      );
+    const modifiers = muxPlaybackModifierClaims(source);
+    for (const [key, value] of Object.entries(modifiers)) {
+      if (value != null) query.set(key, String(value));
     }
   }
 
@@ -198,19 +223,17 @@ export function buildMuxThumbnailUrl(
     query.set("time", String(Math.max(0, options.time)));
   }
   if (options.width != null && Number.isFinite(options.width)) {
-    query.set("width", String(Math.round(options.width)));
+    query.set("width", String(Math.max(1, Math.round(options.width))));
   }
   if (options.height != null && Number.isFinite(options.height)) {
-    query.set("height", String(Math.round(options.height)));
+    query.set("height", String(Math.max(1, Math.round(options.height))));
   }
   if (options.fitMode) {
     query.set("fit_mode", options.fitMode);
   }
 
-  const token = options.token ?? source.tokens?.thumbnail;
-  if (token) {
-    query.set("token", token);
-  }
+  const token = options.token ?? source.thumbnailToken;
+  if (token) query.set("token", token);
 
   const base =
     `https://${muxImageHost(source.customDomain)}/` +
@@ -227,8 +250,8 @@ export function buildMuxStoryboardVttUrl(
   const source = normalizeMuxSource(sourceInput);
   const query = new URLSearchParams();
 
-  if (source.tokens?.storyboard) {
-    query.set("token", source.tokens.storyboard);
+  if (source.storyboardToken) {
+    query.set("token", source.storyboardToken);
   }
 
   const base =
@@ -246,8 +269,8 @@ export function muxPlaybackFingerprint(
   const source = normalizeMuxSource(sourceInput);
   return [
     source.playbackId,
-    source.tokens?.playback ?? "",
-    source.tokens?.drm ?? "",
+    source.playbackToken ?? "",
+    source.drmToken ?? "",
     source.customDomain ?? "",
     source.minResolution ?? "",
     source.maxResolution ?? "",

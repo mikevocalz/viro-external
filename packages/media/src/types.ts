@@ -55,6 +55,12 @@ export type MuxMediaSource = {
   provider: "mux";
   playbackId: string;
   assetId?: string;
+  /** Preferred direct aliases, matching Mux player terminology. */
+  playbackToken?: string;
+  drmToken?: string;
+  thumbnailToken?: string;
+  storyboardToken?: string;
+  /** Backward-compatible token bag. */
   tokens?: MuxTokens;
   /** Base custom domain, e.g. media.example.com. */
   customDomain?: string;
@@ -106,4 +112,13 @@ export type SpatialPlayerStatus = {
   volume: number;
   loop: boolean;
   error?: string;
+};
+
+export type SpatialVideoPlayerSnapshot = {
+  source?: MediaSource;
+  paused: boolean;
+  muted: boolean;
+  volume: number;
+  loop: boolean;
+  status: SpatialPlayerStatus;
 };

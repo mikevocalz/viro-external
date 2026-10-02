@@ -5,7 +5,10 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "sideEffects": false,
-  "files": ["src", "README.md"],
+  "files": [
+    "src",
+    "README.md"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
@@ -15,8 +18,8 @@
       "default": "./src/index.ts"
     },
     "./mux": {
-      "types": "./src/providers/mux.ts",
-      "default": "./src/providers/mux.ts"
+      "types": "./src/mux.ts",
+      "default": "./src/mux.ts"
     }
   },
   "peerDependencies": {

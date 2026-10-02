@@ -29,7 +29,9 @@ export {
 } from "./PanelContent";
 
 export {
+  SpatialVideoPlayerPanel,
   VideoPlayerPanel,
+  type SpatialVideoPlayerPanelProps,
   type VideoPlayerPanelProps,
 } from "./VideoPlayerPanel";
 

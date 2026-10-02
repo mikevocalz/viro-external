@@ -66,3 +66,28 @@ Likewise, exact first-frame notifications, buffered-position reporting,
 caption/audio-track selection, playback-rate control, and true data-only preloading
 are not faked in JS. Those are tracked as renderer capabilities for the native media
 backend.
+
+
+## Long-lived player controllers
+
+For simple composition, `SpatialVideo` and `MuxSpatialPlayer` remain the shortest path.
+
+For players that must survive view remounts, switch panels, queue seeks before the
+native Viro surface exists, or share one playback state across multiple controls, use
+the controller/view split:
+
+    const player = useSpatialVideoPlayer(source, (player) => {
+      player.setMuted(false);
+      player.setLoop(true);
+      player.play();
+    });
+
+    <SpatialVideoPlayerView player={player} presentation="curved" />
+
+`MuxSpatialPlayerController` extends the same controller with Mux-aware source
+replacement, public min/max resolution controls, rendition ordering, and poster /
+storyboard URL helpers. Signed-playback modifier changes still require a newly minted
+JWT; `muxPlaybackModifierClaims()` exposes the claims to include when generating it.
+
+The controller owns state; the Viro view only attaches the native seek handle and
+reports lifecycle events back. This avoids duplicated player state in premium UI.

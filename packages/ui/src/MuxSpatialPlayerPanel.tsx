@@ -101,7 +101,8 @@ export function MuxSpatialPlayerPanel({
   const isPlaying = status.status === "playing";
   const isMuted = status.muted;
   const qualityLocked =
-    typeof source !== "string" && Boolean(source.tokens?.playback);
+    typeof source !== "string" &&
+    Boolean(source.playbackToken ?? source.tokens?.playback);
 
   return (
     <SpatialPanel

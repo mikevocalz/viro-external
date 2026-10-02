@@ -24,3 +24,14 @@ or use subpaths:
     import { SpatialPanel } from "@viro-external/premium/ui";
 
 Native render-pass packages remain separate so applications only pay for the heavy renderer extensions they actually install.
+
+
+## Player architecture
+
+`@viro-external/premium` exposes both declarative media components and long-lived
+controllers:
+
+- `MuxSpatialPlayer` — simple Mux-aware spatial component with poster/status API.
+- `SpatialVideoPlayer` + `SpatialVideoPlayerView` — provider-neutral shared state.
+- `MuxSpatialPlayerController` — long-lived Mux-aware controller.
+- `SpatialVideoPlayerPanel` — premium controls bound to one controller.
