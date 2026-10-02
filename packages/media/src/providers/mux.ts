@@ -30,6 +30,14 @@ export type MuxThumbnailOptions = {
   token?: string;
 };
 
+export type MuxPlaybackModifierClaims = {
+  min_resolution?: MuxMinResolution;
+  max_resolution?: MuxMaxResolution;
+  rendition_order?: "desc";
+  asset_start_time?: number;
+  asset_end_time?: number;
+};
+
 const MIN_RESOLUTIONS: MuxMinResolution[] = [
   "480p",
   "540p",
@@ -115,6 +123,35 @@ export function normalizeMuxMediaSource(
  * playback, Mux requires those modifiers to be embedded in the signed JWT
  * claims, so only the token itself is appended here.
  */
+export function muxPlaybackModifierClaims(
+  sourceInput: MuxMediaSource
+): MuxPlaybackModifierClaims {
+  const source = normalizeMuxMediaSource(sourceInput);
+  return {
+    ...(source.minResolution
+      ? { min_resolution: source.minResolution }
+      : {}),
+    ...(source.maxResolution
+      ? { max_resolution: source.maxResolution }
+      : {}),
+    ...(source.renditionOrder === "desc"
+      ? { rendition_order: "desc" as const }
+      : {}),
+    ...(source.clipping?.assetStartTime != null
+      ? {
+          asset_start_time:
+            source.clipping.assetStartTime,
+        }
+      : {}),
+    ...(source.clipping?.assetEndTime != null
+      ? {
+          asset_end_time:
+            source.clipping.assetEndTime,
+        }
+      : {}),
+  };
+}
+
 export function buildMuxPlaybackUrl(
   sourceOrPlaybackId: MuxMediaSource | string,
   legacyTokens?: MuxTokens
@@ -146,26 +183,11 @@ export function buildMuxPlaybackUrl(
   if (source.playbackToken) {
     params.set("token", source.playbackToken);
   } else {
-    if (source.minResolution) {
-      params.set("min_resolution", source.minResolution);
-    }
-    if (source.maxResolution) {
-      params.set("max_resolution", source.maxResolution);
-    }
-    if (source.renditionOrder === "desc") {
-      params.set("rendition_order", "desc");
-    }
-    if (source.clipping?.assetStartTime != null) {
-      params.set(
-        "asset_start_time",
-        String(source.clipping.assetStartTime)
-      );
-    }
-    if (source.clipping?.assetEndTime != null) {
-      params.set(
-        "asset_end_time",
-        String(source.clipping.assetEndTime)
-      );
+    const modifiers = muxPlaybackModifierClaims(source);
+    for (const [key, value] of Object.entries(modifiers)) {
+      if (value != null) {
+        params.set(key, String(value));
+      }
     }
   }
 
