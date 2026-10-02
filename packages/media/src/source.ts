@@ -9,7 +9,7 @@ export function resolveMediaSource(source: MediaSource): ResolvedMediaSource {
   }
 
   if (source.provider === "mux") {
-    return { uri: buildMuxPlaybackUrl(source.playbackId, source.tokens) };
+    return { uri: buildMuxPlaybackUrl(source) };
   }
 
   return { uri: source.uri };
