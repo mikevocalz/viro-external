@@ -38,3 +38,8 @@ export {
   buildRoundedPanelGeometry,
   type PanelGeometry,
 } from "./geometry";
+
+export {
+  MuxSpatialPlayerPanel,
+  type MuxSpatialPlayerPanelProps,
+} from "./MuxSpatialPlayerPanel";
