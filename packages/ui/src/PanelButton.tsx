@@ -53,6 +53,7 @@ export function PanelButton({
           textAlignVertical: "center",
           fontWeight: "600",
         }}
+        ignoreEventHandling
       />
     </ViroNode>
   );
