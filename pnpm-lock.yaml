@@ -113,25 +113,19 @@ importers:
       '@reactvision/react-viro':
         specifier: link:../../../viro
         version: link:../../../viro
-      react-native-viro-mux:
+      '@viro-external/media':
         specifier: workspace:*
-        version: link:../react-native-viro-mux
+        version: link:../media
     devDependencies:
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
-      nitrogen:
-        specifier: 0.37.1
-        version: 0.37.1(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
       react:
         specifier: 19.3.0
         version: 19.3.0
       react-native:
         specifier: 0.88.0-rc.3
         version: 0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
-      react-native-nitro-modules:
-        specifier: 0.37.1
-        version: 0.37.1(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -297,12 +291,15 @@ importers:
       '@viro-external/core':
         specifier: workspace:*
         version: link:../viro-external-core
-      '@viro-external/gui':
+      '@viro-external/media':
         specifier: workspace:*
-        version: link:../viro-external-gui
-      react-native-viro-mux:
+        version: link:../media
+      '@viro-external/premium':
         specifier: workspace:*
-        version: link:../react-native-viro-mux
+        version: link:../premium
+      '@viro-external/ui':
+        specifier: workspace:*
+        version: link:../ui
     devDependencies:
       '@types/react':
         specifier: 19.3.0
