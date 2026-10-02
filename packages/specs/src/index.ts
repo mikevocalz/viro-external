@@ -34,6 +34,9 @@ const SUPPORTED = new Set<SpecsSupportedNodeKind>([
   "group", "text", "image", "model", "panel", "scroll", "video",
 ]);
 
+/** Kinds whose variant declares `source` as required. */
+const SOURCE_REQUIRED = new Set<string>(["model", "image", "video"]);
+
 /**
  * Compile the deliberately small portable scene subset into a stable JSON
  * snapshot for a Lens Studio/Snap OS runtime bridge.
@@ -65,20 +68,13 @@ export function compileSpecsScene(
       continue;
     }
 
-    if (node.kind === "model" && !node.source) {
+    // The variants make these required, but a scene can arrive from untyped
+    // JSON across the wire, so the check stays.
+    if (SOURCE_REQUIRED.has(node.kind) && !(node as { source?: string }).source) {
       diagnostics.push({
         level: "error",
         nodeId: node.id,
-        message: "Model nodes require a source asset.",
-      });
-      continue;
-    }
-
-    if (node.kind === "video" && !node.source) {
-      diagnostics.push({
-        level: "error",
-        nodeId: node.id,
-        message: "Video nodes require a source asset.",
+        message: `${node.kind} nodes require a source asset.`,
       });
       continue;
     }

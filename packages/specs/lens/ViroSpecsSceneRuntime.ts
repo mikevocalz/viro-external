@@ -199,16 +199,18 @@ export class ViroSpecsSceneRuntime {
       );
     }
 
-    if (command.scale) {
-      // Image, video and scroll surfaces are laid out by ScreenTransform, whose
-      // extents are centimetres — SceneObject scale leaves them at the Image
-      // component's own default size. For those, scale is the surface size in
-      // meters; everything else keeps plain multiplier semantics.
-      if (this.isSizedSurface(record.primitive)) {
-        this.applySurfaceSize(record, command.scale[0], command.scale[1]);
-        return;
-      }
+    // Surfaces are measured, not scaled: Lens lays an Image, a Frame and a
+    // ScrollWindow out from a width and a height, so SceneObject scale would
+    // leave them at the component's own default size.
+    if (command.sizeMeters) {
+      this.applySurfaceSize(
+        record,
+        command.sizeMeters[0],
+        command.sizeMeters[1]
+      );
+    }
 
+    if (command.scale) {
       transform.setLocalScale(
         new vec3(
           command.scale[0],
@@ -217,15 +219,6 @@ export class ViroSpecsSceneRuntime {
         )
       );
     }
-  }
-
-  private isSizedSurface(primitive: ViroSpecsRenderPrimitive): boolean {
-    return (
-      primitive === "image" ||
-      primitive === "video-surface" ||
-      primitive === "scroll-window" ||
-      primitive === "ui-frame"
-    );
   }
 
   private applySurfaceSize(
@@ -302,6 +295,7 @@ export class ViroSpecsSceneRuntime {
 
     if (record.primitive === "image") {
       this.applyImageSource(record, command.source, command.id);
+      this.applyFit(record.image, command.fit);
       return;
     }
 
@@ -312,6 +306,7 @@ export class ViroSpecsSceneRuntime {
 
     if (record.primitive === "video-surface") {
       this.applyVideoSource(record, command.source, command.id);
+      this.applyFit(record.video, command.fit);
       return;
     }
 
@@ -349,6 +344,27 @@ export class ViroSpecsSceneRuntime {
     }
 
     record.image.mainPass.baseTex = texture;
+  }
+
+  /**
+   * Lens expresses fit as StretchMode on the Image component. Default to cover,
+   * because Stretch (the component default) distorts any texture whose aspect
+   * ratio differs from the surface.
+   */
+  private applyFit(
+    image: Image | undefined,
+    fit: "cover" | "contain" | "stretch" | undefined
+  ): void {
+    if (!image) return;
+    if (fit === "contain") {
+      image.stretchMode = StretchMode.Fit;
+      return;
+    }
+    if (fit === "stretch") {
+      image.stretchMode = StretchMode.Stretch;
+      return;
+    }
+    image.stretchMode = StretchMode.Fill;
   }
 
   private applyVideoSource(

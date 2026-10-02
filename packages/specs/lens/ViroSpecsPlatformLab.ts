@@ -56,7 +56,9 @@ export class ViroSpecsPlatformLab extends BaseScriptComponent {
           parentId: "platform-lab-root",
           kind: "panel",
           position: [0, 0, -0.04],
-          scale: [3, 5, 1],
+          // A panel is measured, not scaled. 60 x 50 cm keeps the lab inside
+          // the 50-degree arc that stays comfortable at the root's 1.5 m.
+          sizeMeters: [0.6, 0.5],
         },
         {
           id: "platform-lab-title",

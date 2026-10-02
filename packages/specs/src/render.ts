@@ -1,4 +1,7 @@
-import type { PortableXRNode } from "@viro-external/xr-contract";
+import type {
+  PortableXRNode,
+  PortableXRSurfaceFit,
+} from "@viro-external/xr-contract";
 import type { SpecsUpstreamPackageName } from "./upstream";
 
 export type SpecsRenderPrimitive =
@@ -29,13 +32,17 @@ export type SpecsRenderCommand =
       id: string;
       position?: [number, number, number];
       rotation?: [number, number, number, number];
+      /** Unitless multiplier. Mutually exclusive with `sizeMeters`. */
       scale?: [number, number, number];
+      /** `[width, height]` in meters, for surfaces laid out by size. */
+      sizeMeters?: [number, number];
     }
   | {
       op: "content";
       id: string;
       text?: string;
       source?: string;
+      fit?: PortableXRSurfaceFit;
     }
   | {
       op: "visibility";
@@ -49,6 +56,9 @@ export type SpecsRenderPlan = {
   diagnostics: SpecsRenderDiagnostic[];
   packages: SpecsUpstreamPackageName[];
 };
+
+/** Kinds whose variant declares `source` as required. */
+const SOURCE_REQUIRED = new Set<string>(["model", "image", "video"]);
 
 const RENDER_MAPPING: Record<
   PortableXRNode["kind"],
@@ -73,6 +83,21 @@ const RENDER_MAPPING: Record<
   // Video is a core Lens Texture driven by VideoTextureProvider, no upstream package.
   video: { primitive: "video-surface" },
 };
+
+/** `scale` exists only on the multiplier-scaled variants. */
+function scaleOf(node: PortableXRNode): [number, number, number] | undefined {
+  return "scale" in node ? node.scale : undefined;
+}
+
+/** `sizeMeters` exists only on the measured-surface variants. */
+function sizeOf(node: PortableXRNode): [number, number] | undefined {
+  return "sizeMeters" in node ? node.sizeMeters : undefined;
+}
+
+/** `source` exists only on the asset-backed variants. */
+function sourceOf(node: PortableXRNode): string | undefined {
+  return "source" in node ? node.source : undefined;
+}
 
 function addPackage(
   packages: Set<SpecsUpstreamPackageName>,
@@ -110,11 +135,11 @@ export function compileSpecsRenderPlan(
     const mapping = RENDER_MAPPING[node.kind];
     addPackage(packages, mapping.backendPackage);
 
-    if (node.kind === "model" && !node.source) {
+    if (SOURCE_REQUIRED.has(node.kind) && !sourceOf(node)) {
       diagnostics.push({
         level: "error",
         nodeId: node.id,
-        message: "Model nodes require a source asset before Specs rendering.",
+        message: `${node.kind} nodes require a source asset before Specs rendering.`,
       });
       continue;
     }
@@ -129,22 +154,29 @@ export function compileSpecsRenderPlan(
         : {}),
     });
 
-    if (node.position || node.rotation || node.scale) {
+    const scale = scaleOf(node);
+    const sizeMeters = sizeOf(node);
+    if (node.position || node.rotation || scale || sizeMeters) {
       commands.push({
         op: "transform",
         id: node.id,
         ...(node.position ? { position: node.position } : {}),
         ...(node.rotation ? { rotation: node.rotation } : {}),
-        ...(node.scale ? { scale: node.scale } : {}),
+        ...(scale ? { scale } : {}),
+        ...(sizeMeters ? { sizeMeters } : {}),
       });
     }
 
-    if (node.text !== undefined || node.source !== undefined) {
+    const text = node.kind === "text" ? node.text : undefined;
+    const source = sourceOf(node);
+    const fit = "fit" in node ? node.fit : undefined;
+    if (text !== undefined || source !== undefined) {
       commands.push({
         op: "content",
         id: node.id,
-        ...(node.text !== undefined ? { text: node.text } : {}),
-        ...(node.source !== undefined ? { source: node.source } : {}),
+        ...(text !== undefined ? { text } : {}),
+        ...(source !== undefined ? { source } : {}),
+        ...(fit !== undefined ? { fit } : {}),
       });
     }
 

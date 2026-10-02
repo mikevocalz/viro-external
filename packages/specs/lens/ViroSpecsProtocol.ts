@@ -16,17 +16,36 @@ export type ViroSpecsNodeKind =
   | "scroll"
   | "video";
 
-export type ViroSpecsSceneNode = {
+/** How a texture fills a surface of a different aspect ratio. */
+export type ViroSpecsSurfaceFit = "cover" | "contain" | "stretch";
+
+/** Placement shared by every node. Positions are meters in parent space. */
+export type ViroSpecsSceneNodeBase = {
   id: string;
-  kind: ViroSpecsNodeKind;
   parentId?: string;
   position?: [number, number, number];
   rotation?: [number, number, number, number];
-  scale?: [number, number, number];
-  source?: string;
-  text?: string;
   visible?: boolean;
 };
+
+/** A node scaled by a unitless multiplier. */
+export type ViroSpecsScaledNode = ViroSpecsSceneNodeBase & {
+  scale?: [number, number, number];
+};
+
+/** A flat surface measured in meters. Scale does not apply to these. */
+export type ViroSpecsSizedNode = ViroSpecsSceneNodeBase & {
+  sizeMeters?: [number, number];
+};
+
+export type ViroSpecsSceneNode =
+  | (ViroSpecsScaledNode & { kind: "group" })
+  | (ViroSpecsScaledNode & { kind: "text"; text: string })
+  | (ViroSpecsScaledNode & { kind: "model"; source: string })
+  | (ViroSpecsSizedNode & { kind: "image"; source: string; fit?: ViroSpecsSurfaceFit })
+  | (ViroSpecsSizedNode & { kind: "video"; source: string; fit?: ViroSpecsSurfaceFit })
+  | (ViroSpecsSizedNode & { kind: "panel" })
+  | (ViroSpecsSizedNode & { kind: "scroll" });
 
 export type ViroSpecsSceneSnapshot = {
   version: 1;
@@ -60,13 +79,17 @@ export type ViroSpecsRenderCommand =
       id: string;
       position?: [number, number, number];
       rotation?: [number, number, number, number];
+      /** Unitless multiplier. Mutually exclusive with `sizeMeters`. */
       scale?: [number, number, number];
+      /** `[width, height]` in meters, for surfaces laid out by size. */
+      sizeMeters?: [number, number];
     }
   | {
       op: "content";
       id: string;
       text?: string;
       source?: string;
+      fit?: ViroSpecsSurfaceFit;
     }
   | {
       op: "visibility";
@@ -225,6 +248,9 @@ export type ViroSpecsCapabilityReport = Record<
   ViroSpecsCapabilityState
 >;
 
+/** Kinds whose variant declares `source` as required. */
+const SOURCE_REQUIRED: readonly string[] = ["model", "image", "video"];
+
 const PRIMITIVES: Record<ViroSpecsNodeKind, ViroSpecsRenderPrimitive> = {
   group: "scene-object",
   text: "text",
@@ -253,11 +279,12 @@ export function compileLensRenderPlan(
     }
     ids.add(node.id);
 
-    if (node.kind === "model" && !node.source) {
+    const source = "source" in node ? node.source : undefined;
+    if (SOURCE_REQUIRED.indexOf(node.kind) >= 0 && !source) {
       diagnostics.push({
         level: "error",
         nodeId: node.id,
-        message: "Model nodes require a source asset.",
+        message: node.kind + " nodes require a source asset.",
       });
       continue;
     }
@@ -269,22 +296,28 @@ export function compileLensRenderPlan(
       primitive: PRIMITIVES[node.kind],
     });
 
-    if (node.position || node.rotation || node.scale) {
+    const scale = "scale" in node ? node.scale : undefined;
+    const sizeMeters = "sizeMeters" in node ? node.sizeMeters : undefined;
+    if (node.position || node.rotation || scale || sizeMeters) {
       commands.push({
         op: "transform",
         id: node.id,
         ...(node.position ? { position: node.position } : {}),
         ...(node.rotation ? { rotation: node.rotation } : {}),
-        ...(node.scale ? { scale: node.scale } : {}),
+        ...(scale ? { scale } : {}),
+        ...(sizeMeters ? { sizeMeters } : {}),
       });
     }
 
-    if (node.text !== undefined || node.source !== undefined) {
+    const text = node.kind === "text" ? node.text : undefined;
+    const fit = "fit" in node ? node.fit : undefined;
+    if (text !== undefined || source !== undefined) {
       commands.push({
         op: "content",
         id: node.id,
-        ...(node.text !== undefined ? { text: node.text } : {}),
-        ...(node.source !== undefined ? { source: node.source } : {}),
+        ...(text !== undefined ? { text } : {}),
+        ...(source !== undefined ? { source } : {}),
+        ...(fit !== undefined ? { fit } : {}),
       });
     }
 

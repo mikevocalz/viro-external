@@ -63,6 +63,11 @@ export type SpatialSurfaceIntent = {
   resizable?: boolean;
 };
 
+/**
+ * Discriminator for the portable node variants.
+ *
+ * @see {@linkcode PortableXRNode}
+ */
 export type PortableXRNodeKind =
   | "group"
   | "text"
@@ -72,17 +77,126 @@ export type PortableXRNodeKind =
   | "scroll"
   | "video";
 
-export interface PortableXRNode {
+/**
+ * Placement every portable node shares.
+ *
+ * Positions and rotations are meters and a `[x, y, z, w]` quaternion in the
+ * node's parent space. Adapters convert to their platform's units.
+ *
+ * @see {@linkcode PortableXRNode}
+ */
+export interface PortableXRNodeBase {
   id: string;
-  kind: PortableXRNodeKind;
   parentId?: string;
   position?: [number, number, number];
   rotation?: [number, number, number, number];
-  scale?: [number, number, number];
-  source?: string;
-  text?: string;
   visible?: boolean;
 }
+
+/**
+ * A node scaled by a unitless multiplier, the way a mesh or a container is.
+ *
+ * Surfaces are measured instead — see {@linkcode PortableXRSizedNode}.
+ */
+export interface PortableXRScaledNode extends PortableXRNodeBase {
+  /** Multiplier per axis. Defaults to `[1, 1, 1]`. */
+  scale?: [number, number, number];
+}
+
+/**
+ * A flat surface measured in meters rather than scaled.
+ *
+ * Scale is meaningless for these: a platform lays them out from a width and a
+ * height, so `[0.14, 0.14]` is a 14 cm square at any parent scale.
+ */
+export interface PortableXRSizedNode extends PortableXRNodeBase {
+  /** `[width, height]` in meters. */
+  sizeMeters?: [number, number];
+}
+
+/** An empty container used to group and transform its children. */
+export interface PortableXRGroupNode extends PortableXRScaledNode {
+  kind: "group";
+}
+
+/** A text label. @see {@linkcode PortableXRNode} */
+export interface PortableXRTextNode extends PortableXRScaledNode {
+  kind: "text";
+  text: string;
+}
+
+/** A 3D model resolved from the adapter's asset registry by {@linkcode PortableXRModelNode.source}. */
+export interface PortableXRModelNode extends PortableXRScaledNode {
+  kind: "model";
+  /** Registry id of the model asset. */
+  source: string;
+}
+
+/**
+ * How a texture fills a surface whose aspect ratio differs from its own.
+ *
+ * @see {@linkcode PortableXRImageNode.fit}
+ */
+export type PortableXRSurfaceFit =
+  /** Scale uniformly until the surface is covered; overflow is cropped. */
+  | "cover"
+  /** Scale uniformly until the whole texture fits; may letterbox. */
+  | "contain"
+  /** Scale each axis independently to fill exactly; may distort. */
+  | "stretch";
+
+/** A still image surface. */
+export interface PortableXRImageNode extends PortableXRSizedNode {
+  kind: "image";
+  /** Registry id of the image asset. */
+  source: string;
+  /**
+   * How the texture fills {@linkcode PortableXRSizedNode.sizeMeters}.
+   *
+   * @default "cover"
+   */
+  fit?: PortableXRSurfaceFit;
+}
+
+/** A video surface. Playback starts when the node is created and loops. */
+export interface PortableXRVideoNode extends PortableXRSizedNode {
+  kind: "video";
+  /** Registry id of the video asset. */
+  source: string;
+  /**
+   * How the video frame fills {@linkcode PortableXRSizedNode.sizeMeters}.
+   *
+   * @default "cover"
+   */
+  fit?: PortableXRSurfaceFit;
+}
+
+/** A framed container that situates its children in space. */
+export interface PortableXRPanelNode extends PortableXRSizedNode {
+  kind: "panel";
+}
+
+/** A clipped, scrollable region. Children scroll within {@linkcode PortableXRSizedNode.sizeMeters}. */
+export interface PortableXRScrollNode extends PortableXRSizedNode {
+  kind: "scroll";
+}
+
+/**
+ * One node of a portable XR scene.
+ *
+ * A variant carries only the fields its kind needs, so a video without a
+ * `source` or a panel with a `text` will not typecheck.
+ *
+ * @see {@linkcode XRPlatformAdapter.updatePortableScene}
+ */
+export type PortableXRNode =
+  | PortableXRGroupNode
+  | PortableXRTextNode
+  | PortableXRModelNode
+  | PortableXRImageNode
+  | PortableXRVideoNode
+  | PortableXRPanelNode
+  | PortableXRScrollNode;
 
 export type XRInteractionSource =
   | "gaze"
