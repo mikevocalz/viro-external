@@ -7,6 +7,7 @@ export {
 } from "@viro-external/core";
 
 export {
+  SpatialPanorama,
   SpatialVideo,
   VideoSurface,
   buildMuxPlaybackUrl,
