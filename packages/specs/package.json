@@ -3,9 +3,10 @@
   "version": "0.2.0-rc.1",
   "description": "Portable Viro scene and interaction adapter foundation for Snap Specs / Spectacles Lens Studio runtimes.",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "types": "src/index.ts",
   "sideEffects": false,
   "files": [
+    "src",
     "dist",
     "lens",
     "scripts",
