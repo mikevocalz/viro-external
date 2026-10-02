@@ -1,0 +1,305 @@
+/**
+ * Dependency-free wire protocol consumed inside Lens Studio.
+ *
+ * Keep this file free of npm/workspace imports. The shared TypeScript compiler
+ * produces structurally compatible payloads; Lens Studio only needs these
+ * serialized shapes and official .lspkg dependencies.
+ */
+export const VIRO_SPECS_WIRE_VERSION = 1 as const;
+
+export type ViroSpecsNodeKind =
+  | "group"
+  | "text"
+  | "image"
+  | "model"
+  | "panel";
+
+export type ViroSpecsSceneNode = {
+  id: string;
+  kind: ViroSpecsNodeKind;
+  parentId?: string;
+  position?: [number, number, number];
+  rotation?: [number, number, number, number];
+  scale?: [number, number, number];
+  source?: string;
+  text?: string;
+  visible?: boolean;
+};
+
+export type ViroSpecsSceneSnapshot = {
+  version: 1;
+  nodes: ViroSpecsSceneNode[];
+};
+
+export type ViroSpecsRenderPrimitive =
+  | "scene-object"
+  | "text"
+  | "image"
+  | "render-mesh"
+  | "ui-frame";
+
+export type ViroSpecsRenderDiagnostic = {
+  level: "warning" | "error";
+  nodeId?: string;
+  message: string;
+};
+
+export type ViroSpecsRenderCommand =
+  | {
+      op: "create";
+      id: string;
+      parentId?: string;
+      primitive: ViroSpecsRenderPrimitive;
+    }
+  | {
+      op: "transform";
+      id: string;
+      position?: [number, number, number];
+      rotation?: [number, number, number, number];
+      scale?: [number, number, number];
+    }
+  | {
+      op: "content";
+      id: string;
+      text?: string;
+      source?: string;
+    }
+  | {
+      op: "visibility";
+      id: string;
+      visible: boolean;
+    };
+
+export type ViroSpecsRenderPlan = {
+  version: 1;
+  commands: ViroSpecsRenderCommand[];
+  diagnostics: ViroSpecsRenderDiagnostic[];
+};
+
+export type ViroSpecsAnimationEasing =
+  | "linear"
+  | "ease-in"
+  | "ease-out"
+  | "ease-in-out"
+  | { cubicBezier: [number, number, number, number] };
+
+export type ViroSpecsAnimationTrackTarget =
+  | "transform.position.x"
+  | "transform.position.y"
+  | "transform.position.z"
+  | "transform.scale.x"
+  | "transform.scale.y"
+  | "transform.scale.z"
+  | "transform.rotation.x"
+  | "transform.rotation.y"
+  | "transform.rotation.z"
+  | "material.opacity";
+
+export type ViroSpecsAnimationTrackPlan = {
+  target: ViroSpecsAnimationTrackTarget;
+  from: "current";
+  to: number;
+};
+
+export type ViroSpecsNativeAnimationPlan = {
+  engine: "AnimationPlayer";
+  backendPackage: "AnimationExamples";
+  durationSeconds: number;
+  delaySeconds: number;
+  easing: ViroSpecsAnimationEasing;
+  playbackMode: "single" | "loop";
+  completionEvent: string;
+  tracks: ViroSpecsAnimationTrackPlan[];
+};
+
+export type ViroSpecsInteractionSource =
+  | "gaze"
+  | "hand"
+  | "pinch"
+  | "controller"
+  | "voice"
+  | "touch"
+  | "neural-band";
+
+export type ViroSpecsInteractionPhase =
+  | "hover-enter"
+  | "hover-move"
+  | "hover-exit"
+  | "select-start"
+  | "select-end"
+  | "drag"
+  | "cancel";
+
+export type ViroSpecsPortableInteraction = {
+  source: ViroSpecsInteractionSource;
+  phase: ViroSpecsInteractionPhase;
+  targetId?: string;
+  position?: [number, number, number];
+  direction?: [number, number, number];
+  timestampMs?: number;
+};
+
+export type ViroSpecsSurfaceClassification =
+  | "floor"
+  | "wall"
+  | "ceiling"
+  | "table"
+  | "seat"
+  | "unknown";
+
+export type ViroSpecsWorldQueryRequest = {
+  origin: [number, number, number];
+  direction: [number, number, number];
+  maxDistance?: number;
+  classifications?: readonly ViroSpecsSurfaceClassification[];
+};
+
+export type ViroSpecsARHitTestResult = {
+  position: [number, number, number];
+  normal?: [number, number, number];
+  distance: number;
+  surface: ViroSpecsSurfaceClassification;
+  confidence?: number;
+};
+
+export type ViroSpecsSurfacePlacementMode =
+  | "near-surface"
+  | "horizontal"
+  | "vertical";
+
+export type ViroSpecsPlacementPose = {
+  position: [number, number, number];
+  rotation: [number, number, number, number];
+  surface?: ViroSpecsSurfaceClassification;
+};
+
+export type ViroSpecsGeoCoordinate = {
+  latitude: number;
+  longitude: number;
+  altitudeMeters?: number;
+};
+
+export type ViroSpecsNavigationPlace = {
+  id: string;
+  name?: string;
+  coordinate: ViroSpecsGeoCoordinate;
+};
+
+export type ViroSpecsNavigationRoute = {
+  id: string;
+  points: readonly ViroSpecsGeoCoordinate[];
+  destination?: ViroSpecsNavigationPlace;
+};
+
+export type ViroSpecsNavigationPlan = {
+  route: ViroSpecsNavigationRoute;
+  line: {
+    widthMeters: number;
+    verticalOffsetMeters?: number;
+    materialId?: string;
+  };
+  packages: readonly ["SpecsNavigationKit", "VolumetricLine"];
+};
+
+export type ViroSpecsVolumetricLinePlan = {
+  primitive: "volumetric-line";
+  backendPackage: "VolumetricLine";
+  points: readonly [number, number, number][];
+  radiusMeters: number;
+  materialId?: string;
+};
+
+export type ViroSpecsCapabilityState =
+  | "supported"
+  | "unsupported"
+  | "permission-required"
+  | "temporarily-unavailable"
+  | "unverified";
+
+export type ViroSpecsCapabilityReport = Record<
+  string,
+  ViroSpecsCapabilityState
+>;
+
+const PRIMITIVES: Record<ViroSpecsNodeKind, ViroSpecsRenderPrimitive> = {
+  group: "scene-object",
+  text: "text",
+  image: "image",
+  model: "render-mesh",
+  panel: "ui-frame",
+};
+
+export function compileLensRenderPlan(
+  scene: ViroSpecsSceneSnapshot
+): ViroSpecsRenderPlan {
+  const commands: ViroSpecsRenderCommand[] = [];
+  const diagnostics: ViroSpecsRenderDiagnostic[] = [];
+  const ids = new Set<string>();
+
+  for (const node of scene.nodes) {
+    if (ids.has(node.id)) {
+      diagnostics.push({
+        level: "error",
+        nodeId: node.id,
+        message: "Duplicate portable XR node id.",
+      });
+      continue;
+    }
+    ids.add(node.id);
+
+    if (node.kind === "model" && !node.source) {
+      diagnostics.push({
+        level: "error",
+        nodeId: node.id,
+        message: "Model nodes require a source asset.",
+      });
+      continue;
+    }
+
+    commands.push({
+      op: "create",
+      id: node.id,
+      ...(node.parentId ? { parentId: node.parentId } : {}),
+      primitive: PRIMITIVES[node.kind],
+    });
+
+    if (node.position || node.rotation || node.scale) {
+      commands.push({
+        op: "transform",
+        id: node.id,
+        ...(node.position ? { position: node.position } : {}),
+        ...(node.rotation ? { rotation: node.rotation } : {}),
+        ...(node.scale ? { scale: node.scale } : {}),
+      });
+    }
+
+    if (node.text !== undefined || node.source !== undefined) {
+      commands.push({
+        op: "content",
+        id: node.id,
+        ...(node.text !== undefined ? { text: node.text } : {}),
+        ...(node.source !== undefined ? { source: node.source } : {}),
+      });
+    }
+
+    if (node.visible !== undefined) {
+      commands.push({
+        op: "visibility",
+        id: node.id,
+        visible: node.visible,
+      });
+    }
+  }
+
+  for (const node of scene.nodes) {
+    if (node.parentId && !ids.has(node.parentId)) {
+      diagnostics.push({
+        level: "warning",
+        nodeId: node.id,
+        message: "Parent " + node.parentId + " is not present in the scene.",
+      });
+    }
+  }
+
+  return { version: VIRO_SPECS_WIRE_VERSION, commands, diagnostics };
+}
