@@ -1,4 +1,9 @@
-import React, { useCallback, useRef } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { ViroNode } from "@reactvision/react-viro";
 import type { MovableProps, Vec3 } from "./spatialTypes";
 
@@ -24,10 +29,18 @@ export function MovableNode(props: MovableNodeProps): React.ReactElement {
     children,
   } = props;
 
+  const sx = scale?.[0] ?? 1;
+  const sy = scale?.[1] ?? 1;
+  const sz = scale?.[2] ?? 1;
+
   const dragStartWorld = useRef<Vec3 | null>(null);
   const lastDragWorld = useRef<Vec3 | null>(null);
-  const pinchStartScale = useRef<Vec3>(scale ?? [1, 1, 1]);
-  const currentScale = useRef<Vec3>(scale ?? [1, 1, 1]);
+  const pinchStartScale = useRef<Vec3>([sx, sy, sz]);
+  const [currentScale, setCurrentScale] = useState<Vec3>([sx, sy, sz]);
+
+  useEffect(() => {
+    setCurrentScale([sx, sy, sz]);
+  }, [sx, sy, sz]);
 
   const handleDrag = useCallback(
     (dragToPos: Vec3) => {
@@ -54,14 +67,14 @@ export function MovableNode(props: MovableNodeProps): React.ReactElement {
       if (!pinchToScale) return;
 
       if (pinchState === 1) {
-        pinchStartScale.current = currentScale.current;
+        pinchStartScale.current = currentScale;
       } else if (pinchState === 3) {
         const start = pinchStartScale.current;
-        currentScale.current = [
+        setCurrentScale([
           start[0] * scaleFactor,
           start[1] * scaleFactor,
           start[2] * scaleFactor,
-        ];
+        ]);
 
         if (lastDragWorld.current && dragStartWorld.current) {
           onMoveEnd?.(lastDragWorld.current);
@@ -70,7 +83,7 @@ export function MovableNode(props: MovableNodeProps): React.ReactElement {
         }
       }
     },
-    [onMoveEnd, pinchToScale]
+    [currentScale, onMoveEnd, pinchToScale]
   );
 
   const tagProps = (
@@ -89,7 +102,7 @@ export function MovableNode(props: MovableNodeProps): React.ReactElement {
     <ViroNode
       {...tagProps}
       position={position}
-      scale={currentScale.current}
+      scale={currentScale}
       dragType={dragType}
       dragPlane={dragPlane}
       onDrag={handleDrag}
