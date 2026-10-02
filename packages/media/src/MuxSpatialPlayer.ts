@@ -8,7 +8,12 @@ import {
   type NormalizedMuxMediaSource,
 } from "./providers/mux";
 import { mediaSourceKey } from "./source";
-import type { MuxMediaSource } from "./types";
+import type {
+  MuxMaxResolution,
+  MuxMediaSource,
+  MuxMinResolution,
+  MuxRenditionOrder,
+} from "./types";
 
 export type MuxSpatialPlayerSource =
   | string
@@ -32,6 +37,30 @@ export class MuxSpatialPlayer extends SpatialVideoPlayer {
     this.replace(toMuxMediaSource(source));
   }
 
+  setMaxResolution(
+    maxResolution?: MuxMaxResolution
+  ): void {
+    this.updatePublicPlaybackModifiers({
+      maxResolution,
+    });
+  }
+
+  setMinResolution(
+    minResolution?: MuxMinResolution
+  ): void {
+    this.updatePublicPlaybackModifiers({
+      minResolution,
+    });
+  }
+
+  setRenditionOrder(
+    renditionOrder: MuxRenditionOrder = "default"
+  ): void {
+    this.updatePublicPlaybackModifiers({
+      renditionOrder,
+    });
+  }
+
   posterUrl(options?: MuxThumbnailOptions): string | undefined {
     const source = this.muxSource;
     return source
@@ -44,6 +73,43 @@ export class MuxSpatialPlayer extends SpatialVideoPlayer {
     return source
       ? buildMuxStoryboardVttUrl(source)
       : undefined;
+  }
+
+  private updatePublicPlaybackModifiers(
+    patch: Partial<
+      Pick<
+        MuxMediaSource,
+        | "minResolution"
+        | "maxResolution"
+        | "renditionOrder"
+      >
+    >
+  ): void {
+    const source = this.muxSource;
+    if (!source) {
+      throw new Error(
+        "MuxSpatialPlayer has no Mux source to update."
+      );
+    }
+
+    if (source.playbackToken) {
+      throw new Error(
+        "Mux signed playback modifiers must be embedded " +
+          "in a newly signed playback JWT. Replace the " +
+          "source with the new token instead of mutating " +
+          "resolution/rendition settings client-side."
+      );
+    }
+
+    const resumeAt = this.currentTime;
+    this.replace(
+      {
+        ...source,
+        ...patch,
+        provider: "mux",
+      },
+      { resumeAt }
+    );
   }
 }
 
