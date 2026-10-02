@@ -7,12 +7,23 @@ export {
 } from "@viro-external/core";
 
 export {
+  MuxSpatialPlayer,
   SpatialPanorama,
   SpatialVideo,
+  SpatialVideoPlayer,
+  SpatialVideoPlayerView,
   VideoSurface,
   buildMuxPlaybackUrl,
+  buildMuxStoryboardVttUrl,
+  buildMuxThumbnailUrl,
+  createMuxSpatialPlayer,
+  createSpatialVideoPlayer,
+  muxPlaybackModifierClaims,
   muxSource,
   resolveMediaSource,
+  useMuxSpatialPlayer,
+  useSpatialVideoPlayer,
+  useSpatialVideoPlayerSnapshot,
 } from "@viro-external/media";
 
 export {
@@ -22,6 +33,8 @@ export {
   PanelText,
   SpatialPanel,
   SpatialScrollView,
+  MuxSpatialPlayerPanel,
+  SpatialVideoPlayerPanel,
   VideoPlayerPanel,
 } from "@viro-external/ui";
 
