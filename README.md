@@ -25,7 +25,7 @@ This keeps ordinary premium UI/media consumers from paying for native render-pas
 
 `react-native-viro-mux` remains in the workspace only for older applications that still depend on its external-GPU-texture/Nitro bridge. New media and panel work must not depend on it.
 
-`@viro-external/meta` is retained as a compatibility umbrella, but now routes to the premium packages.
+`@viro-external/meta` is retained unchanged as the legacy compatibility umbrella so existing imports keep working. New code should use `@viro-external/premium`.
 
 `@viro-external/pano` is now a compatibility entrypoint over the Nitro-free `SpatialPanorama` media primitive.
 
