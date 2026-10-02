@@ -133,11 +133,12 @@ export class ViroSpecsSceneRuntime {
     const transform = this.requireNode(command.id).object.getTransform();
 
     if (command.position) {
+      // Viro spatial positions are meters; Lens Studio world units are cm.
       transform.setLocalPosition(
         new vec3(
-          command.position[0],
-          command.position[1],
-          command.position[2]
+          command.position[0] * 100,
+          command.position[1] * 100,
+          command.position[2] * 100
         )
       );
     }
