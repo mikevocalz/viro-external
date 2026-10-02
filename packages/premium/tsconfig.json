@@ -6,7 +6,10 @@
     "strict": true,
     "skipLibCheck": true,
     "isolatedModules": true,
-    "noEmit": true
+    "noEmit": true,
+    "jsx": "react-native"
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }
