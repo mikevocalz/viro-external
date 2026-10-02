@@ -55,11 +55,7 @@ jobs:
           fi
 
       - name: Hydrate linked Viro type resolution
-        run: |
-          mkdir -p ../viro/node_modules/@types
-          ln -sfn "$GITHUB_WORKSPACE/packages/react-native-viro-mux/node_modules/react" ../viro/node_modules/react
-          ln -sfn "$GITHUB_WORKSPACE/packages/react-native-viro-mux/node_modules/react-native" ../viro/node_modules/react-native
-          ln -sfn "$GITHUB_WORKSPACE/packages/react-native-viro-mux/node_modules/@types/react" ../viro/node_modules/@types/react
+        run: pnpm hydrate:viro-types
 
       - name: Regenerate Nitro bindings
         run: pnpm specs

@@ -77,7 +77,15 @@ jobs:
           node --check packages/specs/scripts/sync-lens-runtime.mjs
           node --check packages/specs/scripts/go-clad.mjs
 
-      - name: Verify XR package manifests
+      # These two ship the other XR platform adapters against the same contract, so
+      # a contract change has to keep them compiling. Asserting they merely own a
+      # typecheck script proved nothing.
+      - name: Typecheck sibling XR adapters
+        run: |
+          pnpm --filter @viro-external/webspatial typecheck
+          pnpm --filter @viro-external/meta-wearables typecheck
+
+      - name: Verify XR package names
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -93,8 +101,5 @@ jobs:
             if (!fs.existsSync(file)) continue;
             const pkg = JSON.parse(fs.readFileSync(file, 'utf8'));
             if (pkg.name !== name) throw new Error(`${file}: unexpected package name`);
-            if (pkg.scripts?.typecheck !== 'tsc --noEmit') {
-              throw new Error(`${file}: missing typecheck script`);
-            }
           }
           NODE

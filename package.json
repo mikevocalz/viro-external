@@ -6,6 +6,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "hydrate:viro-types": "node scripts/hydrate-viro-types.mjs",
     "typecheck": "pnpm -r --if-present typecheck",
     "specs": "pnpm -r --if-present specs"
   },

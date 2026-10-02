@@ -24,6 +24,10 @@ The July 2026 dependency matrix is historical. The active workspace baseline is 
 1. **Viro 2.x is no longer a valid workspace target.** Every external package must declare a Viro 3 peer range.
 2. **Expo SDK 58 wins over the generic npm `react-native@latest` tag.** SDK 58 is on the React Native 0.88 line; do not downgrade to RN 0.87 just because npm's generic latest tag temporarily points there.
 3. The root `pnpm.overrides["@reactvision/react-viro"] = "link:../viro"` is intentional for side-by-side development against the Moyo Viro fork. That sibling checkout must be Viro 3.x.
+
+   It costs one extra step. A linked checkout ships `.d.ts` files that `import * as React from "react"`, and resolves that import from its own `node_modules` — which a bare `git clone` does not have. React then resolves to nothing, `React.Component` comes out empty, and every package that renders a Viro component fails with `'ViroNode' cannot be used as a JSX component` (TS2786/TS2607). `skipLibCheck: true` hides the underlying TS2307 inside the fork, so only the call sites report and the cause is not obvious.
+
+   Run `pnpm hydrate:viro-types` after `pnpm install`. It symlinks `react`, `react-native` and `@types/react` from an installed workspace package into the checkout. It is idempotent, it reads the `link:` target out of `pnpm-workspace.yaml` rather than assuming `../viro`, and it no-ops when the checkout brought its own dependencies. Every workflow that typechecks Viro-facing packages calls it.
 4. Nitro runtime and Nitrogen codegen move together. After a Nitro version change, regenerate the committed `nitrogen/generated` trees before merging.
 5. Package peers are ranges for consumers; workspace dev dependencies are pinned to the validated SDK 58 toolchain.
 6. TypeScript is a build-time tool here, so the workspace tracks the current stable compiler rather than Expo's starter-template TypeScript pin. CI/typecheck is the gate for compiler compatibility.

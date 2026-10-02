@@ -61,12 +61,8 @@ jobs:
       - name: Install workspace
         run: pnpm install --frozen-lockfile --strict-peer-dependencies=false
 
-      - name: Hydrate linked Viro type resolution without legacy mux
-        run: |
-          mkdir -p ../viro/node_modules/@types
-          ln -sfn "$GITHUB_WORKSPACE/packages/media/node_modules/react" ../viro/node_modules/react
-          ln -sfn "$GITHUB_WORKSPACE/packages/media/node_modules/react-native" ../viro/node_modules/react-native
-          ln -sfn "$GITHUB_WORKSPACE/packages/media/node_modules/@types/react" ../viro/node_modules/@types/react
+      - name: Hydrate linked Viro type resolution
+        run: pnpm hydrate:viro-types
 
       - name: Assert premium graph is Nitro-free
         run: |
