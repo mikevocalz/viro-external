@@ -127,3 +127,5 @@ export class SpecsAdapter implements XRPlatformAdapter {
 
 export * from "./runtime";
 export * from "./upstream";
+export * from "./render";
+export * from "./animation";
