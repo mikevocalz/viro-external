@@ -59,6 +59,12 @@ an unrelated Lens Studio preview is never misidentified as a Specs build.
 
 See `doc/RuntimeDetection.md` for exact semantics and examples.
 
+## SPECS 27 upstream packages
+
+The long-term renderer is pinned to the public `specs-devs/packages` SPECS 27 package set instead of reimplementing every Lens Studio primitive from scratch. The pin, package roles, upgrade rules, and licensing notes live in `upstream/specs-27.json` and `doc/UpstreamIntegration.md`.
+
+The minimum renderer uses upstream scene/component access, instantiation, native AnimationPlayer patterns, SIK interaction helpers, WorldQuery hit testing, and SurfacePlacement. Navigation, volumetric lines, camera helpers, shaders, and automated agent inspection are opt-in capability layers.
+
 ## Lens Studio runtime boundary
 
 The Lens Studio side implements `SpecsRuntimeTransport`:
