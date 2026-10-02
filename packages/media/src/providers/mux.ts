@@ -240,6 +240,23 @@ export function buildMuxStoryboardVttUrl(
   return qs ? `${base}?${qs}` : base;
 }
 
+export function muxPlaybackFingerprint(
+  sourceInput: MuxMediaSource
+): string {
+  const source = normalizeMuxSource(sourceInput);
+  return [
+    source.playbackId,
+    source.tokens?.playback ?? "",
+    source.tokens?.drm ?? "",
+    source.customDomain ?? "",
+    source.minResolution ?? "",
+    source.maxResolution ?? "",
+    source.renditionOrder,
+    source.clipping?.assetStartTime?.toString() ?? "",
+    source.clipping?.assetEndTime?.toString() ?? "",
+  ].join("|");
+}
+
 export function muxSource(
   playbackId: string,
   tokens?: MuxTokens
