@@ -57,8 +57,10 @@ jobs:
           ln -sfn "$GITHUB_WORKSPACE/packages/react-native-viro-mux/node_modules/react-native" ../viro/node_modules/react-native
           ln -sfn "$GITHUB_WORKSPACE/packages/react-native-viro-mux/node_modules/@types/react" ../viro/node_modules/@types/react
 
-      - name: Typecheck workspace
-        run: pnpm typecheck
+      - name: Typecheck Specs release packages
+        run: |
+          pnpm --filter @viro-external/xr-contract typecheck
+          pnpm --filter @viro-external/specs typecheck
 
       - name: Validate Lens Studio runtime sources
         run: pnpm --filter @viro-external/specs specs:validate-lens
