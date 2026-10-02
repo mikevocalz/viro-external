@@ -1,4 +1,18 @@
 export {
+  MuxSpatialPlayer,
+  type MuxPosterSource,
+  type MuxSpatialPlayerHandle,
+  type MuxSpatialPlayerProps,
+} from "./MuxSpatialPlayer";
+
+export {
+  parseMuxStoryboardVtt,
+  muxStoryboardTileAt,
+  type MuxStoryboard,
+  type MuxStoryboardTile,
+} from "./muxStoryboard";
+
+export {
   SpatialPanorama,
   type PanoramaSource,
   type SpatialPanoramaProps,
@@ -21,7 +35,15 @@ export {
 
 export {
   buildMuxPlaybackUrl,
+  buildMuxStoryboardVttUrl,
+  buildMuxThumbnailUrl,
+  muxImageHost,
+  muxResolutionSupport,
   muxSource,
+  normalizeMuxSource,
+  type MuxThumbnailFitMode,
+  type MuxThumbnailOptions,
+  type NormalizedMuxMediaSource,
 } from "./providers/mux";
 
 export {
@@ -33,8 +55,15 @@ export type {
   MediaPlaybackEvents,
   MediaPlaybackProps,
   MediaSource,
+  MuxMaxResolution,
   MuxMediaSource,
+  MuxMinResolution,
+  MuxRenditionOrder,
   MuxTokens,
+  MuxVideoClipping,
+  MuxVideoMetadata,
+  SpatialPlaybackStatus,
+  SpatialPlayerStatus,
   SpatialVideoHandle,
   UrlMediaSource,
   Vec3,
