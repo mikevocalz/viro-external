@@ -23,6 +23,7 @@ export class SpatialVideoPlayer {
   private nativeRef: SpatialVideoHandle | null = null;
   private listeners = new Set<Listener>();
   private pendingSeek: number | null = null;
+  private resumeAfterReady: number | null = null;
   private statusState: SpatialVideoPlayerStatus = {
     ...idleStatus,
   };
@@ -162,10 +163,18 @@ export class SpatialVideoPlayer {
     this.commit();
   }
 
-  replace(source: MediaSource): void {
+  replace(
+    source: MediaSource,
+    options?: { resumeAt?: number }
+  ): void {
     this.assertAlive();
     this.sourceState = source;
     this.pendingSeek = null;
+    this.resumeAfterReady =
+      options?.resumeAt != null &&
+      Number.isFinite(options.resumeAt)
+        ? Math.max(0, options.resumeAt)
+        : null;
     this.statusState = {
       ...idleStatus,
       status: "loading",
@@ -181,6 +190,7 @@ export class SpatialVideoPlayer {
     this.released = true;
     this.nativeRef = null;
     this.pendingSeek = null;
+    this.resumeAfterReady = null;
     this.sourceState = undefined;
     this.paused = true;
     this.statusState = { ...idleStatus };
@@ -215,6 +225,21 @@ export class SpatialVideoPlayer {
 
   handleBufferEnd(): void {
     if (!this.sourceState || this.released) return;
+
+    if (this.resumeAfterReady != null) {
+      const resumeAt = this.resumeAfterReady;
+      this.resumeAfterReady = null;
+      if (this.nativeRef) {
+        this.nativeRef.seekToTime(resumeAt);
+      } else {
+        this.pendingSeek = resumeAt;
+      }
+      this.statusState = {
+        ...this.statusState,
+        currentTime: resumeAt,
+      };
+    }
+
     this.statusState = {
       ...this.statusState,
       status: this.paused ? "ready" : "playing",
