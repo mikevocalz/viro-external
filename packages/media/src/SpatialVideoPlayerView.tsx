@@ -4,7 +4,10 @@ import {
   SpatialVideoPlayer,
   useSpatialVideoPlayerSnapshot,
 } from "./SpatialVideoPlayer";
-import type { SpatialVideoHandle } from "./types";
+import type {
+  SpatialVideoHandle,
+  SpatialVideoPlayerSnapshot,
+} from "./types";
 
 export type SpatialVideoPlayerViewProps = Omit<
   SpatialVideoProps,
@@ -22,9 +25,7 @@ export type SpatialVideoPlayerViewProps = Omit<
   player: SpatialVideoPlayer;
   onReady?: () => void;
   onStatusChange?: (
-    snapshot: ReturnType<
-      SpatialVideoPlayer["getSnapshot"]
-    >
+    snapshot: SpatialVideoPlayerSnapshot
   ) => void;
 };
 
