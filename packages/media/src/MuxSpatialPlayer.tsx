@@ -10,6 +10,7 @@ import { ViroImage, ViroNode } from "@reactvision/react-viro";
 import { SpatialVideo } from "./SpatialVideo";
 import {
   buildMuxThumbnailUrl,
+  muxPlaybackFingerprint,
   normalizeMuxSource,
 } from "./providers/mux";
 import type {
@@ -103,9 +104,9 @@ export const MuxSpatialPlayer = forwardRef<
     scale,
     stereoMode = "None",
     autoPlay = false,
-    muted: initialMuted = false,
-    loop = false,
-    volume: initialVolume = 1,
+    muted: controlledMuted = false,
+    loop: controlledLoop = false,
+    volume: controlledVolume = 1,
     poster = true,
     posterTime,
     onStatusChange,
@@ -114,17 +115,23 @@ export const MuxSpatialPlayer = forwardRef<
   },
   ref
 ) {
+  const incomingSource = asMuxSource(source);
+  const incomingFingerprint = muxPlaybackFingerprint(incomingSource);
+
   const videoRef = useRef<SpatialVideoHandle | null>(null);
+  const pendingResumeAt = useRef<number | null>(null);
+  const releasedRef = useRef(false);
+
   const [muxSource, setMuxSource] = useState<MuxMediaSource>(
-    () => asMuxSource(source)
+    () => incomingSource
   );
   const [paused, setPaused] = useState(!autoPlay);
-  const [muted, setMuted] = useState(initialMuted);
+  const [muted, setMuted] = useState(controlledMuted);
   const [volume, setVolume] = useState(
-    Math.min(1, Math.max(0, initialVolume))
+    Math.min(1, Math.max(0, controlledVolume))
   );
-  const [looping, setLooping] = useState(loop);
-  const pendingResumeAt = useRef<number | null>(null);
+  const [looping, setLooping] = useState(controlledLoop);
+  const [released, setReleased] = useState(false);
   const [showPoster, setShowPoster] = useState(
     poster !== false && presentation !== "360"
   );
@@ -132,9 +139,9 @@ export const MuxSpatialPlayer = forwardRef<
     status: "loading",
     currentTime: 0,
     duration: 0,
-    muted: initialMuted,
-    volume: Math.min(1, Math.max(0, initialVolume)),
-    loop,
+    muted: controlledMuted,
+    volume: Math.min(1, Math.max(0, controlledVolume)),
+    loop: controlledLoop,
   });
 
   const statusRef = useRef(status);
@@ -150,9 +157,13 @@ export const MuxSpatialPlayer = forwardRef<
     });
   };
 
+  // Reset playback only when the actual playback identity changes, not when a
+  // parent recreates an equivalent inline source object.
   useEffect(() => {
-    const normalized = asMuxSource(source);
-    setMuxSource(normalized);
+    pendingResumeAt.current = null;
+    releasedRef.current = false;
+    setReleased(false);
+    setMuxSource(incomingSource);
     setPaused(!autoPlay);
     setShowPoster(
       poster !== false && presentation !== "360"
@@ -163,27 +174,41 @@ export const MuxSpatialPlayer = forwardRef<
       duration: 0,
       error: undefined,
     });
-  }, [source, autoPlay, poster, presentation]);
+    // incomingSource is intentionally keyed by the stable playback fingerprint.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomingFingerprint]);
+
+  useEffect(() => {
+    if (!releasedRef.current) {
+      setPaused(!autoPlay);
+    }
+  }, [autoPlay]);
+
+  useEffect(() => {
+    setMuted(controlledMuted);
+    patchStatus({ muted: controlledMuted });
+  }, [controlledMuted]);
+
+  useEffect(() => {
+    const next = Math.min(1, Math.max(0, controlledVolume));
+    setVolume(next);
+    patchStatus({ volume: next });
+  }, [controlledVolume]);
+
+  useEffect(() => {
+    setLooping(controlledLoop);
+    patchStatus({ loop: controlledLoop });
+  }, [controlledLoop]);
+
+  useEffect(() => {
+    if (poster === false || presentation === "360") {
+      setShowPoster(false);
+    }
+  }, [poster, presentation]);
 
   useEffect(() => {
     onStatusChange?.(status);
   }, [onStatusChange, status]);
-
-  useEffect(() => {
-    setMuted(initialMuted);
-    patchStatus({ muted: initialMuted });
-  }, [initialMuted]);
-
-  useEffect(() => {
-    const next = Math.min(1, Math.max(0, initialVolume));
-    setVolume(next);
-    patchStatus({ volume: next });
-  }, [initialVolume]);
-
-  useEffect(() => {
-    setLooping(loop);
-    patchStatus({ loop });
-  }, [loop]);
 
   const posterSource = useMemo(() => {
     if (
@@ -202,113 +227,144 @@ export const MuxSpatialPlayer = forwardRef<
       return poster;
     }
     return {
-      uri: buildMuxThumbnailUrl(muxSource, {
+      uri: buildMuxThumbnailUrl(incomingSource, {
         time: posterTime,
         width: 1280,
       }),
     };
-  }, [muxSource, poster, posterTime, presentation]);
+  }, [
+    incomingFingerprint,
+    incomingSource,
+    poster,
+    posterTime,
+    presentation,
+  ]);
 
   useImperativeHandle(
     ref,
-    () => ({
-      async play() {
-        setPaused(false);
-        patchStatus({ status: "playing" });
-      },
-      async pause() {
-        setPaused(true);
-        patchStatus({ status: "paused" });
-      },
-      async replay() {
-        videoRef.current?.seekToTime(0);
-        patchStatus({
-          status: "playing",
-          currentTime: 0,
-        });
-        setPaused(false);
-      },
-      async seekTo(seconds: number) {
-        const next = Math.max(0, seconds);
-        videoRef.current?.seekToTime(next);
-        patchStatus({ currentTime: next });
-      },
-      async seekBy(seconds: number) {
-        const next = Math.max(
-          0,
-          statusRef.current.currentTime + seconds
-        );
-        videoRef.current?.seekToTime(next);
-        patchStatus({ currentTime: next });
-      },
-      async setMuted(nextMuted: boolean) {
-        setMuted(nextMuted);
-        patchStatus({ muted: nextMuted });
-      },
-      async setVolume(nextVolume: number) {
-        const next = Math.min(
-          1,
-          Math.max(0, nextVolume)
-        );
-        setVolume(next);
-        patchStatus({ volume: next });
-      },
-      async setLoop(nextLoop: boolean) {
-        setLooping(nextLoop);
-        patchStatus({ loop: nextLoop });
-      },
-      async setMaxResolution(maxResolution) {
-        if (muxSource.tokens?.playback && maxResolution) {
+    () => {
+      const ensureActive = () => {
+        if (releasedRef.current) {
           throw new Error(
-            "Signed Mux playback requires max resolution to be encoded in the playback JWT."
+            "MuxSpatialPlayer has been released. Replace the source before issuing playback commands."
           );
         }
+      };
 
-        pendingResumeAt.current = statusRef.current.currentTime;
-        setMuxSource((current) => {
-          const candidate = {
-            ...current,
-            maxResolution,
-          };
-
-          try {
-            return normalizeMuxSource(candidate);
-          } catch {
-            return normalizeMuxSource({
-              ...candidate,
-              minResolution: undefined,
-            });
+      return {
+        async play() {
+          ensureActive();
+          setPaused(false);
+          patchStatus({ status: "playing" });
+        },
+        async pause() {
+          ensureActive();
+          setPaused(true);
+          patchStatus({ status: "paused" });
+        },
+        async replay() {
+          ensureActive();
+          videoRef.current?.seekToTime(0);
+          patchStatus({
+            status: "playing",
+            currentTime: 0,
+          });
+          setPaused(false);
+        },
+        async seekTo(seconds: number) {
+          ensureActive();
+          const next = Math.max(0, seconds);
+          videoRef.current?.seekToTime(next);
+          patchStatus({ currentTime: next });
+        },
+        async seekBy(seconds: number) {
+          ensureActive();
+          const next = Math.max(
+            0,
+            statusRef.current.currentTime + seconds
+          );
+          videoRef.current?.seekToTime(next);
+          patchStatus({ currentTime: next });
+        },
+        async setMuted(nextMuted: boolean) {
+          ensureActive();
+          setMuted(nextMuted);
+          patchStatus({ muted: nextMuted });
+        },
+        async setVolume(nextVolume: number) {
+          ensureActive();
+          const next = Math.min(
+            1,
+            Math.max(0, nextVolume)
+          );
+          setVolume(next);
+          patchStatus({ volume: next });
+        },
+        async setLoop(nextLoop: boolean) {
+          ensureActive();
+          setLooping(nextLoop);
+          patchStatus({ loop: nextLoop });
+        },
+        async setMaxResolution(maxResolution) {
+          ensureActive();
+          if (muxSource.tokens?.playback && maxResolution) {
+            throw new Error(
+              "Signed Mux playback requires max resolution to be encoded in the playback JWT."
+            );
           }
-        });
-        patchStatus({ status: "loading" });
-      },
-      async replace(nextSource) {
-        setMuxSource(asMuxSource(nextSource));
-        videoRef.current?.seekToTime(0);
-        setShowPoster(
-          poster !== false && presentation !== "360"
-        );
-        patchStatus({
-          status: "loading",
-          currentTime: 0,
-          duration: 0,
-          error: undefined,
-        });
-      },
-      async release() {
-        setPaused(true);
-        videoRef.current?.seekToTime(0);
-        setShowPoster(false);
-        patchStatus({
-          status: "idle",
-          currentTime: 0,
-          duration: 0,
-        });
-      },
-      getStatus() {
-        return statusRef.current;
-      },
-    }),
+
+          pendingResumeAt.current = statusRef.current.currentTime;
+          setMuxSource((current) => {
+            const candidate = {
+              ...current,
+              maxResolution,
+            };
+
+            try {
+              return normalizeMuxSource(candidate);
+            } catch {
+              return normalizeMuxSource({
+                ...candidate,
+                minResolution: undefined,
+              });
+            }
+          });
+          patchStatus({ status: "loading" });
+        },
+        async replace(nextSource) {
+          const normalized = asMuxSource(nextSource);
+          pendingResumeAt.current = null;
+          releasedRef.current = false;
+          setReleased(false);
+          setMuxSource(normalized);
+          setShowPoster(
+            poster !== false && presentation !== "360"
+          );
+          patchStatus({
+            status: "loading",
+            currentTime: 0,
+            duration: 0,
+            error: undefined,
+          });
+        },
+        async release() {
+          pendingResumeAt.current = null;
+          releasedRef.current = true;
+          setReleased(true);
+          setPaused(true);
+          setShowPoster(false);
+          patchStatus({
+            status: "idle",
+            currentTime: 0,
+            duration: 0,
+            error: undefined,
+          });
+        },
+        getStatus() {
+          return statusRef.current;
+        },
+      };
+    },
     [muxSource, poster, presentation]
   );
 
@@ -318,60 +374,67 @@ export const MuxSpatialPlayer = forwardRef<
       rotation={rotation}
       scale={scale}
     >
-      <SpatialVideo
-        ref={videoRef}
-        source={muxSource}
-        presentation={presentation}
-        width={width}
-        height={height}
-        curvature={curvature}
-        segments={segments}
-        stereoMode={stereoMode}
-        paused={paused}
-        muted={muted}
-        loop={looping}
-        volume={volume}
-        onBufferStart={() => {
-          patchStatus({ status: "buffering" });
-        }}
-        onBufferEnd={() => {
-          const resumeAt = pendingResumeAt.current;
-          if (resumeAt != null && resumeAt > 0.5) {
-            pendingResumeAt.current = null;
-            videoRef.current?.seekToTime(resumeAt);
-          }
-          patchStatus({
-            status: paused ? "ready" : "playing",
-          });
-          onPlaybackReady?.();
-        }}
-        onUpdateTime={(currentTime, duration) => {
-          if (showPoster) {
-            setShowPoster(false);
-          }
-          patchStatus({
-            status: paused ? "paused" : "playing",
-            currentTime,
-            duration,
-          });
-        }}
-        onFinish={() => {
-          patchStatus({
-            status: looping ? "playing" : "ended",
-          });
-        }}
-        onError={(event) => {
-          const message = errorMessage(event);
-          const error = new Error(message);
-          patchStatus({
-            status: "error",
-            error: message,
-          });
-          onError?.(error);
-        }}
-      />
+      {!released ? (
+        <SpatialVideo
+          ref={videoRef}
+          source={muxSource}
+          presentation={presentation}
+          width={width}
+          height={height}
+          curvature={curvature}
+          segments={segments}
+          stereoMode={stereoMode}
+          paused={paused}
+          muted={muted}
+          loop={looping}
+          volume={volume}
+          onBufferStart={() => {
+            if (releasedRef.current) return;
+            patchStatus({ status: "buffering" });
+          }}
+          onBufferEnd={() => {
+            if (releasedRef.current) return;
+            const resumeAt = pendingResumeAt.current;
+            if (resumeAt != null && resumeAt > 0.5) {
+              pendingResumeAt.current = null;
+              videoRef.current?.seekToTime(resumeAt);
+            }
+            patchStatus({
+              status: paused ? "ready" : "playing",
+            });
+            onPlaybackReady?.();
+          }}
+          onUpdateTime={(currentTime, duration) => {
+            if (releasedRef.current) return;
+            if (showPoster && currentTime > 0.01) {
+              setShowPoster(false);
+            }
+            patchStatus({
+              status: paused ? "paused" : "playing",
+              currentTime,
+              duration,
+            });
+          }}
+          onFinish={() => {
+            if (releasedRef.current) return;
+            patchStatus({
+              status: looping ? "playing" : "ended",
+            });
+          }}
+          onError={(event) => {
+            if (releasedRef.current) return;
+            const message = errorMessage(event);
+            const error = new Error(message);
+            patchStatus({
+              status: "error",
+              error: message,
+            });
+            onError?.(error);
+          }}
+        />
+      ) : null}
 
-      {showPoster && posterSource ? (
+      {!released && showPoster && posterSource ? (
         <ViroImage
           source={posterSource}
           width={width}
