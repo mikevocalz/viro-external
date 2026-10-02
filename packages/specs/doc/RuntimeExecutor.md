@@ -35,6 +35,10 @@ Inspector. This also keeps asset loading deterministic on wearable hardware.
 
 The host also sets the runtime build marker used by `isSpecsBuild()`.
 
+## Coordinate units
+
+Viro spatial positions are authored in **meters**. Lens Studio spatial transforms use **centimeters**. The executor converts Viro position values by `×100` when applying them to Lens transforms. Scale remains unitless and rotations remain quaternions.
+
 ## Deliberate boundaries
 
 This PR implements live scene execution only.
