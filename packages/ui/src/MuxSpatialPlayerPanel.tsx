@@ -100,6 +100,8 @@ export function MuxSpatialPlayerPanel({
 
   const isPlaying = status.status === "playing";
   const isMuted = status.muted;
+  const qualityLocked =
+    typeof source !== "string" && Boolean(source.tokens?.playback);
 
   return (
     <SpatialPanel
@@ -127,7 +129,8 @@ export function MuxSpatialPlayerPanel({
         },
         {
           id: "quality",
-          label: qualityLabel(quality),
+          label: qualityLocked ? "JWT" : qualityLabel(quality),
+          disabled: qualityLocked,
           onPress: () => {
             void cycleQuality();
           },
