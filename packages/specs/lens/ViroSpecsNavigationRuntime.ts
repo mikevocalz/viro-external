@@ -39,6 +39,11 @@ export class ViroSpecsNavigationRuntime {
     this.currentRoute = plan;
 
     const userPosition = this.navigation.getUserPosition();
+    if (!userPosition.getGeoPosition()) {
+      throw new Error(
+        "Specs navigation requires an available geo position. Check location permission/GPS state."
+      );
+    }
 
     this.routePlaces = plan.route.points.map((coordinate, index) => {
       return new GeoLocationPlace(
@@ -59,7 +64,9 @@ export class ViroSpecsNavigationRuntime {
             " into world space. Check location permission/GPS state."
         );
       }
-      return position;
+      const verticalOffset =
+        (plan.line.verticalOffsetMeters ?? 0) * METERS_TO_CENTIMETERS;
+      return position.add(new vec3(0, verticalOffset, 0));
     });
 
     this.liveLine = this.createVolumetricLine(
@@ -119,7 +126,12 @@ export class ViroSpecsNavigationRuntime {
     for (let i = 0; i < this.routePlaces.length; i++) {
       const position = this.routePlaces[i].getRelativePosition();
       if (position && this.liveLine.points[i]) {
-        this.liveLine.points[i].getTransform().setWorldPosition(position);
+        const verticalOffset =
+          (this.currentRoute.line.verticalOffsetMeters ?? 0) *
+          METERS_TO_CENTIMETERS;
+        this.liveLine.points[i]
+          .getTransform()
+          .setWorldPosition(position.add(new vec3(0, verticalOffset, 0)));
       }
     }
 
@@ -138,7 +150,7 @@ export class ViroSpecsNavigationRuntime {
       const point = global.scene.createSceneObject(
         "viro:line-point:" + index
       );
-      point.setParent(this.root);
+      point.setParent(root);
       point.getTransform().setWorldPosition(position);
       return point;
     });
