@@ -17,6 +17,7 @@ import type {
 
 export type MuxSpatialPlayerSource =
   | string
+  | MuxMediaSource
   | Omit<MuxMediaSource, "provider">;
 
 export class MuxSpatialPlayer extends SpatialVideoPlayer {
@@ -102,14 +103,12 @@ export class MuxSpatialPlayer extends SpatialVideoPlayer {
     }
 
     const resumeAt = this.currentTime;
-    this.replace(
-      {
-        ...source,
-        ...patch,
-        provider: "mux",
-      },
-      { resumeAt }
-    );
+    const next = normalizeMuxMediaSource({
+      ...source,
+      ...patch,
+      provider: "mux",
+    });
+    this.replace(next, { resumeAt });
   }
 }
 
