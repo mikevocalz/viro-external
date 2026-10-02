@@ -22,7 +22,11 @@ export type MuxSpatialPlayerSource =
 
 export class MuxSpatialPlayer extends SpatialVideoPlayer {
   constructor(source?: MuxSpatialPlayerSource) {
-    super(source ? toMuxMediaSource(source) : undefined);
+    super(
+      source !== undefined
+        ? toMuxMediaSource(source)
+        : undefined
+    );
   }
 
   get muxSource(): NormalizedMuxMediaSource | undefined {
@@ -122,9 +126,10 @@ export function useMuxSpatialPlayer(
   source?: MuxSpatialPlayerSource,
   setup?: (player: MuxSpatialPlayer) => void
 ): MuxSpatialPlayer {
-  const normalized = source
-    ? toMuxMediaSource(source)
-    : undefined;
+  const normalized =
+    source !== undefined
+      ? toMuxMediaSource(source)
+      : undefined;
   const key = mediaSourceKey(normalized);
   const playerRef = React.useRef<MuxSpatialPlayer | null>(
     null
@@ -142,7 +147,7 @@ export function useMuxSpatialPlayer(
   React.useEffect(() => {
     if (keyRef.current === key) return;
     keyRef.current = key;
-    if (source) {
+    if (source !== undefined) {
       player.replaceMux(source);
     }
   }, [key, player, source]);
