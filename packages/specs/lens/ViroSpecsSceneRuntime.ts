@@ -3,6 +3,7 @@ import type {
   ViroSpecsRenderPlan,
   ViroSpecsRenderPrimitive,
 } from "./ViroSpecsProtocol";
+import { Frame } from "SpectaclesUIKit.lspkg/Scripts/Components/Frame/Frame";
 import { ScrollWindow } from "SpectaclesUIKit.lspkg/Scripts/Components/ScrollWindow/ScrollWindow";
 import { ViroSpecsAssetRegistry } from "./ViroSpecsAssetRegistry";
 
@@ -13,6 +14,7 @@ type NodeRecord = {
   image?: Image;
   instantiatedModel?: SceneObject;
   scroll?: ScrollWindow;
+  frame?: Frame;
   video?: Image;
 };
 
@@ -27,7 +29,9 @@ export class ViroSpecsSceneRuntime {
 
   constructor(
     private readonly root: SceneObject,
-    private readonly assets: ViroSpecsAssetRegistry
+    private readonly assets: ViroSpecsAssetRegistry,
+    /** Runs `work` on the next frame, after every OnStartEvent has completed. */
+    private readonly afterStart: (work: () => void) => void
   ) {}
 
   apply(plan: ViroSpecsRenderPlan): void {
@@ -124,11 +128,18 @@ export class ViroSpecsSceneRuntime {
         }
         break;
 
-      case "ui-frame":
+      // UIKit's Frame is what gives a panel visible chrome and situates it in
+      // AR space. Unlike ScrollWindow it has no public initialize() in the
+      // installed 0.18.0 — it self-initializes on OnStartEvent, and its onAwake
+      // adds a collider, an Interactable and an InteractableManipulation, so a
+      // panel is grabbable without extra wiring.
+      case "ui-frame": {
+        record.frame = object.createComponent(Frame.getTypeName()) as Frame;
         if (this.assets.defaultPanelPrefab) {
           this.assets.defaultPanelPrefab.instantiate(object);
         }
         break;
+      }
 
       // Per the SPECS UIKit ScrollWindow docs, the component is created at
       // runtime and then explicitly initialized; window and scroll extents are
@@ -212,7 +223,8 @@ export class ViroSpecsSceneRuntime {
     return (
       primitive === "image" ||
       primitive === "video-surface" ||
-      primitive === "scroll-window"
+      primitive === "scroll-window" ||
+      primitive === "ui-frame"
     );
   }
 
@@ -223,6 +235,20 @@ export class ViroSpecsSceneRuntime {
   ): void {
     const width = widthMeters * 100;
     const height = heightMeters * 100;
+
+    if (record.frame) {
+      // Frame's innerSize setter calls scaleFrame(), which reads state the
+      // component only builds in its own OnStartEvent — assigning it in the
+      // same frame throws "Cannot read property 'setSize' of undefined". The
+      // installed 0.18.0 exposes no readiness event, so apply the size on the
+      // next frame, once every OnStartEvent has run. ViroSpecsPlatformLab
+      // defers its SIK wiring for the same reason.
+      const frame = record.frame;
+      this.afterStart(() => {
+        if (!isNull(frame)) frame.innerSize = new vec2(width, height);
+      });
+      return;
+    }
 
     if (record.scroll) {
       // The ScrollWindow docs call setWindowSize/setScrollDimensions, but those
