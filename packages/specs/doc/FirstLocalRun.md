@@ -47,3 +47,16 @@ Lens Studio exposes its editor through a local MCP server. This ChatGPT session
 does not currently expose that local MCP connection. Codex launched from the
 open Lens project folder does, which is why the final preview loop must be
 started there.
+
+
+## One-command shortcut
+
+With Lens Studio already open:
+
+```bash
+pnpm --filter @viro-external/specs specs:go -- \
+  --project "/absolute/path/to/your/SPECS-project"
+```
+
+After `ls-clad` is installed once through `/plugins`, add `--exec` to run
+the full CLAD finish prompt non-interactively.

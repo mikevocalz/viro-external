@@ -68,6 +68,7 @@ jobs:
           node --check packages/specs/scripts/doctor-lens-project.mjs
           node --check packages/specs/scripts/bootstrap-platform-lab.mjs
           node --check packages/specs/scripts/sync-lens-runtime.mjs
+          node --check packages/specs/scripts/go-clad.mjs
 
       - name: Verify XR package manifests
         run: |
