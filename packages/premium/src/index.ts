@@ -23,6 +23,7 @@ export {
 export {
   PanelButton,
   PanelHeader,
+  MuxSpatialPlayerPanel,
   PanelImage,
   PanelText,
   SpatialPanel,
