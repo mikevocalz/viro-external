@@ -30,6 +30,59 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
+  packages/premium:
+    dependencies:
+      '@reactvision/react-viro':
+        specifier: link:../../../viro
+        version: link:../../../viro
+      '@viro-external/core':
+        specifier: workspace:*
+        version: link:../viro-external-core
+      '@viro-external/media':
+        specifier: workspace:*
+        version: link:../media
+      '@viro-external/ui':
+        specifier: workspace:*
+        version: link:../ui
+    devDependencies:
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+      react-native:
+        specifier: 0.88.0-rc.3
+        version: 0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
+  packages/ui:
+    dependencies:
+      '@reactvision/react-viro':
+        specifier: link:../../../viro
+        version: link:../../../viro
+      '@viro-external/core':
+        specifier: workspace:*
+        version: link:../viro-external-core
+      '@viro-external/media':
+        specifier: workspace:*
+        version: link:../media
+    devDependencies:
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+      react-native:
+        specifier: 0.88.0-rc.3
+        version: 0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
   packages/orb-pass:
     dependencies:
       '@reactvision/react-viro':
@@ -198,9 +251,6 @@ importers:
       react-native:
         specifier: 0.88.0-rc.3
         version: 0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
-      react-native-viro-mux:
-        specifier: workspace:*
-        version: link:../react-native-viro-mux
       typescript:
         specifier: 7.0.2
         version: 7.0.2
