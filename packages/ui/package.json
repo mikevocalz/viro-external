@@ -1,0 +1,28 @@
+{
+  "name": "@viro-external/ui",
+  "version": "0.1.0",
+  "description": "Premium spatial UI for Viro: configurable panels, headers, actions, scrolling and media surfaces.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "files": ["src", "README.md"],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
+    "@viro-external/core": "workspace:*",
+    "@viro-external/media": "workspace:*",
+    "react": ">=19.3.0 <20.0.0",
+    "react-native": ">=0.88.0-rc.0 <0.89.0"
+  },
+  "devDependencies": {
+    "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
+    "@types/react": "19.3.0",
+    "@viro-external/core": "workspace:*",
+    "@viro-external/media": "workspace:*",
+    "react": "19.3.0",
+    "react-native": "0.88.0-rc.3",
+    "typescript": "7.0.2"
+  }
+}
