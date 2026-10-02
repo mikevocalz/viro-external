@@ -32,9 +32,10 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile --strict-peer-dependencies=false
 
-      - name: Validate workspace
+      - name: Validate release packages
         run: |
-          pnpm typecheck
+          pnpm --filter @viro-external/xr-contract typecheck
+          pnpm --filter @viro-external/specs typecheck
           pnpm --filter @viro-external/specs specs:validate-lens
           pnpm --filter @viro-external/specs specs:test-runner
 
