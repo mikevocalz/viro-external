@@ -1,19 +1,36 @@
 {
   "name": "@viro-external/xr-contract",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Vendor-neutral spatial surface, capability, portable scene, and interaction contracts for Viro platform adapters.",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "sideEffects": false,
   "files": [
-    "src",
+    "dist",
     "README.md",
     "doc"
   ],
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json"
   },
   "devDependencies": {
     "typescript": "7.0.2"
+  },
+  "type": "module",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "engines": {
+    "node": ">=22.13.0"
   }
 }
