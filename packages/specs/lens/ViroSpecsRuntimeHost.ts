@@ -1,4 +1,5 @@
-import type { SpecsRenderPlan } from "../src/render";
+import { compileSpecsRenderPlan, type SpecsRenderPlan } from "../src/render";
+import type { SpecsSceneSnapshot } from "../src/index";
 import { ViroSpecsAssetRegistry } from "./ViroSpecsAssetRegistry";
 import { ViroSpecsSceneRuntime } from "./ViroSpecsSceneRuntime";
 
@@ -37,6 +38,10 @@ export class ViroSpecsRuntimeHost extends BaseScriptComponent {
       this.root ?? this.getSceneObject(),
       registry
     );
+  }
+
+  applySceneSnapshot(scene: SpecsSceneSnapshot): void {
+    this.applyRenderPlan(compileSpecsRenderPlan(scene.nodes));
   }
 
   applyRenderPlan(plan: SpecsRenderPlan): void {
