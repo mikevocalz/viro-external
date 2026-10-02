@@ -63,6 +63,50 @@ injected `const x: number = "s"` in any of those files, so the pass is not vacuo
 Zero is correct for the contract package. `src/index.ts` declares only types, so
 `dist/index.js` carries the `__esModule` marker and nothing else.
 
+## Preview run
+
+Both LEAF scenarios pass in Lens Studio 5.24.0.26090816, SPECS 27 Preview, driving
+the generated host:
+
+```
+PASSED: viro_specs_scene_smoke
+PASSED: viro_specs_interaction
+VIRO_GENERATED smoke PASS canonical-jsx=true reloadCycles=3 native-loop=true
+```
+
+The generated path is what ran, not the hand-written lab — `VIRO_GENERATED
+animation-loop PASS`, `polyline PASS`, `interaction PASS` and `lifecycle PASS`
+all appear for cycles 0, 1 and 2, and those only print from
+`validateGeneratedScene`.
+
+Measured across the three restart cycles: the looping title animation resets
+twice per cycle with scale between 1.0001 and 1.1500 on a single clip; the
+polyline renders its three control points at [-30,-20,-138], [0,2,-138],
+[30,-8,-138] cm with radius 0.4 cm; the model drags from -20.05 cm to -5.10 cm
+on X with Z held inside 1 cm, and the last portable drag event reports
+-0.051 m, matching the final centimetre position; teardown leaves
+`generatedChildren: 0`.
+
+### One thing Preview cannot do
+
+Surface-placement confirmation. `VIRO_GENERATED placement:live` reports
+`PARTIAL`, not `PASS`:
+
+```json
+{"nativeConfirmation":false,
+ "nativeConfirmationUnavailableReason":"SurfacePlacement Vertical requires |hit normal.y| > 0.0001; Preview's axis-aligned wall reports ~1e-7",
+ "sessionStarted":true,"active":false,"detectorDisposed":true,"lateCallbacksAfterCancel":0}
+```
+
+`Vertical.onInteractionEnd` completes only when `hitTestSession != null &&
+step2.enabled && isLookingAtCalibrationIcon()`, and `Vertical.updateCalibration`
+enables step2 on `Math.abs(normal.y) < 0.15 && Math.abs(normal.y) > 0.0001`.
+Preview's wall is exactly axis-aligned — the same run logs its hit normal as
+`[0, -1.19e-7, 1]` — so |normal.y| falls under that lower bound and step2 never
+enables. A real wall is never that exact. Starting a session, the pending pose,
+cancel, detector disposal and the absence of late callbacks are all still
+asserted; only the native confirmation is not claimed.
+
 ## Runtime fixes this pass produced
 
 - `ViroSpecsSceneRuntime` built rotations as `new quat(x, y, z, w)`. Lens Studio's
