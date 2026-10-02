@@ -36,6 +36,10 @@ export type XRCapabilityName =
   | "surface-placement"
   | "drag-manipulation"
   | "depth"
+  | "location-navigation"
+  | "volumetric-line"
+  | "runtime-inspection"
+  | "synthetic-interaction"
   | "local-floor";
 
 export type XRCapabilityReport = Partial<
