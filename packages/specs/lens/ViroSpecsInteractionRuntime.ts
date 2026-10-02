@@ -162,12 +162,24 @@ export class ViroSpecsInteractionRuntime {
         "ColliderComponent"
       ) as ColliderComponent;
 
+      // A ScreenTransform-laid-out surface has no mesh for fitVisual to measure,
+      // so give it an explicit box matching the rect it actually occupies.
+      const screenTransform = object.getComponent(
+        "Component.ScreenTransform"
+      ) as ScreenTransform | null;
+
       const hasVisual =
         object.getComponent("Component.RenderMeshVisual") ||
         object.getComponent("Component.Image") ||
         object.getComponent("Component.Text");
 
-      if (hasVisual) {
+      if (screenTransform) {
+        const size = screenTransform.offsets.getSize();
+        const shape = Shape.createBoxShape();
+        shape.size = new vec3(Math.abs(size.x), Math.abs(size.y), 1);
+        collider.shape = shape;
+        collider.fitVisual = false;
+      } else if (hasVisual) {
         collider.fitVisual = true;
       } else {
         const shape = Shape.createBoxShape();

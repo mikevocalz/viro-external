@@ -15,6 +15,8 @@ type NodeRecord = {
   instantiatedModel?: SceneObject;
   scroll?: ScrollWindow;
   screenTransform?: ScreenTransform;
+  /** True when this node sits inside a scroll or panel, i.e. a UI layout context. */
+  inUiContext?: boolean;
   frame?: Frame;
   video?: Image;
 };
@@ -110,6 +112,9 @@ export class ViroSpecsSceneRuntime {
     object.setParent(parent);
 
     const record: NodeRecord = { object, primitive };
+    record.inUiContext =
+      parentRecord?.primitive === "scroll-window" ||
+      parentRecord?.primitive === "ui-frame";
 
     switch (primitive) {
       case "text":
@@ -153,6 +158,8 @@ export class ViroSpecsSceneRuntime {
         scroll.initialize();
         scroll.vertical = true;
         scroll.horizontal = false;
+        // Without masking, rows draw outside the viewport instead of clipping.
+        scroll.maskingEnabled = true;
         record.scroll = scroll;
         // A ScrollBar would give the region a visible affordance, but the
         // installed SpectaclesUIKit 0.18.0 keeps ScrollBar.scrollWindow and
@@ -264,6 +271,34 @@ export class ViroSpecsSceneRuntime {
       record.scroll.windowSize = new vec2(width, height);
       // Scrolling is only reachable when the content exceeds the viewport.
       record.scroll.scrollDimensions = new vec2(width, height * 4);
+      return;
+    }
+
+    // A ScreenTransform owns its object's transform, so InteractableManipulation
+    // cannot move it — a drag is overwritten by the next layout pass. Only use
+    // one inside a scroll or panel, where layout is the point. A free-standing
+    // surface is sized against the Image component's own 20 cm quad instead, so
+    // it stays a normal draggable 3D object.
+    if (!record.inUiContext) {
+      record.object
+        .getTransform()
+        .setLocalScale(new vec3(width / 20, height / 20, 1));
+
+      // An Image reports no mesh bounds, so a fitVisual collider comes out
+      // degenerate and no ray ever hits it. Give the surface a box matching the
+      // quad it draws, in local units, so it can be hovered and grabbed.
+      const existingCollider = record.object.getComponent(
+        "ColliderComponent"
+      ) as ColliderComponent | null;
+      const collider =
+        existingCollider ??
+        (record.object.createComponent(
+          "ColliderComponent"
+        ) as ColliderComponent);
+      const shape = Shape.createBoxShape();
+      shape.size = new vec3(20, 20, 1);
+      collider.shape = shape;
+      collider.fitVisual = false;
       return;
     }
 
