@@ -30,5 +30,7 @@ const referencePanel: SpatialSurfaceIntent = {
 - Renderers remain native to their platform.
 - Unsupported features must stay explicit; adapters do not silently turn an immersive scene into a screenshot.
 - Input source and semantic phase are separated so gaze can target while pinch commits.
+- `gaze-targeting` describes object targeting/hover; `eye-gaze` is reserved for raw gaze data when available.
+- World-query and surface-placement capabilities describe real runtime paths, not device-name assumptions.
 
 See `doc/Architecture.md` for the platform mapping.
