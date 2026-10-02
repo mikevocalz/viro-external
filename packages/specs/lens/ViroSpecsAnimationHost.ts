@@ -24,6 +24,7 @@ export class ViroSpecsAnimationHost extends BaseScriptComponent {
     }
 
     this.runtime = new ViroSpecsAnimationRuntime(host);
+    this.createEvent("OnDestroyEvent").bind(() => this.runtime?.stopAll());
   }
 
   play(
@@ -33,6 +34,8 @@ export class ViroSpecsAnimationHost extends BaseScriptComponent {
   ): void {
     this.requireRuntime().play(nodeId, plan, onComplete);
   }
+
+  stop(nodeId: string): void { this.requireRuntime().stop(nodeId); }
 
   private requireRuntime(): ViroSpecsAnimationRuntime {
     if (!this.runtime) {

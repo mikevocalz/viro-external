@@ -1,3 +1,4 @@
+import { validateGeneratedInteraction, generatedHost } from "./ViroSpecsRuntimeValidation";
 import { ViroSpecsInteractionHost } from "./ViroSpecsInteractionHost";
 import { Scenario } from "Leaf.lspkg/Scenarios/scenario/Scenario";
 import { DefaultLeafInteractor } from "Leaf.lspkg/Interactors/interactor/DefaultLeafInteractor";
@@ -12,6 +13,7 @@ import { expect } from "Leaf.lspkg/Utils/common/Expect";
 @component
 export class ViroSpecsLeafInteractionScenario extends Scenario {
   async run(): Promise<void> {
+    if (generatedHost()) { await validateGeneratedInteraction(); return; }
     const interactor = new DefaultLeafInteractor();
 
     const button = findInteractableByName(

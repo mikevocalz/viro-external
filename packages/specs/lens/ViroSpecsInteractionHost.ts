@@ -45,6 +45,10 @@ export class ViroSpecsInteractionHost extends BaseScriptComponent {
     this.requireRuntime().setManipulationEnabled(nodeId, enabled);
   }
 
+  remove(nodeId: string): void {
+    this.requireRuntime().remove(nodeId);
+  }
+
   private requireRuntime(): ViroSpecsInteractionRuntime {
     if (!this.runtime) {
       throw new Error("Viro Specs interaction runtime has not initialized.");

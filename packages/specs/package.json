@@ -17,6 +17,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "specs:validate-lens": "node scripts/validate-lens-runtime.mjs",
+    "specs:typecheck-lens": "node scripts/typecheck-lens-runtime.mjs",
     "specs:sync": "node scripts/sync-lens-runtime.mjs",
     "specs:doctor": "node scripts/doctor-lens-project.mjs",
     "specs:bootstrap": "node scripts/bootstrap-platform-lab.mjs",

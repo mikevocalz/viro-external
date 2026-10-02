@@ -1,3 +1,9 @@
+import { InteractableManipulation } from "SpectaclesInteractionKit.lspkg/Components/Interaction/InteractableManipulation/InteractableManipulation";
+import { SingleSurface } from "SurfacePlacement.lspkg/Scripts/SingleSurface";
+import { DefaultLeafInteractor } from "Leaf.lspkg/Interactors/interactor/DefaultLeafInteractor";
+import { findInteractableByName } from "Leaf.lspkg/Interactors/InteractableUtils";
+import { ViroSpecsInteractionHost } from "./ViroSpecsInteractionHost";
+import { ViroSpecsRuntimeHost } from "./ViroSpecsRuntimeHost";
 import { expect } from "Leaf.lspkg/Utils/common/Expect";
 import { findSceneObjectByName, sleep } from "Leaf.lspkg/Utils/common/Utils";
 import { VolumetricLine } from "VolumetricLine.lspkg/Scripts/VolumetricLine";
@@ -222,4 +228,151 @@ async function validateWorldCapabilityFailures(): Promise<void> {
     expect(Boolean(unavailable.lastUnavailableReason)).toBe(true);
   }
   print("VIRO_VALIDATION world:controlled-unavailable PASS allocation/start/hit/stop/timeout settle+cleanup; placement allocation/start/stop/cancel/supersession late-callback guarded");
+}
+
+
+type GeneratedHost = ScriptComponent & {restartGeneratedScene(): void; stopGeneratedScene(): void};
+export function generatedHost(): GeneratedHost | undefined {
+  const object = findSceneObjectByName("PlatformLab");
+  return object?.getComponents("ScriptComponent").find(component =>
+    typeof (component as GeneratedHost).restartGeneratedScene === "function") as GeneratedHost | undefined;
+}
+
+export async function validateGeneratedInteraction(): Promise<void> {
+  const interactor = new DefaultLeafInteractor();
+  const host = findSceneObjectByName("InteractionHost").getComponent(ViroSpecsInteractionHost.getTypeName()) as ViroSpecsInteractionHost;
+  const model = findInteractableByName("viro-interactable:platform-lab-model");
+  const object = findSceneObjectByName("viro:platform-lab-model");
+  expect(model).toBeTruthy();
+  const events: {phase: string; position?: [number, number, number]}[] = [];
+  const unsubscribe = host.subscribe(event => { if (event.targetId === "platform-lab-model") events.push(event); });
+  const manipulation = model.getSceneObject().getComponent(InteractableManipulation.getTypeName()) as InteractableManipulation;
+  let starts=0, ends=0;
+  const removeStart=manipulation.onManipulationStart.add(()=>starts++);
+  const removeEnd=manipulation.onManipulationEnd.add(()=>ends++);
+  try {
+    await interactor.hover(model, 300);
+    await interactor.trigger(model);
+    const before = object.getTransform().getWorldPosition();
+    await interactor.drag(model, new vec3(1, 0, 0), 400);
+    await sleep(80);
+    const after = object.getTransform().getWorldPosition();
+    expect(events.some(e => e.phase === "hover-enter")).toBe(true);
+    expect(events.some(e => e.phase === "select-start")).toBe(true);
+    expect(events.some(e => e.phase === "select-end")).toBe(true);
+    const drags = events.filter(e => e.phase === "drag");
+    expect(drags.length).toBeGreaterThan(2);
+    expect(after.x - before.x).toBeGreaterThan(1);
+    expect(after.x - before.x).toBeLessThan(35);
+    expect(Math.abs(after.z - before.z)).toBeLessThan(2);
+    expect(starts).toBeGreaterThan(0);
+    expect(ends).toBe(starts);
+    const afterReleaseCount=events.length;
+    await sleep(150);
+    expect(events.length).toBe(afterReleaseCount);
+    const last = drags[drags.length - 1].position;
+    expect(Math.abs(last[0] * 100 - after.x)).toBeLessThan(0.5);
+    print("VIRO_GENERATED interaction PASS " + JSON.stringify({manipulationStarts:starts,manipulationEnds:ends,noLateEvents:true,phases: events.map(e=>e.phase), beforeCm:[before.x,before.y,before.z], afterCm:[after.x,after.y,after.z], portableLastMeters:last, boundary:"ViroSpecsInteractionHost.subscribe", reactClosuresExecuted:false}));
+  } finally { unsubscribe(); removeStart(); removeEnd(); }
+}
+
+export async function validateGeneratedScene(): Promise<void> {
+  const generated = generatedHost();
+  const runtime = findSceneObjectByName("RuntimeHost").getComponent(ViroSpecsRuntimeHost.getTypeName()) as ViroSpecsRuntimeHost;
+  for (let cycle=0; cycle<3; cycle++) {
+    const oldRoot = runtime.getNode("platform-lab-root");
+    generated.restartGeneratedScene();
+    await sleep(250);
+    expect(isNull(oldRoot)).toBe(true);
+    const root=runtime.getNode("platform-lab-root");
+    const title=runtime.getNode("platform-lab-title");
+    const model=runtime.getNode("platform-lab-model");
+    expect(title.getParent()).toBe(root);
+    expect(model.getParent()).toBe(root);
+    expect(root.getTransform().getWorldPosition().z).toBe(-150);
+    expect(model.getTransform().getLocalPosition().x).toBe(-20);
+    const text=title.getComponent("Component.Text") as Text;
+    expect(text.text).toBe("Viro Cross-Platform Lab");
+    const player=title.getComponent("Component.AnimationPlayer") as AnimationPlayer;
+    expect(player.getActiveClips().length).toBe(1);
+    const clip=player.getActiveClips()[0];
+    let previous=player.getClipCurrentTime(clip), resets=0;
+    const samples:number[]=[];
+    for(let sample=0;sample<16;sample++) {
+      await sleep(50);
+      const time=player.getClipCurrentTime(clip);
+      if(time<previous)resets++;
+      previous=time;
+      samples.push(title.getTransform().getLocalScale().x);
+    }
+    expect(resets).toBeGreaterThan(0);
+    expect(Math.max(...samples)).toBeGreaterThan(1.1);
+    expect(Math.min(...samples)).toBeLessThan(1.08);
+    expect(player.clips.length).toBe(1);
+    print("VIRO_GENERATED animation-loop PASS " + JSON.stringify({cycle, clip, duration:0.5, easing:"ease-in-out", resets, minScale:Math.min(...samples),maxScale:Math.max(...samples),clips:player.clips.length}));
+    const generatedLine=findSceneObjectByName("viro:volumetric-line").getComponent(VolumetricLine.getTypeName()) as VolumetricLine;
+    const expectedPoints=[[-30,-20,-138],[0,2,-138],[30,-8,-138]];
+    expect(generatedLine.pathPoints.length).toBe(3);
+    expect(generatedLine.radius).toBe(0.4);
+    generatedLine.pathPoints.forEach((point,index)=>expect(point.getTransform().getWorldPosition().distance(new vec3(...expectedPoints[index] as [number,number,number]))).toBeLessThan(0.001));
+    print("VIRO_GENERATED polyline PASS " + JSON.stringify({cycle,pointsCm:expectedPoints,radiusCm:generatedLine.radius,source:"compiler-generated-host",rootChildren:runtime.root.children.length}));
+    await validateGeneratedInteraction();
+    await validatePolyline();
+    generated.stopGeneratedScene();
+    await sleep(80);
+    expect(isNull(root)).toBe(true);
+    expect(runtime.getNode("platform-lab-root")).toBe(null);
+    expect(findSceneObjectByName("viro:volumetric-line")).toBe(undefined);
+    expect(runtime.root.children.length).toBe(0);
+    print("VIRO_GENERATED lifecycle PASS " + JSON.stringify({cycle, rootDestroyed:true,generatedChildren:runtime.root.children.length}));
+  }
+  generated.restartGeneratedScene();
+  await sleep(200);
+  await validateNativeAnimation();
+  await validateWorldPlacement();
+  await validateLivePlacement();
+  generated.restartGeneratedScene();
+  await sleep(200);
+  print("VIRO_GENERATED smoke PASS canonical-jsx=true reloadCycles=3 native-loop=true");
+}
+
+
+export async function validateLivePlacement(): Promise<void> {
+  const world=new ViroSpecsWorldRuntime();
+  const runtime=findSceneObjectByName("RuntimeHost").getComponent(ViroSpecsRuntimeHost.getTypeName()) as ViroSpecsRuntimeHost;
+  let completed=false;
+  let poseResult: any;
+  const cancel=world.startPlacement("vertical",pose=>{
+    poseResult=pose;
+    runtime.applyRenderPlan({version:1,commands:[{op:"transform",id:"platform-lab-root",position:pose.position,rotation:pose.rotation}],diagnostics:[]});
+    completed=true;
+  });
+  try {
+    await sleep(900);
+    const controller=findSceneObjectByName("SurfacePlacementController");
+    const find=(object:SceneObject):SingleSurface|undefined=>{
+      const surface=object.getComponent(SingleSurface.getTypeName()) as SingleSurface;
+      if(surface)return surface;
+      for(const child of object.children){const found=find(child);if(found)return found;}
+    };
+    const surface=find(controller);
+    expect(surface).toBeTruthy();
+    const rawPosition=surface.desiredPosition;
+    const rawRotation=surface.desiredRotation;
+    print("VIRO_GENERATED placement:pending " + JSON.stringify({positionCm:[rawPosition.x,rawPosition.y,rawPosition.z],rotation:[rawRotation.x,rawRotation.y,rawRotation.z,rawRotation.w],interactable:surface.interactable.getSceneObject().name}));
+    const interactor=new DefaultLeafInteractor();
+    await interactor.hover(surface.interactable,300);
+    await interactor.trigger(surface.interactable);
+    for(let attempt=0;attempt<40&&!completed;attempt++)await sleep(100);
+    expect(completed).toBe(true);
+    const placed=runtime.getNode("platform-lab-root").getTransform();
+    expect(placed.getWorldPosition().distance(new vec3(poseResult.position[0]*100,poseResult.position[1]*100,poseResult.position[2]*100))).toBeLessThan(0.01);
+    const rotation=placed.getWorldRotation();
+    expect(Math.abs(rotation.w-poseResult.rotation[3])).toBeLessThan(0.001);
+    expect(Math.abs(rotation.x-poseResult.rotation[0])).toBeLessThan(0.001);
+    expect(world.isPlacementActive).toBe(false);
+    await sleep(100);
+    expect(controller.children.some(child=>Boolean(find(child)))).toBe(false);
+    print("VIRO_GENERATED placement:live PASS " + JSON.stringify({pose:poseResult,sceneUpdated:true,nativeSIKConfirmation:true,active:world.isPlacementActive,detectorDisposed:true}));
+  } finally {cancel();}
 }

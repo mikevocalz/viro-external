@@ -8,6 +8,7 @@ type InteractionRecord = {
   root: SceneObject;
   interactable: Interactable;
   manipulation?: InteractableManipulation;
+  unsubscribe: (() => void)[];
 };
 
 export class ViroSpecsInteractionRuntime {
@@ -46,15 +47,15 @@ export class ViroSpecsInteractionRuntime {
       // optional depth amplification otherwise changes Z on lateral motion.
       record.manipulation.enableStretchZ = false;
 
-      record.manipulation.onManipulationStart.add(() => {
+      record.unsubscribe.push(record.manipulation.onManipulationStart.add(() => {
         this.activeDrags.add(nodeId);
         this.emitDrag(nodeId);
-      });
+      }));
 
-      record.manipulation.onManipulationEnd.add(() => {
+      record.unsubscribe.push(record.manipulation.onManipulationEnd.add(() => {
         this.emitDrag(nodeId);
         this.activeDrags.delete(nodeId);
-      });
+      }));
     }
 
     record.manipulation.enabled = enabled;
@@ -66,24 +67,27 @@ export class ViroSpecsInteractionRuntime {
     }
   }
 
-  dispose(): void {
-    for (const record of this.records.values()) {
-      record.interactable.enabled = false;
-      if (record.manipulation) {
-        record.manipulation.enabled = false;
-      }
-    }
+  remove(nodeId: string): void {
+    const record = this.records.get(nodeId);
+    if (!record) return;
+    this.activeDrags.delete(nodeId);
+    record.unsubscribe.forEach(unsubscribe => unsubscribe());
+    if (!isNull(record.interactable)) record.interactable.enabled = false;
+    if (record.manipulation && !isNull(record.manipulation)) record.manipulation.enabled = false;
+    this.records.delete(nodeId);
+  }
 
-    this.activeDrags.clear();
-    this.records.clear();
+  dispose(): void {
+    for (const id of Array.from(this.records.keys())) this.remove(id);
     this.listeners.clear();
   }
 
   private ensureRecord(nodeId: string): InteractionRecord {
     const existing = this.records.get(nodeId);
-    if (existing) {
+    if (existing && !isNull(existing.root) && existing.root === this.host.getNode(nodeId)) {
       return existing;
     }
+    if (existing) this.remove(nodeId);
 
     const node = this.host.getNode(nodeId);
     if (!node) {
@@ -104,42 +108,44 @@ export class ViroSpecsInteractionRuntime {
       ) as Interactable;
     }
 
-    interactable.onHoverEnter.add(() => {
+    const unsubscribe: (() => void)[] = [];
+    unsubscribe.push(interactable.onHoverEnter.add(() => {
       this.emit({
         source: "hand",
         phase: "hover-enter",
         targetId: nodeId,
       });
-    });
+    }));
 
-    interactable.onHoverExit.add(() => {
+    unsubscribe.push(interactable.onHoverExit.add(() => {
       this.emit({
         source: "hand",
         phase: "hover-exit",
         targetId: nodeId,
       });
-    });
+    }));
 
-    interactable.onTriggerStart.add(() => {
+    unsubscribe.push(interactable.onTriggerStart.add(() => {
       this.emit({
         source: "pinch",
         phase: "select-start",
         targetId: nodeId,
       });
-    });
+    }));
 
-    interactable.onTriggerEnd.add(() => {
+    unsubscribe.push(interactable.onTriggerEnd.add(() => {
       this.emit({
         source: "pinch",
         phase: "select-end",
         targetId: nodeId,
       });
-    });
+    }));
 
     const record: InteractionRecord = {
       target,
       root: node,
       interactable,
+      unsubscribe,
     };
 
     this.records.set(nodeId, record);

@@ -117,6 +117,9 @@ export class ViroSpecsSceneRuntime {
 
       case "image":
         record.image = object.createComponent("Component.Image") as Image;
+        if (this.assets.defaultImageMaterial) {
+          record.image.mainMaterial = this.assets.defaultImageMaterial.clone();
+        }
         break;
 
       case "ui-frame":
@@ -152,10 +155,10 @@ export class ViroSpecsSceneRuntime {
     if (command.rotation) {
       transform.setLocalRotation(
         new quat(
+          command.rotation[3],
           command.rotation[0],
           command.rotation[1],
-          command.rotation[2],
-          command.rotation[3]
+          command.rotation[2]
         )
       );
     }

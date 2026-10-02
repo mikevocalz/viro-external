@@ -118,7 +118,18 @@ The LEAF index must expose:
 
 ## 3. Compile and inspect
 
-Run:
+Before touching the editor, typecheck the synced runtime against Lens Studio's
+own API declarations. The project must have been opened once so that `Cache/`
+exists:
+
+```sh
+pnpm --filter @viro-external/specs specs:typecheck-lens -- --project <project path>
+```
+
+This also fails if the project copy has drifted from `packages/specs/lens`. CI
+cannot run it — Lens Studio is not installed there — so it belongs here.
+
+Then run:
 
 - `/verify-preview`
 - `/preview-inspection`

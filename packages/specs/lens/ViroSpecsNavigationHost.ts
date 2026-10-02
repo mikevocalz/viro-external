@@ -54,6 +54,7 @@ export class ViroSpecsNavigationHost extends BaseScriptComponent {
       this.defaultLineMaterial,
       this.routeIcon
     );
+    this.createEvent("OnDestroyEvent").bind(() => this.runtime?.dispose());
   }
 
   presentRoute(plan: ViroSpecsNavigationPlan): boolean {

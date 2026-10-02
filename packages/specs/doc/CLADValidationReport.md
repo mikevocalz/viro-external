@@ -183,6 +183,20 @@ Preview outliers remain disclosed, not relabeled as hardware-only issues.
   workspace API and a stopped-session flush. None is a Viro runtime exception.
 - Performance outliers and attribution limits above remain Preview observations.
 
+## Generated-scene preview pass
+
+A second Preview pass on branch `codex/specs-generated-preview` drives a
+compiler-shaped generated host instead of `ViroSpecsPlatformLab`, and exercises
+the restart/teardown cycle the hand-written lab never reached. It found and fixed
+a swapped quaternion constructor, three listener leaks, and a stale interaction
+record. It also adds `specs:typecheck-lens`, which typechecks every Lens source
+against Lens Studio's own API declarations — the one gate missing here, since
+`packages/specs/tsconfig.json` only covers `src` and `specs:validate-lens` only
+reads import paths.
+
+Results, reproduction commands and the two artifacts that no checked-in tool can
+reproduce: [generated-preview-2026-10-02](./validation/generated-preview-2026-10-02/README.md).
+
 ## Hardware-only certification — not tested
 
 | Area | Required physical-device check |

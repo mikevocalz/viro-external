@@ -1,0 +1,5 @@
+{
+  "exitCode": 1,
+  "output": "[viro-specs] Animation platformLabPulse uses unsupported easing Bounce; SPECS will not silently change it.\n[viro-specs] Refusing to emit an incomplete production scene.\n",
+  "emitted": false
+}

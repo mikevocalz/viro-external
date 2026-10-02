@@ -20,6 +20,7 @@ type LiveLine = {
 export class ViroSpecsNavigationRuntime {
   private liveLine: LiveLine | null = null;
   private routePlaces: GeoLocationPlace[] = [];
+  private readonly unsubscribePosition: () => void;
   private currentRoute: ViroSpecsNavigationPlan | null = null;
 
   constructor(
@@ -29,9 +30,14 @@ export class ViroSpecsNavigationRuntime {
     private readonly defaultLineMaterial: Material,
     private readonly routeIcon: Texture
   ) {
-    this.navigation
+    this.unsubscribePosition = this.navigation
       .getUserPosition()
       .onUserPositionUpdated.add(() => this.refreshRouteGeometry());
+  }
+
+  dispose(): void {
+    this.unsubscribePosition();
+    this.clearRoute();
   }
 
   presentRoute(plan: ViroSpecsNavigationPlan): boolean {

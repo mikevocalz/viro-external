@@ -1,0 +1,14 @@
+[
+  {
+    "name": "@viro-external/specs",
+    "path": "/Users/mikevocalz/viro-external-specs-preview/packages/specs/package.json",
+    "version": "0.2.0-rc.1",
+    "commonJsExports": 23
+  },
+  {
+    "name": "@viro-external/xr-contract",
+    "path": "/Users/mikevocalz/viro-external-specs-preview/packages/xr-platform-contract/package.json",
+    "version": "0.2.0-rc.1",
+    "commonJsExports": 0
+  }
+]

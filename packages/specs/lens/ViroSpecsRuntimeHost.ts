@@ -41,6 +41,7 @@ export class ViroSpecsRuntimeHost extends BaseScriptComponent {
       this.root ?? this.getSceneObject(),
       registry
     );
+    this.createEvent("OnDestroyEvent").bind(() => this.runtime?.clear());
   }
 
   applySceneSnapshot(scene: ViroSpecsSceneSnapshot): void {

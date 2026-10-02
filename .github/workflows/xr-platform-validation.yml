@@ -62,6 +62,11 @@ jobs:
           pnpm --filter @viro-external/xr-contract typecheck
           pnpm --filter @viro-external/specs typecheck
 
+      - name: Build and load Specs release packages
+        run: |
+          pnpm --filter @viro-external/specs... build
+          node -e "require('./packages/xr-platform-contract'); require('./packages/specs')"
+
       - name: Validate Lens Studio runtime sources
         run: pnpm --filter @viro-external/specs specs:validate-lens
 

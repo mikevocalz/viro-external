@@ -1,0 +1,6 @@
+{
+  "entry": "/Users/mikevocalz/moyo-rive-panel/packages/app/features/tutor/tutor-xr-screen.native.tsx",
+  "exitCode": 1,
+  "output": "[viro-specs] No ViroSpecsScene root found. Native/dynamic scenes must provide a static SPECS entry before compilation.\n[viro-specs] Refusing to emit an incomplete production scene.\n",
+  "emitted": false
+}

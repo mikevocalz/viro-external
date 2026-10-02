@@ -1,4 +1,4 @@
-import { validateNativeAnimation, validatePolyline, validateWorldPlacement } from "./ViroSpecsRuntimeValidation";
+import { generatedHost, validateGeneratedScene, validateNativeAnimation, validatePolyline, validateWorldPlacement } from "./ViroSpecsRuntimeValidation";
 import { Scenario } from "Leaf.lspkg/Scenarios/scenario/Scenario";
 import { findSceneObjectByName } from "Leaf.lspkg/Utils/common/Utils";
 import { expect } from "Leaf.lspkg/Utils/common/Expect";
@@ -10,6 +10,7 @@ import { expect } from "Leaf.lspkg/Utils/common/Expect";
 @component
 export class ViroSpecsLeafSceneSmokeScenario extends Scenario {
   async run(): Promise<void> {
+    if (generatedHost()) { await validateGeneratedScene(); return; }
     const root = findSceneObjectByName("viro:platform-lab-root");
     const panel = findSceneObjectByName("viro:platform-lab-panel");
     const title = findSceneObjectByName("viro:platform-lab-title");
