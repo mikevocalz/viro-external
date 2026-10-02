@@ -13,7 +13,15 @@ import { expect } from "Leaf.lspkg/Utils/common/Expect";
 @component
 export class ViroSpecsLeafInteractionScenario extends Scenario {
   async run(): Promise<void> {
-    if (generatedHost()) { await validateGeneratedInteraction(); return; }
+    if (generatedHost()) {
+      print("VIRO_VALIDATION interaction:source generated-host");
+      await validateGeneratedInteraction();
+      return;
+    }
+
+    // Reading a failure here is otherwise ambiguous: a missing generated host
+    // and a broken lab both surface as a missing interactable.
+    print("VIRO_VALIDATION interaction:source platform-lab");
     const interactor = new DefaultLeafInteractor();
 
     const button = findInteractableByName(

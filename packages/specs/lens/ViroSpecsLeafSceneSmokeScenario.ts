@@ -10,7 +10,13 @@ import { expect } from "Leaf.lspkg/Utils/common/Expect";
 @component
 export class ViroSpecsLeafSceneSmokeScenario extends Scenario {
   async run(): Promise<void> {
-    if (generatedHost()) { await validateGeneratedScene(); return; }
+    if (generatedHost()) {
+      print("VIRO_VALIDATION smoke:source generated-host");
+      await validateGeneratedScene();
+      return;
+    }
+
+    print("VIRO_VALIDATION smoke:source platform-lab");
     const root = findSceneObjectByName("viro:platform-lab-root");
     const panel = findSceneObjectByName("viro:platform-lab-panel");
     const title = findSceneObjectByName("viro:platform-lab-title");

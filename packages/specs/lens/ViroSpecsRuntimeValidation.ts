@@ -5,7 +5,11 @@ import { findInteractableByName } from "Leaf.lspkg/Interactors/InteractableUtils
 import { ViroSpecsInteractionHost } from "./ViroSpecsInteractionHost";
 import { ViroSpecsRuntimeHost } from "./ViroSpecsRuntimeHost";
 import { expect } from "Leaf.lspkg/Utils/common/Expect";
-import { findSceneObjectByName, sleep } from "Leaf.lspkg/Utils/common/Utils";
+import {
+  findSceneObjectByName,
+  forEachComponentInSubtree,
+  sleep,
+} from "Leaf.lspkg/Utils/common/Utils";
 import { VolumetricLine } from "VolumetricLine.lspkg/Scripts/VolumetricLine";
 import { ViroSpecsAnimationHost } from "./ViroSpecsAnimationHost";
 import { NavigationDataComponent } from "SpecsNavigationKit.lspkg/NavigationDataComponent/NavigationDataComponent";
@@ -232,10 +236,32 @@ async function validateWorldCapabilityFailures(): Promise<void> {
 
 
 type GeneratedHost = ScriptComponent & {restartGeneratedScene(): void; stopGeneratedScene(): void};
+
+/**
+ * The compiler owns the generated host's scene-object name, so find it by its
+ * lifecycle API across the whole scene. Matching a fixed name would silently
+ * drop the suite back to the hand-written lab whenever the emitter renamed it.
+ */
 export function generatedHost(): GeneratedHost | undefined {
-  const object = findSceneObjectByName("PlatformLab");
-  return object?.getComponents("ScriptComponent").find(component =>
-    typeof (component as GeneratedHost).restartGeneratedScene === "function") as GeneratedHost | undefined;
+  let found: GeneratedHost | undefined;
+  for (let index = 0; index < global.scene.getRootObjectsCount(); index++) {
+    forEachComponentInSubtree<ScriptComponent>(
+      global.scene.getRootObject(index),
+      ["ScriptComponent"],
+      component => {
+        if (found) return;
+        const candidate = component as GeneratedHost;
+        if (
+          typeof candidate.restartGeneratedScene === "function" &&
+          typeof candidate.stopGeneratedScene === "function"
+        ) {
+          found = candidate;
+        }
+      }
+    );
+    if (found) break;
+  }
+  return found;
 }
 
 export async function validateGeneratedInteraction(): Promise<void> {
