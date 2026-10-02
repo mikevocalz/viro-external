@@ -169,6 +169,22 @@ export const MuxSpatialPlayer = forwardRef<
     onStatusChange?.(status);
   }, [onStatusChange, status]);
 
+  useEffect(() => {
+    setMuted(initialMuted);
+    patchStatus({ muted: initialMuted });
+  }, [initialMuted]);
+
+  useEffect(() => {
+    const next = Math.min(1, Math.max(0, initialVolume));
+    setVolume(next);
+    patchStatus({ volume: next });
+  }, [initialVolume]);
+
+  useEffect(() => {
+    setLooping(loop);
+    patchStatus({ loop });
+  }, [loop]);
+
   const posterSource = useMemo(() => {
     if (
       poster === false ||
@@ -247,11 +263,23 @@ export const MuxSpatialPlayer = forwardRef<
             "Signed Mux playback requires max resolution to be encoded in the playback JWT."
           );
         }
+
         pendingResumeAt.current = statusRef.current.currentTime;
-        setMuxSource((current) => ({
-          ...current,
-          maxResolution,
-        }));
+        setMuxSource((current) => {
+          const candidate = {
+            ...current,
+            maxResolution,
+          };
+
+          try {
+            return normalizeMuxSource(candidate);
+          } catch {
+            return normalizeMuxSource({
+              ...candidate,
+              minResolution: undefined,
+            });
+          }
+        });
         patchStatus({ status: "loading" });
       },
       async replace(nextSource) {
