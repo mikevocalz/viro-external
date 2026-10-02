@@ -8,8 +8,6 @@ on:
       - feat/meta-wearables-dat
       - feat/snap-specs-adapter
   pull_request:
-    branches:
-      - main
     paths:
       - "packages/specs/**"
       - "packages/xr-platform-contract/**"
