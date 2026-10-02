@@ -122,7 +122,7 @@ export function SpatialPanel({
       ? [
           {
             id: "pin",
-            label: pinned ? "Pin" : "Follow",
+            label: pinned ? "Follow" : "Pin",
             onPress: () => {
               const next = !pinned;
               setPinned(next);
