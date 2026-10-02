@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - chore/viro3-expo58-latest-deps
+      - feat/mux-spatial-player-v2
   workflow_dispatch:
 
 permissions:
