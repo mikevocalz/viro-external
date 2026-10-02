@@ -1,11 +1,17 @@
 {
   "name": "@viro-external/meta",
-  "version": "0.1.0",
-  "description": "Umbrella package for @viro-external/* — one install, one import surface.",
+  "version": "0.2.0",
+  "description": "Compatibility umbrella routed to @viro-external/premium; Nitro/Mux-free by default.",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "sideEffects": false,
-  "files": ["src", "doc", "AGENTS.md", "CLAUDE.md", "README.md"],
+  "files": [
+    "src",
+    "doc",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "README.md"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
@@ -29,8 +35,9 @@
   },
   "dependencies": {
     "@viro-external/core": "workspace:*",
-    "@viro-external/gui": "workspace:*",
-    "react-native-viro-mux": "workspace:*"
+    "@viro-external/media": "workspace:*",
+    "@viro-external/premium": "workspace:*",
+    "@viro-external/ui": "workspace:*"
   },
   "peerDependencies": {
     "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
@@ -41,10 +48,11 @@
     "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
     "@types/react": "19.3.0",
     "@viro-external/core": "workspace:*",
-    "@viro-external/gui": "workspace:*",
+    "@viro-external/media": "workspace:*",
+    "@viro-external/premium": "workspace:*",
+    "@viro-external/ui": "workspace:*",
     "react": "19.3.0",
     "react-native": "0.88.0-rc.3",
-    "react-native-viro-mux": "workspace:*",
     "typescript": "7.0.2"
   }
 }
