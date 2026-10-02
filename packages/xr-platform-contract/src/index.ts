@@ -19,6 +19,7 @@ export type XRCapabilityName =
   | "system-window"
   | "spatial-web"
   | "eye-gaze"
+  | "gaze-targeting"
   | "hand-tracking"
   | "pinch"
   | "controller"
@@ -31,6 +32,10 @@ export type XRCapabilityName =
   | "anchors"
   | "planes"
   | "scene-understanding"
+  | "world-query"
+  | "surface-placement"
+  | "drag-manipulation"
+  | "depth"
   | "local-floor";
 
 export type XRCapabilityReport = Partial<
