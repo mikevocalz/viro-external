@@ -7,6 +7,13 @@ on:
       - feat/webspatial-adapter
       - feat/meta-wearables-dat
       - feat/snap-specs-adapter
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "packages/specs/**"
+      - "packages/xr-platform-contract/**"
+      - ".github/workflows/xr-platform-validation.yml"
   workflow_dispatch:
 
 permissions:
