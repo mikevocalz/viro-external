@@ -227,18 +227,12 @@ export const MuxSpatialPlayer = forwardRef<
       return poster;
     }
     return {
-      uri: buildMuxThumbnailUrl(incomingSource, {
+      uri: buildMuxThumbnailUrl(muxSource, {
         time: posterTime,
         width: 1280,
       }),
     };
-  }, [
-    incomingFingerprint,
-    incomingSource,
-    poster,
-    posterTime,
-    presentation,
-  ]);
+  }, [muxSource, poster, posterTime, presentation]);
 
   useImperativeHandle(
     ref,
