@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ViroNode, ViroQuad } from "@reactvision/react-viro";
 import type { Vec3 } from "@viro-external/core";
 import { PanelButton } from "./PanelButton";
@@ -31,6 +31,12 @@ export function SpatialScrollView({
   const visibleCount = Math.max(1, Math.floor(height / itemHeight));
   const maxStart = Math.max(0, items.length - visibleCount);
   const [start, setStart] = useState(0);
+
+  useEffect(() => {
+    if (start <= maxStart) return;
+    setStart(maxStart);
+    onIndexChange?.(maxStart);
+  }, [maxStart, onIndexChange, start]);
 
   const commit = (next: number) => {
     const value = Math.max(0, Math.min(maxStart, next));
