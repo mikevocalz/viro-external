@@ -23,6 +23,9 @@ const requiredFiles = [
   "ViroSpecsNavigationHost.ts",
   "ViroSpecsPlatformLab.ts",
   "ViroSpecsAgentValidation.ts",
+  "ViroSpecsLeafSceneSmokeScenario.ts",
+  "ViroSpecsLeafInteractionScenario.ts",
+  "ViroSpecsLeafIndex.ts",
 ];
 
 const forbiddenImports = [
