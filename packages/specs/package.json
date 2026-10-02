@@ -23,7 +23,8 @@
     "specs:go": "node scripts/go-clad.mjs",
     "specs:test-runner": "node --test scripts/go-clad.test.mjs",
     "build": "tsc -p tsconfig.build.json",
-    "prepack": "pnpm build && pnpm specs:validate-lens && pnpm specs:test-runner"
+    "prepack": "pnpm build && pnpm specs:validate-lens && pnpm specs:test-runner && node --test scripts/viro-bundle.test.mjs",
+    "specs:test-bundle": "pnpm build && node --test scripts/viro-bundle.test.mjs"
   },
   "peerDependencies": {
     "@viro-external/xr-contract": "^0.2.0"
