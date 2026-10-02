@@ -1,4 +1,10 @@
 export {
+  SpatialPanorama,
+  type PanoramaSource,
+  type SpatialPanoramaProps,
+} from "./SpatialPanorama";
+
+export {
   SpatialVideo,
   type SpatialVideoProps,
 } from "./SpatialVideo";
