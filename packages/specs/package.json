@@ -8,12 +8,15 @@
   "files": [
     "src",
     "lens",
+    "scripts",
     "README.md",
     "doc",
     "upstream"
   ],
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "specs:validate-lens": "node scripts/validate-lens-runtime.mjs",
+    "specs:sync": "node scripts/sync-lens-runtime.mjs"
   },
   "peerDependencies": {
     "@viro-external/xr-contract": "workspace:*"
@@ -22,4 +25,4 @@
     "@viro-external/xr-contract": "workspace:*",
     "typescript": "7.0.2"
   }
-}
+}\n
