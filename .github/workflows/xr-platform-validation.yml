@@ -63,6 +63,12 @@ jobs:
       - name: Validate Lens Studio runtime sources
         run: pnpm --filter @viro-external/specs specs:validate-lens
 
+      - name: Validate Lens bootstrap scripts
+        run: |
+          node --check packages/specs/scripts/doctor-lens-project.mjs
+          node --check packages/specs/scripts/bootstrap-platform-lab.mjs
+          node --check packages/specs/scripts/sync-lens-runtime.mjs
+
       - name: Verify XR package manifests
         run: |
           node <<'NODE'
