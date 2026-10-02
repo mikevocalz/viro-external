@@ -8,7 +8,10 @@ export {
 
 export {
   MuxSpatialPlayer,
+  MuxSpatialPlayerController,
   SpatialPanorama,
+  SpatialVideoPlayer,
+  SpatialVideoPlayerView,
   SpatialVideo,
   VideoSurface,
   buildMuxPlaybackUrl,
@@ -25,6 +28,7 @@ export {
   PanelHeader,
   MuxSpatialPlayerPanel,
   PanelImage,
+  SpatialVideoPlayerPanel,
   PanelText,
   SpatialPanel,
   SpatialScrollView,
