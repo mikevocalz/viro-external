@@ -65,7 +65,8 @@ export const VideoSurface = forwardRef<SpatialVideoHandle, VideoSurfaceProps>(
       generatedName.current = "vxp_media_" + nextMaterialId;
     }
 
-    const resolvedMaterial = materialName ?? generatedName.current;
+    const resolvedMaterial =
+      materialName ?? generatedName.current ?? "vxp_media_fallback";
     const resolvedSource = useMemo(
       () => resolveMediaSource(source),
       [source]
