@@ -11,6 +11,25 @@ importers:
 
   .: {}
 
+  packages/media:
+    dependencies:
+      '@reactvision/react-viro':
+        specifier: link:../../../viro
+        version: link:../../../viro
+    devDependencies:
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+      react-native:
+        specifier: 0.88.0-rc.3
+        version: 0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
   packages/orb-pass:
     dependencies:
       '@reactvision/react-viro':
