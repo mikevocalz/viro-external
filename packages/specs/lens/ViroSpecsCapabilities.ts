@@ -1,6 +1,8 @@
 import type { ViroSpecsCapabilityReport } from "./ViroSpecsProtocol";
 
 export function createSpecsLensCapabilityReport(): ViroSpecsCapabilityReport {
+  const isEditor = global.deviceInfoSystem.isEditor();
+
   return {
     "immersive-rendering": "supported",
     "display": "supported",
@@ -11,6 +13,10 @@ export function createSpecsLensCapabilityReport(): ViroSpecsCapabilityReport {
     "drag-manipulation": "supported",
     "world-query": "supported",
     "surface-placement": "supported",
+    "volumetric-line": "supported",
+    "location-navigation": "permission-required",
+    "runtime-inspection": isEditor ? "supported" : "unsupported",
+    "synthetic-interaction": isEditor ? "supported" : "unsupported",
     "audio-output": "supported",
     "camera": "permission-required",
     "microphone": "permission-required",
