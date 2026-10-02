@@ -3,6 +3,7 @@ import type {
   ViroSpecsRenderPlan,
   ViroSpecsRenderPrimitive,
 } from "./ViroSpecsProtocol";
+import { ScrollWindow } from "SpectaclesUIKit.lspkg/Scripts/Components/ScrollWindow/ScrollWindow";
 import { ViroSpecsAssetRegistry } from "./ViroSpecsAssetRegistry";
 
 type NodeRecord = {
@@ -11,8 +12,7 @@ type NodeRecord = {
   text?: Text;
   image?: Image;
   instantiatedModel?: SceneObject;
-  /** Scroll children attach here, not to the node itself. */
-  content?: SceneObject;
+  scroll?: ScrollWindow;
   video?: Image;
 };
 
@@ -99,9 +99,7 @@ export class ViroSpecsSceneRuntime {
     }
 
     const parentRecord = parentId ? this.requireNode(parentId) : null;
-    const parent = parentRecord
-      ? parentRecord.content ?? parentRecord.object
-      : this.root;
+    const parent = parentRecord ? parentRecord.object : this.root;
 
     const object = global.scene.createSceneObject("viro:" + id);
     object.setParent(parent);
@@ -132,16 +130,20 @@ export class ViroSpecsSceneRuntime {
         }
         break;
 
-      // UIKit's ScrollWindow is @input-driven, so it only initializes correctly
-      // from a prefab — createComponent leaves its inputs null. Children go on a
-      // dedicated content object so the prefab's own hierarchy stays intact.
-      case "scroll-window":
-        if (this.assets.defaultScrollPrefab) {
-          this.assets.defaultScrollPrefab.instantiate(object);
-        }
-        record.content = global.scene.createSceneObject("viro:content");
-        record.content.setParent(object);
+      // Per the SPECS UIKit ScrollWindow docs, the component is created at
+      // runtime and then explicitly initialized; window and scroll extents are
+      // local-space centimetres. Children scroll directly as its SceneObject
+      // children, so no separate content object is needed.
+      case "scroll-window": {
+        const scroll = object.createComponent(
+          ScrollWindow.getTypeName()
+        ) as ScrollWindow;
+        scroll.initialize();
+        scroll.vertical = true;
+        scroll.horizontal = false;
+        record.scroll = scroll;
         break;
+      }
 
       case "video-surface":
         record.video = object.createComponent("Component.Image") as Image;
@@ -161,7 +163,8 @@ export class ViroSpecsSceneRuntime {
   private applyTransform(
     command: Extract<ViroSpecsRenderCommand, { op: "transform" }>
   ): void {
-    const transform = this.requireNode(command.id).object.getTransform();
+    const record = this.requireNode(command.id);
+    const transform = record.object.getTransform();
 
     if (command.position) {
       // Viro spatial positions are meters; Lens Studio world units are cm.
@@ -186,6 +189,15 @@ export class ViroSpecsSceneRuntime {
     }
 
     if (command.scale) {
+      // Image, video and scroll surfaces are laid out by ScreenTransform, whose
+      // extents are centimetres — SceneObject scale leaves them at the Image
+      // component's own default size. For those, scale is the surface size in
+      // meters; everything else keeps plain multiplier semantics.
+      if (this.isSizedSurface(record.primitive)) {
+        this.applySurfaceSize(record, command.scale[0], command.scale[1]);
+        return;
+      }
+
       transform.setLocalScale(
         new vec3(
           command.scale[0],
@@ -194,6 +206,54 @@ export class ViroSpecsSceneRuntime {
         )
       );
     }
+  }
+
+  private isSizedSurface(primitive: ViroSpecsRenderPrimitive): boolean {
+    return (
+      primitive === "image" ||
+      primitive === "video-surface" ||
+      primitive === "scroll-window"
+    );
+  }
+
+  private applySurfaceSize(
+    record: NodeRecord,
+    widthMeters: number,
+    heightMeters: number
+  ): void {
+    const width = widthMeters * 100;
+    const height = heightMeters * 100;
+
+    if (record.scroll) {
+      // The ScrollWindow docs call setWindowSize/setScrollDimensions, but those
+      // are private in the installed SpectaclesUIKit 0.18.0 — it exposes the
+      // windowSize/scrollDimensions setters instead.
+      record.scroll.windowSize = new vec2(width, height);
+      // Scrolling is only reachable when the content exceeds the viewport.
+      record.scroll.scrollDimensions = new vec2(width, height * 4);
+      return;
+    }
+
+    const existing = record.object.getComponent(
+      "Component.ScreenTransform"
+    ) as ScreenTransform | null;
+    const screenTransform =
+      existing ??
+      (record.object.createComponent(
+        "Component.ScreenTransform"
+      ) as ScreenTransform);
+
+    // Zero anchors collapse the element to its parent's centre, so the offsets
+    // alone give an absolute size. Anchoring to the full parent rect (-1..1)
+    // would make offsets additive and the surface would inherit parent size.
+    screenTransform.anchors.left = 0;
+    screenTransform.anchors.right = 0;
+    screenTransform.anchors.bottom = 0;
+    screenTransform.anchors.top = 0;
+    screenTransform.offsets.left = -width / 2;
+    screenTransform.offsets.right = width / 2;
+    screenTransform.offsets.bottom = -height / 2;
+    screenTransform.offsets.top = height / 2;
   }
 
   private applyContent(

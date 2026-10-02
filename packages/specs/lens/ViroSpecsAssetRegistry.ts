@@ -40,10 +40,6 @@ export class ViroSpecsAssetRegistry extends BaseScriptComponent {
 
   @input
   @allowUndefined
-  defaultScrollPrefab: ObjectPrefab | null = null;
-
-  @input
-  @allowUndefined
   defaultFont: Font | null = null;
 
   @input
