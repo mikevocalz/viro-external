@@ -2,6 +2,7 @@ import type {
   SpatialSurfaceIntent,
   SpatialSurfaceRole,
   XRCapabilityReport,
+  XRCapabilityState,
   XRPlatformAdapter,
 } from "@viro-external/xr-contract";
 
@@ -149,16 +150,22 @@ export function resolveWebSurface(
     };
   }
 
-  if (
-    role === "volume" &&
-    hasWebSpatial &&
-    intent.preferredPresentation === "spatial-volume"
-  ) {
+  if (intent.preferredPresentation === "spatial-volume") {
+    if (hasWebSpatial) {
+      return {
+        id: intent.id,
+        role,
+        presentation: "webspatial-volume",
+        fallbackUsed: false,
+      };
+    }
+
     return {
       id: intent.id,
       role,
-      presentation: "webspatial-volume",
-      fallbackUsed: false,
+      presentation:
+        intent.fallback === "drop" ? "drop" : flatPresentation(role, mode),
+      fallbackUsed: true,
     };
   }
 
@@ -224,6 +231,11 @@ export function createWebSurfaceStyle(
   }
 }
 
+function probed(flag: boolean | undefined): XRCapabilityState {
+  if (flag === undefined) return "unverified";
+  return flag ? "supported" : "unsupported";
+}
+
 export class WebLayoutAdapter implements XRPlatformAdapter {
   readonly family = "web" as const;
 
@@ -234,28 +246,31 @@ export class WebLayoutAdapter implements XRPlatformAdapter {
   }
 
   getCapabilities(): XRCapabilityReport {
-    const webSpatial =
-      this.environment.webSpatial === "pico-os-6" ||
-      this.environment.webSpatial === "visionos";
+    const env = this.environment;
+    // An omitted flag means the app has not probed it yet, which is not the
+    // same as a probe that came back negative.
+    const webSpatial: XRCapabilityState =
+      env.webSpatial === "pico-os-6" || env.webSpatial === "visionos"
+        ? "supported"
+        : env.webSpatial === undefined
+          ? "unverified"
+          : "unsupported"; // "none", and "planned-meta" until WebSpatial ships on Meta
+    const webXR = probed(env.webXR);
 
     return {
       "responsive-web": "supported",
-      pwa: this.environment.pwa ? "supported" : "unverified",
+      pwa: probed(env.pwa),
       "browser-3d":
-        this.environment.browser3D || this.environment.viroWeb
+        env.browser3D || env.viroWeb
           ? "supported"
-          : "unverified",
-      webxr: this.environment.webXR ? "supported" : "unsupported",
-      "spatial-web": webSpatial
-        ? "supported"
-        : this.environment.webSpatial === "planned-meta"
-          ? "unverified"
-          : "unsupported",
-      "spatial-layout": webSpatial ? "supported" : "unsupported",
-      "spatial-volume": webSpatial ? "supported" : "unsupported",
-      "immersive-rendering": this.environment.webXR
-        ? "supported"
-        : "unsupported",
+          : env.browser3D === false && env.viroWeb === false
+            ? "unsupported"
+            : "unverified",
+      webxr: webXR,
+      "spatial-web": webSpatial,
+      "spatial-layout": webSpatial,
+      "spatial-volume": webSpatial,
+      "immersive-rendering": webXR,
       display: "supported",
     };
   }
