@@ -104,6 +104,15 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
+  packages/pico-layout:
+    devDependencies:
+      '@viro-external/xr-contract':
+        specifier: workspace:*
+        version: link:../xr-platform-contract
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
   packages/premium:
     dependencies:
       '@reactvision/react-viro':
