@@ -37,3 +37,26 @@ SpatialScrollView uses explicit viewport virtualization and visible up/down cont
 ## Media
 
 VideoPlayerPanel composes @viro-external/media. It is provider-neutral and does not depend on the legacy Mux/Nitro player.
+
+
+## Spatial workspace
+
+Use `worldSlot()` or `SpatialWorkspaceSlotNode` for the shared LEFT / CENTER / RIGHT Viro composition.
+
+```tsx
+<SpatialWorkspaceSlotNode
+  slot="left"
+  headPosition={settledHead.position}
+  headYawDeg={settledHead.yawDeg}
+>
+  <SpatialPanel title="Lessons">
+    <LessonList />
+  </SpatialPanel>
+</SpatialWorkspaceSlotNode>
+```
+
+The default workspace places panels on a 2.6 m comfort arc with 28 degree side offsets. Placement should be computed from a **settled** head pose, not recomputed from every head-tracking frame.
+
+Keep one carrier node around everything that belongs to a panel: rendered surface, pointer/hit plane, header/chrome, toolbar, tray and drag affordance. This prevents interaction surfaces from drifting away from the visible panel.
+
+This engine-level layout is intentionally separate from OS-level Meta `SpatialWindow` and PICO `WindowContainer`/Subwindow presentation. The shared XR contract decides which presentation is appropriate.
