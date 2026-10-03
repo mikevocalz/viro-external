@@ -32,16 +32,23 @@ export function SpatialScrollView({
   const visibleCount = Math.max(1, Math.floor(height / itemHeight));
   const maxStart = Math.max(0, items.length - visibleCount);
   const [start, setStart] = useState(0);
+  // Mirrors `start` synchronously. Wheel events arrive from a native DOM
+  // listener, so React may not re-render between two events of one fast
+  // spin; reading `start` from the render closure would drop steps.
+  const startRef = useRef(0);
   const webScrollAccumulator = useRef(0);
 
   useEffect(() => {
     if (start <= maxStart) return;
+    startRef.current = maxStart;
     setStart(maxStart);
     onIndexChange?.(maxStart);
   }, [maxStart, onIndexChange, start]);
 
   const commit = (next: number) => {
     const value = Math.max(0, Math.min(maxStart, next));
+    if (value === startRef.current) return;
+    startRef.current = value;
     setStart(value);
     onIndexChange?.(value);
   };
@@ -58,7 +65,7 @@ export function SpatialScrollView({
 
     const direction = webScrollAccumulator.current > 0 ? 1 : -1;
     webScrollAccumulator.current = 0;
-    commit(start + direction * step);
+    commit(startRef.current + direction * step);
   };
 
   const visible = items.slice(start, start + visibleCount);
@@ -95,7 +102,7 @@ export function SpatialScrollView({
         height={buttonSize}
         position={[railX, height / 2 - buttonSize / 2, 0.006]}
         disabled={start === 0}
-        onPress={() => commit(start - step)}
+        onPress={() => commit(startRef.current - step)}
       />
       <PanelButton
         label="▼"
@@ -103,7 +110,7 @@ export function SpatialScrollView({
         height={buttonSize}
         position={[railX, -height / 2 + buttonSize / 2, 0.006]}
         disabled={start >= maxStart}
-        onPress={() => commit(start + step)}
+        onPress={() => commit(startRef.current + step)}
       />
 
       {showRail ? (
