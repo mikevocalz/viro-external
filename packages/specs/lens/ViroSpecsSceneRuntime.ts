@@ -31,6 +31,10 @@ type NodeRecord = {
   scroll?: ScrollWindow;
   scrollBar?: ScrollBarParts;
   videoControls?: SceneObject;
+  /** Requested video box in cm; the video fits its source aspect inside it. */
+  videoBox?: vec2;
+  wantsVideoControls?: boolean;
+  parentId?: string;
   /** True when this node sits inside a scroll or panel, i.e. a UI layout context. */
   /** Scroll content height in cm, once a content command has set it. */
   scrollContentHeight?: number;
@@ -50,6 +54,9 @@ const SURFACE_RENDER_ORDER = 50;
 
 /** Draw text, images and video above any panel surface beneath them. */
 const CONTENT_RENDER_ORDER = 100;
+/** Video control bar height and its gap under the video, in cm. */
+const VIDEO_BAR_HEIGHT = 5;
+const VIDEO_BAR_GAP = 1;
 
 export class ViroSpecsSceneRuntime {
   private readonly nodes = new Map<string, NodeRecord>();
@@ -141,7 +148,7 @@ export class ViroSpecsSceneRuntime {
     const object = global.scene.createSceneObject("viro:" + id);
     object.setParent(parent);
 
-    const record: NodeRecord = { object, primitive };
+    const record: NodeRecord = { object, primitive, parentId };
     // Panel and scroll children stay plain 3D objects. A ScrollWindow scrolls
     // and masks whatever sits under its internal scroller, and `addObject` is
     // the public way in once it is initialized (as in specs-devs/samples Agent
@@ -290,6 +297,58 @@ export class ViroSpecsSceneRuntime {
     }
   }
 
+  /**
+   * Size a Frame, then make the new size its 1x baseline and let it scale its
+   * content. A corner pinch then resizes the panel and everything in it
+   * uniformly (Frame's allowNonUniformScaling is off), so content keeps its
+   * aspect ratio. Auto-scale stays off until the baseline is synced, or the
+   * runtime's own sizing would stretch content by innerSize / default size.
+   */
+  private resizeFrame(frame: Frame, innerSize: vec2): void {
+    frame.autoScaleContent = false;
+    frame.innerSize = innerSize;
+    frame.syncScaleBaseline();
+    frame.autoScaleContent = true;
+  }
+
+  /**
+   * Fit the video to its source's aspect ratio inside the requested box, then
+   * rebuild its controls and, when it sits in a panel, wrap the panel around
+   * the video and its control bar. Runs once the source reports its size.
+   */
+  private adaptVideo(record: NodeRecord): void {
+    const texture = record.video?.mainPass.baseTex;
+    const box = record.videoBox;
+    if (!texture || !box) return;
+    const sourceW = texture.getWidth();
+    const sourceH = texture.getHeight();
+    if (sourceW <= 0 || sourceH <= 0) return;
+
+    const aspect = sourceW / sourceH;
+    const width = Math.min(box.x, box.y * aspect);
+    const height = width / aspect;
+    record.object.getTransform().setLocalScale(new vec3(width, height, 1));
+
+    if (record.videoControls && !isNull(record.videoControls)) {
+      record.videoControls.destroy();
+    }
+    record.videoControls = undefined;
+    const barHeight = record.wantsVideoControls ? VIDEO_BAR_HEIGHT + VIDEO_BAR_GAP : 0;
+    if (record.wantsVideoControls) this.createVideoControls(record);
+
+    const parent = record.parentId ? this.nodes.get(record.parentId) : undefined;
+    const frame = parent?.frame;
+    if (!frame || isNull(frame)) return;
+    // Centre video plus bar in the panel.
+    const position = record.object.getTransform().getLocalPosition();
+    record.object
+      .getTransform()
+      .setLocalPosition(new vec3(position.x, barHeight / 2, position.z));
+    frame.onInitialized.add(() => {
+      if (!isNull(frame)) this.resizeFrame(frame, new vec2(width, height + barHeight));
+    });
+  }
+
   private applySurfaceSize(
     record: NodeRecord,
     widthMeters: number,
@@ -310,7 +369,8 @@ export class ViroSpecsSceneRuntime {
       // already up or not.
       const frame = record.frame;
       frame.onInitialized.add(() => {
-        if (!isNull(frame)) frame.innerSize = new vec2(width, height);
+        if (isNull(frame)) return;
+        this.resizeFrame(frame, new vec2(width, height));
       });
       return;
     }
@@ -330,6 +390,8 @@ export class ViroSpecsSceneRuntime {
       record.surface.size = new vec2(width, height);
       return;
     }
+
+    if (record.video) record.videoBox = new vec2(width, height);
 
     // Images and video are sized by scaling the Image component's own 1 cm
     // quad (measured in Preview: scale 0.45 drew a 0.45 cm thumbnail), so they
@@ -429,8 +491,8 @@ export class ViroSpecsSceneRuntime {
 
     const size = record.object.getTransform().getLocalScale();
     const width = size.x;
-    const barHeight = 5;
-    const gap = 1;
+    const barHeight = VIDEO_BAR_HEIGHT;
+    const gap = VIDEO_BAR_GAP;
     const root = global.scene.createSceneObject("viro:video-controls");
     root.setParent(record.object);
     root.layer = record.object.layer;
@@ -738,7 +800,13 @@ export class ViroSpecsSceneRuntime {
     if (record.primitive === "video-surface") {
       this.applyVideoSource(record, command.source, command.id);
       this.applyFit(record.video, command.fit);
-      if (command.controls) this.createVideoControls(record);
+      record.wantsVideoControls = command.controls === true;
+      if (record.wantsVideoControls) this.createVideoControls(record);
+      // Adapt to the source's aspect now if it is known, and again once the
+      // video reports ready (a video texture has no size before that).
+      this.adaptVideo(record);
+      const control = record.video?.mainPass.baseTex?.control as VideoTextureProvider | undefined;
+      control?.onPlaybackReady.add(() => this.adaptVideo(record));
       return;
     }
 

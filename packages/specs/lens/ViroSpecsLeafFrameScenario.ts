@@ -16,6 +16,57 @@ import { generatedHost } from "./ViroSpecsRuntimeValidation";
  */
 @component
 export class ViroSpecsLeafFrameScenario extends Scenario {
+  /**
+   * The video panel: the video fits its source's aspect, a grab carries the
+   * video, and a Frame resize scales it uniformly. The resize goes through
+   * Frame's innerSize setter, the same path its corner handles drive; the
+   * hand gesture itself is a device check.
+   */
+  private async checkVideoPanel(): Promise<void> {
+    const panel = findSceneObjectByName("viro:platform-lab-video-panel");
+    const video = findSceneObjectByName("viro-interactable:platform-lab-video")
+      ?? findSceneObjectByName("viro:platform-lab-video");
+    expect(panel).toBeTruthy();
+    expect(video).toBeTruthy();
+    const frame = panel.getComponent(Frame.getTypeName()) as Frame;
+    const image = video.getComponent("Component.Image") as Image;
+    const texture = image.mainPass.baseTex;
+    const sourceAspect = texture.getWidth() / texture.getHeight();
+    const size = () => video.getTransform().getWorldScale();
+    const before = size();
+    print("VIRO_VALIDATION video:aspect measured " + JSON.stringify({
+      source: [texture.getWidth(), texture.getHeight()],
+      drawnCm: [before.x, before.y],
+      innerCm: [frame.innerSize.x, frame.innerSize.y],
+    }));
+    expect(Math.abs(before.x / before.y - sourceAspect)).toBeLessThan(0.01);
+    print("VIRO_VALIDATION video:aspect PASS");
+
+    const local = () =>
+      panel.getTransform().getInvertedWorldTransform()
+        .multiplyPoint(video.getTransform().getWorldPosition());
+    const localBefore = local();
+    const grab = findInteractableByName("viro:platform-lab-video-panel");
+    expect(grab).toBeTruthy();
+    const start = panel.getTransform().getWorldPosition();
+    await new DefaultLeafInteractor().drag(grab, new vec3(1, 0, 0), 400);
+    await sleep(50);
+    const moved = panel.getTransform().getWorldPosition().sub(start);
+    expect(moved.x).toBeGreaterThan(3);
+    expect(local().distance(localBefore)).toBeLessThan(0.1);
+    print("VIRO_VALIDATION video:grab PASS " + JSON.stringify({ movedCm: [moved.x, moved.y, moved.z] }));
+
+    frame.innerSize = frame.innerSize.uniformScale(1.5);
+    await sleep(50);
+    const after = size();
+    print("VIRO_VALIDATION video:resize measured " + JSON.stringify({
+      beforeCm: [before.x, before.y], afterCm: [after.x, after.y],
+    }));
+    expect(Math.abs(after.x / before.x - 1.5)).toBeLessThan(0.02);
+    expect(Math.abs(after.x / after.y - sourceAspect)).toBeLessThan(0.01);
+    print("VIRO_VALIDATION video:resize PASS uniform, aspect kept");
+  }
+
   async run(): Promise<void> {
     // The runtime renames a node's object once it carries an Interactable,
     // and Frame always adds one.
@@ -75,6 +126,8 @@ export class ViroSpecsLeafFrameScenario extends Scenario {
     expect(drift).toBeLessThan(0.1);
     print("VIRO_VALIDATION frame:grab PASS content follows panel");
 
-    print("VIRO_VALIDATION frame:resize SKIP device-only (LEAF drag targets the centre; Frame scales from corner margins)");
+    print("VIRO_VALIDATION frame:resize-gesture SKIP device-only (LEAF drag targets the centre; Frame scales from corner margins)");
+
+    if (generatedHost()) await this.checkVideoPanel();
   }
 }
