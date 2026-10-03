@@ -40,10 +40,13 @@ export type PicoResolvedSurface = {
 };
 
 function sideFor(intent: SpatialSurfaceIntent): "start" | "end" {
-  // Slot continuity: master defaults to start, everything else to end.
-  const placement =
-    intent.placement ?? (intent.role === "master" ? "start" : "end");
-  return placement === "start" ? "start" : "end";
+  // Only "start" and "end" name a side. Anything else ("center", "top", ...)
+  // falls back to the role default: master to start, everything else to end.
+  // Matches resolvePicoLayoutPrimitive in @expo-pico/spatial.
+  if (intent.placement === "start" || intent.placement === "end") {
+    return intent.placement;
+  }
+  return intent.role === "master" ? "start" : "end";
 }
 
 export function resolvePicoSpatialPrimitive(
