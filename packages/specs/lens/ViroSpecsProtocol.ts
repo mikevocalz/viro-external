@@ -16,6 +16,9 @@ export type ViroSpecsNodeKind =
   | "scroll"
   | "video";
 
+/** Linear RGBA, each channel 0-1. */
+export type ViroSpecsColor = [number, number, number, number];
+
 /** How a texture fills a surface of a different aspect ratio. */
 export type ViroSpecsSurfaceFit = "cover" | "contain" | "stretch";
 
@@ -44,7 +47,7 @@ export type ViroSpecsSceneNode =
   | (ViroSpecsScaledNode & { kind: "model"; source: string })
   | (ViroSpecsSizedNode & { kind: "image"; source: string; fit?: ViroSpecsSurfaceFit })
   | (ViroSpecsSizedNode & { kind: "video"; source: string; fit?: ViroSpecsSurfaceFit })
-  | (ViroSpecsSizedNode & { kind: "panel" })
+  | (ViroSpecsSizedNode & { kind: "panel"; tint?: ViroSpecsColor; cornerRadiusMeters?: number })
   | (ViroSpecsSizedNode & { kind: "scroll" });
 
 export type ViroSpecsSceneSnapshot = {
@@ -90,6 +93,8 @@ export type ViroSpecsRenderCommand =
       text?: string;
       source?: string;
       fit?: ViroSpecsSurfaceFit;
+      tint?: ViroSpecsColor;
+      cornerRadiusMeters?: number;
     }
   | {
       op: "visibility";
@@ -311,13 +316,18 @@ export function compileLensRenderPlan(
 
     const text = node.kind === "text" ? node.text : undefined;
     const fit = "fit" in node ? node.fit : undefined;
-    if (text !== undefined || source !== undefined) {
+    const tint = "tint" in node ? node.tint : undefined;
+    const cornerRadiusMeters =
+      "cornerRadiusMeters" in node ? node.cornerRadiusMeters : undefined;
+    if (text !== undefined || source !== undefined || tint !== undefined) {
       commands.push({
         op: "content",
         id: node.id,
         ...(text !== undefined ? { text } : {}),
         ...(source !== undefined ? { source } : {}),
         ...(fit !== undefined ? { fit } : {}),
+        ...(tint !== undefined ? { tint } : {}),
+        ...(cornerRadiusMeters !== undefined ? { cornerRadiusMeters } : {}),
       });
     }
 

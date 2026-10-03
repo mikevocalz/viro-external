@@ -338,6 +338,15 @@ export class ViroSpecsSceneRuntime {
       record.text.text = command.text;
     }
 
+    if (record.frame) {
+      this.applyPanelAppearance(
+        record.frame,
+        command.tint,
+        command.cornerRadiusMeters
+      );
+      return;
+    }
+
     if (command.source === undefined) {
       return;
     }
@@ -414,6 +423,33 @@ export class ViroSpecsSceneRuntime {
       return;
     }
     image.stretchMode = StretchMode.Fill;
+  }
+
+  /**
+   * UIKit's default frame chrome is a pale translucent plate, which disappears
+   * against a light room. Frame exposes its RoundedRectangle, so a product can
+   * give the panel a surface that actually reads.
+   */
+  private applyPanelAppearance(
+    frame: Frame,
+    tint: [number, number, number, number] | undefined,
+    cornerRadiusMeters: number | undefined
+  ): void {
+    if (!tint && cornerRadiusMeters === undefined) return;
+
+    // Like innerSize, these reach into state the Frame builds during its own
+    // OnStartEvent, so they wait a frame.
+    this.afterStart(() => {
+      if (isNull(frame)) return;
+      const rectangle = frame.roundedRectangle;
+      if (!rectangle) return;
+      if (tint) {
+        rectangle.backgroundColor = new vec4(tint[0], tint[1], tint[2], tint[3]);
+      }
+      if (cornerRadiusMeters !== undefined) {
+        rectangle.cornerRadius = cornerRadiusMeters * 100;
+      }
+    });
   }
 
   private applyVideoSource(

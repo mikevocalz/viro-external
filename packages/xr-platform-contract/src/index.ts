@@ -171,9 +171,24 @@ export interface PortableXRVideoNode extends PortableXRSizedNode {
   fit?: PortableXRSurfaceFit;
 }
 
+/**
+ * Linear RGBA, each channel 0-1.
+ *
+ * @see {@linkcode PortableXRPanelNode.tint}
+ */
+export type PortableXRColor = [number, number, number, number];
+
 /** A framed container that situates its children in space. */
 export interface PortableXRPanelNode extends PortableXRSizedNode {
   kind: "panel";
+  /**
+   * Surface colour. A platform's default panel chrome is tuned for its own
+   * shell and rarely carries enough contrast inside a product, so set this
+   * when the panel has to read against an unknown background.
+   */
+  tint?: PortableXRColor;
+  /** Corner rounding in meters. Omit for the platform default. */
+  cornerRadiusMeters?: number;
 }
 
 /** A clipped, scrollable region. Children scroll within {@linkcode PortableXRSizedNode.sizeMeters}. */
