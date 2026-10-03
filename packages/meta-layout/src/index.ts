@@ -41,7 +41,12 @@ function anchorFor(intent: SpatialSurfaceIntent): MetaAnchor {
     case "center":
       return intent.placement;
     case "user":
+      return "center";
     default:
+      // Keep slot continuity when no placement is given:
+      // master = start, inspector = end, everything else = center.
+      if (intent.role === "master") return "start";
+      if (intent.role === "inspector") return "end";
       return "center";
   }
 }
@@ -77,15 +82,17 @@ export class MetaHorizonLayoutAdapter implements XRPlatformAdapter {
   }
 
   getCapabilities(): XRCapabilityReport {
-    const spatial = this.runtime.isSpatialAvailable ? "supported" : "unsupported";
+    // This package maps props only. Nothing here creates a SpatialWindow, so a
+    // capability is "unverified" until a native path proves it on device.
+    const spatial = this.runtime.isSpatialAvailable ? "unverified" : "unsupported";
 
     return {
       "system-window": spatial,
       "spatial-layout": spatial,
       "multi-window": spatial,
       "spatial-priority": spatial,
-      "spatial-fallback": "supported",
-      display: "supported",
+      "spatial-fallback": "unverified",
+      display: "unverified",
     };
   }
 
