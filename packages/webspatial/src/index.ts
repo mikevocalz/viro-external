@@ -69,8 +69,8 @@ export type WebSpatialMainScene = {
     max_height?: number;
   };
   world_scaling?: "automatic" | "dynamic";
-  world_alignment?: "automatic" | "gravityAligned";
-  baseplate_visibility?: "automatic" | "hidden";
+  world_alignment?: "adaptive" | "automatic" | "gravityAligned";
+  baseplate_visibility?: "automatic" | "visible" | "hidden";
 };
 
 /** Build the `xr_main_scene` portion of a Web App Manifest. */
@@ -81,8 +81,8 @@ export function createWebSpatialMainScene(
     minScale?: number;
     maxScale?: number;
     worldScaling?: "automatic" | "dynamic";
-    worldAlignment?: "automatic" | "gravityAligned";
-    baseplateVisibility?: "automatic" | "hidden";
+    worldAlignment?: "adaptive" | "automatic" | "gravityAligned";
+    baseplateVisibility?: "automatic" | "visible" | "hidden";
   } = {}
 ): WebSpatialMainScene {
   const size = intent.preferredSize;
