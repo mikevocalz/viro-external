@@ -11,6 +11,7 @@ export type SpecsSupportedNodeKind =
   | "image"
   | "model"
   | "panel"
+  | "surface"
   | "scroll"
   | "video";
 
@@ -31,7 +32,7 @@ export type SpecsCompileResult = {
 };
 
 const SUPPORTED = new Set<SpecsSupportedNodeKind>([
-  "group", "text", "image", "model", "panel", "scroll", "video",
+  "group", "text", "image", "model", "panel", "surface", "scroll", "video",
 ]);
 
 /** Kinds whose variant declares `source` as required. */

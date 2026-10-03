@@ -74,6 +74,7 @@ export type PortableXRNodeKind =
   | "image"
   | "model"
   | "panel"
+  | "surface"
   | "scroll"
   | "video";
 
@@ -191,6 +192,23 @@ export interface PortableXRPanelNode extends PortableXRSizedNode {
   cornerRadiusMeters?: number;
 }
 
+/**
+ * A flat tinted rectangle with no chrome.
+ *
+ * Use it for the pieces that sit inside a panel — a header strip, a button
+ * face, a scroll rail. A {@linkcode PortableXRPanelNode} is a container that
+ * situates content in space and carries grab and resize affordances, so using
+ * one per decorative rectangle produces a scene full of separate floating
+ * panes.
+ */
+export interface PortableXRSurfaceNode extends PortableXRSizedNode {
+  kind: "surface";
+  /** Fill colour. @see {@linkcode PortableXRColor} */
+  tint?: PortableXRColor;
+  /** Corner rounding in meters. */
+  cornerRadiusMeters?: number;
+}
+
 /** A clipped, scrollable region. Children scroll within {@linkcode PortableXRSizedNode.sizeMeters}. */
 export interface PortableXRScrollNode extends PortableXRSizedNode {
   kind: "scroll";
@@ -211,6 +229,7 @@ export type PortableXRNode =
   | PortableXRImageNode
   | PortableXRVideoNode
   | PortableXRPanelNode
+  | PortableXRSurfaceNode
   | PortableXRScrollNode;
 
 export type XRInteractionSource =

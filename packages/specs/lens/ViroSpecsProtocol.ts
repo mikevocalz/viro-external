@@ -13,6 +13,7 @@ export type ViroSpecsNodeKind =
   | "image"
   | "model"
   | "panel"
+  | "surface"
   | "scroll"
   | "video";
 
@@ -48,6 +49,7 @@ export type ViroSpecsSceneNode =
   | (ViroSpecsSizedNode & { kind: "image"; source: string; fit?: ViroSpecsSurfaceFit })
   | (ViroSpecsSizedNode & { kind: "video"; source: string; fit?: ViroSpecsSurfaceFit })
   | (ViroSpecsSizedNode & { kind: "panel"; tint?: ViroSpecsColor; cornerRadiusMeters?: number })
+  | (ViroSpecsSizedNode & { kind: "surface"; tint?: ViroSpecsColor; cornerRadiusMeters?: number })
   | (ViroSpecsSizedNode & { kind: "scroll" });
 
 export type ViroSpecsSceneSnapshot = {
@@ -61,6 +63,7 @@ export type ViroSpecsRenderPrimitive =
   | "image"
   | "render-mesh"
   | "ui-frame"
+  | "flat-surface"
   | "scroll-window"
   | "video-surface";
 
@@ -262,6 +265,7 @@ const PRIMITIVES: Record<ViroSpecsNodeKind, ViroSpecsRenderPrimitive> = {
   image: "image",
   model: "render-mesh",
   panel: "ui-frame",
+  surface: "flat-surface",
   scroll: "scroll-window",
   video: "video-surface",
 };

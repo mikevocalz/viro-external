@@ -22,6 +22,7 @@ type NodeRecord = {
   /** True when this node sits inside a scroll or panel, i.e. a UI layout context. */
   inUiContext?: boolean;
   frame?: Frame;
+  surface?: RoundedRectangle;
   video?: Image;
 };
 
@@ -31,6 +32,9 @@ type NodeRecord = {
  * This class deliberately owns only renderer mechanics. Scene compilation,
  * Viro semantics, and diagnostics stay in the portable TypeScript package.
  */
+/** Flat surfaces sit above panel chrome but below scene content. */
+const SURFACE_RENDER_ORDER = 50;
+
 /** Draw text, images and video above any panel surface beneath them. */
 const CONTENT_RENDER_ORDER = 100;
 
@@ -158,6 +162,18 @@ export class ViroSpecsSceneRuntime {
       // runtime and then explicitly initialized; window and scroll extents are
       // local-space centimetres. Children scroll directly as its SceneObject
       // children, so no separate content object is needed.
+      // A plain tinted rectangle: no Frame, so no glass, collider, billboard or
+      // interaction plane, and no extra floating pane in the scene.
+      case "flat-surface": {
+        const surface = object.createComponent(
+          RoundedRectangle.getTypeName()
+        ) as RoundedRectangle;
+        surface.initialize();
+        surface.renderMeshVisual.setRenderOrder(SURFACE_RENDER_ORDER);
+        record.surface = surface;
+        break;
+      }
+
       case "scroll-window": {
         const scroll = object.createComponent(
           ScrollWindow.getTypeName()
@@ -349,6 +365,15 @@ export class ViroSpecsSceneRuntime {
       record.text.text = command.text;
     }
 
+    if (record.surface) {
+      this.applySurfaceAppearance(
+        record.surface,
+        command.tint,
+        command.cornerRadiusMeters
+      );
+      return;
+    }
+
     if (record.frame) {
       this.applyPanelAppearance(
         record.frame,
@@ -446,6 +471,36 @@ export class ViroSpecsSceneRuntime {
    * of your own to the Frame and lift it one render-order step above the glass,
    * which leaves it below the Frame's child content.
    */
+  /** Fill a flat surface. Shared with the layered panel backplate. */
+  private applySurfaceAppearance(
+    surface: RoundedRectangle,
+    tint: [number, number, number, number] | undefined,
+    cornerRadiusMeters: number | undefined
+  ): void {
+    if (cornerRadiusMeters !== undefined) {
+      surface.cornerRadius = cornerRadiusMeters * 100;
+    }
+    if (!tint) return;
+
+    // RoundedRectangle draws its background from the gradient, not from
+    // backgroundColor, so a flat fill is a gradient whose stops share a colour,
+    // lifted slightly at the top so it reads as a lit surface.
+    const [r, g, b, a] = tint;
+    const lift = 0.06;
+    surface.setBackgroundGradient({
+      enabled: true,
+      type: "Linear",
+      start: new vec2(0, 1),
+      end: new vec2(0, -1),
+      stop0: {
+        enabled: true,
+        percent: 0,
+        color: new vec4(r + lift, g + lift, b + lift, a),
+      },
+      stop1: { enabled: true, percent: 1, color: new vec4(r, g, b, a) },
+    });
+  }
+
   private applyPanelAppearance(
     frame: Frame,
     tint: [number, number, number, number] | undefined,

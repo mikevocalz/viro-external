@@ -10,6 +10,7 @@ export type SpecsRenderPrimitive =
   | "image"
   | "render-mesh"
   | "ui-frame"
+  | "flat-surface"
   | "scroll-window"
   | "video-surface";
 
@@ -75,6 +76,8 @@ const RENDER_MAPPING: Record<
     primitive: "ui-frame",
     backendPackage: "SpecsInteractionKitExamples",
   },
+  // A plain tinted rectangle needs no container chrome.
+  surface: { primitive: "flat-surface" },
   // ScrollWindow ships in the same UIKit reference set the panel prefab comes from.
   scroll: {
     primitive: "scroll-window",
