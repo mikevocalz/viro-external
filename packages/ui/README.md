@@ -60,3 +60,18 @@ The default workspace places panels on a 2.6 m comfort arc with 28 degree side o
 Keep one carrier node around everything that belongs to a panel: rendered surface, pointer/hit plane, header/chrome, toolbar, tray and drag affordance. This prevents interaction surfaces from drifting away from the visible panel.
 
 This engine-level layout is intentionally separate from OS-level Meta `SpatialWindow` and PICO `WindowContainer`/Subwindow presentation. The shared XR contract decides which presentation is appropriate.
+
+
+## Web interaction parity
+
+The premium UI uses the same Viro component tree on web.
+
+With the companion Viro web input work:
+
+- `SpatialPanel draggable` uses normal `ViroNode.onDrag`;
+- `pinchToScale` uses normal `ViroNode.onPinch`;
+- `SpatialScrollView` accepts mouse-wheel and trackpad scrolling through normal `ViroNode.onScroll`;
+- explicit up/down scroll buttons remain available for controller/gaze use;
+- flat/rounded/curved geometry, text, images, materials, hover/click and billboarding already render through Viro Web.
+
+Runtime dependency: web drag/pinch/scroll requires the updated Viro web bridge and ViroCore WASM exports from the corresponding web-parity PRs. Older binaries continue rendering panels but do not emit the new interaction events.
