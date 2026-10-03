@@ -4,7 +4,7 @@ Runtime policy for putting heavy spatial work in the right place without duplica
 
 ## Baseline
 
-Verified 2026-10-03:
+Peer versions pinned on 2026-10-03 (published on npm; not yet run together on a device):
 
 - `react-native-worklets` 0.13.0
 - `react-native-webgpu` 0.10.4

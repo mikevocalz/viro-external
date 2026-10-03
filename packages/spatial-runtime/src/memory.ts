@@ -38,7 +38,8 @@ export const DEFAULT_SPATIAL_MEMORY_POLICY: SpatialMemoryPolicy = {
 };
 
 export function shouldKeepNative(
-  resource: Pick<SpatialResourceDescriptor, "byteLength" | "kind">
+  resource: Pick<SpatialResourceDescriptor, "byteLength" | "kind">,
+  policy: SpatialMemoryPolicy = DEFAULT_SPATIAL_MEMORY_POLICY
 ): boolean {
   const size = resource.byteLength ?? 0;
 
@@ -50,5 +51,5 @@ export function shouldKeepNative(
     return true;
   }
 
-  return size >= DEFAULT_SPATIAL_MEMORY_POLICY.nativeLargeBufferThresholdBytes;
+  return size >= policy.nativeLargeBufferThresholdBytes;
 }
