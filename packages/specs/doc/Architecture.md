@@ -55,13 +55,13 @@ const scene = compileSpecsScene([
     id: "lesson",
     kind: "panel",
     position: left.position,
-    rotation: left.rotation,
+    rotation: yawToSpecsRotation(left.rotation[1]),
   },
   {
     id: "board",
     kind: "panel",
     position: center.position,
-    rotation: center.rotation,
+    rotation: yawToSpecsRotation(center.rotation[1]),
   },
   {
     id: "tutor",
@@ -72,7 +72,20 @@ const scene = compileSpecsScene([
 ]);
 ```
 
-The exact quaternion conversion is the Lens bridge's responsibility; the portable layer keeps the placement intent.
+`worldSlot()` returns `rotation` as Euler degrees `[0, yawDeg, 0]` and has no
+`yaw` field. The portable `rotation` is a quaternion that
+`ViroSpecsSceneRuntime` passes positionally to Lens Studio's
+`new quat(w, x, y, z)`, so the yaw must be converted in `[w, x, y, z]` order:
+
+```ts
+function yawToSpecsRotation(yawDeg: number): [number, number, number, number] {
+  const half = (yawDeg * Math.PI) / 360;
+  return [Math.cos(half), 0, Math.sin(half), 0];
+}
+```
+
+`worldSlot()` landed on `main` in PR #33. This conversion has not been
+run in Preview. See the package README, "Three-slot workspace on Specs".
 
 ## Unsupported-feature rule
 
