@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -37,8 +37,19 @@ if (!existsSync(assets)) {
   );
 }
 
+// --clean drops runtime files that no longer exist in packages/specs/lens.
+// It never touches .meta files (Lens keys scene references on them) or the
+// rest of Assets/ViroSpecs: generated/, Assets/, Media/ and ArchivedTemplate/.
 if (clean) {
-  await rm(destination, { recursive: true, force: true });
+  const installed = path.join(destination, "lens");
+  if (existsSync(installed)) {
+    for (const name of await readdir(installed)) {
+      if (name.endsWith(".meta")) continue;
+      if (!existsSync(path.join(sourceLens, name))) {
+        await rm(path.join(installed, name), { recursive: true, force: true });
+      }
+    }
+  }
 }
 
 await mkdir(destination, { recursive: true });

@@ -5,6 +5,7 @@
  * images, bars and a video with controls.
  */
 import React from "react";
+import { Viro3DObject, ViroNode, ViroPolyline, ViroText } from "@reactvision/react-viro";
 import {
   PanelBarChart,
   PanelImage,
@@ -43,9 +44,42 @@ const RUNS = [
   { title: "Youth Clinic", detail: "Sun 10:00 AM  ·  both courts", image: "img/dog" },
 ];
 
+/**
+ * Registered with ViroAnimations in the app, and passed to the Specs mapper,
+ * which reads elements without rendering them.
+ */
+export const animations = {
+  platformLabPulse: {
+    properties: { scaleX: 1.15, scaleY: 1.15, scaleZ: 1.15, opacity: 0.8 },
+    duration: 500,
+    easing: "EaseInEaseOut",
+  },
+};
+
 export default function HarlemCourts(): React.ReactElement {
   return (
-    <>
+    <ViroNode viroTag="platform-lab-root" position={[0, 0, -1.5]}>
+      <ViroText
+        viroTag="platform-lab-title"
+        text="Viro Cross-Platform Lab"
+        position={[0, 0.4, 0]}
+        animation={{ name: "platformLabPulse", run: true, loop: true }}
+      />
+      <Viro3DObject
+        viroTag="platform-lab-model"
+        source={{ uri: "examples/visionos-sweep/assets/shiba.glb" }}
+        type="GLB"
+        position={[-0.2, -0.3, 0]}
+        scale={[0.14, 0.14, 0.14]}
+        onClick={() => undefined}
+        onDrag={() => undefined}
+      />
+      <ViroPolyline
+        viroTag="platform-lab-route"
+        points={[[-0.7, -0.32, 0.12], [-0.45, -0.24, 0.12], [-0.2, -0.3, 0.12]]}
+        thickness={0.008}
+      />
+
       <SpatialPanel
         tag="platform-lab-panel"
         title="Harlem Courts"
@@ -95,6 +129,6 @@ export default function HarlemCourts(): React.ReactElement {
         height={0.34}
         position={[-0.46, 0.02, 0]}
       />
-    </>
+    </ViroNode>
   );
 }

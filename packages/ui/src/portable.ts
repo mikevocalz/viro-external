@@ -7,6 +7,7 @@
  * `measure`, the same functions the native components use.
  */
 import React from "react";
+import { Viro3DObject, ViroImage, ViroNode, ViroPolyline, ViroText } from "@reactvision/react-viro";
 import type { PortableXRNode } from "@viro-external/xr-contract";
 import {
   PANEL_TYPE,
@@ -37,13 +38,13 @@ import {
 } from "./PanelData";
 import { PanelImage, PanelText, type PanelImageProps, type PanelTextProps } from "./PanelContent";
 import { SpatialPanel, type SpatialPanelProps } from "./SpatialPanel";
+import { IDENTITY, composeTransform, degreesToQuaternion, transformPoint, type Transform, type Vec3 } from "./transform";
 import {
   SpatialVideoPlayerPanel,
   VideoPlayerPanel,
   type VideoPlayerPanelProps,
 } from "./VideoPlayerPanel";
 
-type Vec3 = [number, number, number];
 type Color = [number, number, number, number];
 
 /** Depth of each layer in front of its parent, in meters. */
@@ -56,17 +57,68 @@ const PANEL_CORNER = 0.02;
 const BAR: Color = [0.36, 0.62, 0.98, 1];
 const BAR_PEAK: Color = [0.98, 0.72, 0.3, 1];
 
-export type PortableSourceKind = "image" | "video";
+export type PortableSourceKind = "image" | "video" | "model";
+
+/** A ViroAnimations registration: `{ properties, duration, delay, easing }`. */
+export type PortableAnimationDefinition = {
+  properties?: Record<string, number | string | undefined>;
+  duration?: number;
+  delay?: number;
+  easing?: string;
+};
 
 export type ToPortableOptions = {
   /** Parent node id for the top-level elements. */
   parentId?: string;
   /** Turn a native source (`{ uri }`, a string, a Mux source) into a registry id. */
   resolveSource?: (source: unknown, kind: PortableSourceKind) => string | undefined;
+  /**
+   * The animations the scene registers with ViroAnimations, by name. The
+   * mapper reads elements without rendering them, so it cannot see the
+   * registry; pass the same object you register.
+   */
+  animations?: Record<string, PortableAnimationDefinition>;
+};
+
+/** A volumetric route line, in world space (Lens `VolumetricLine`). */
+export type PortablePolyline = {
+  id: string;
+  primitive: "volumetric-line";
+  backendPackage: "VolumetricLine";
+  points: Vec3[];
+  radiusMeters: number;
+  materialId?: string;
+};
+
+/** Hover/select/drag wiring for a node (Lens SIK Interactable). */
+export type PortableInteraction = {
+  nodeId: string;
+  interactable: true;
+  manipulation: boolean;
+  events: ("hover" | "select" | "drag")[];
+};
+
+/** A Lens AnimationPlayer plan built from a ViroAnimations registration. */
+export type PortableAnimation = {
+  nodeId: string;
+  name: string;
+  plan: {
+    engine: "AnimationPlayer";
+    backendPackage: "AnimationExamples";
+    durationSeconds: number;
+    delaySeconds: number;
+    easing: "linear" | "ease-in" | "ease-out" | "ease-in-out";
+    playbackMode: "loop" | "single";
+    completionEvent: string;
+    tracks: { target: string; from: "current"; to: number }[];
+  };
 };
 
 export type PortableSceneResult = {
   nodes: PortableXRNode[];
+  polylines: PortablePolyline[];
+  interactions: PortableInteraction[];
+  animations: PortableAnimation[];
   diagnostics: string[];
 };
 
@@ -76,13 +128,16 @@ type Place = {
   origin: Vec3;
   /** Width available to children that size to their container. */
   width: number;
+  /** World transform of the parent node, for content Lens draws in world space. */
+  world: Transform;
+  /** Inside a panel, which Frame billboards and the user can move. */
+  inPanel?: boolean;
 };
 
-type Context = {
-  nodes: PortableXRNode[];
-  diagnostics: string[];
+type Context = PortableSceneResult & {
   ids: Map<string, number>;
   resolveSource: NonNullable<ToPortableOptions["resolveSource"]>;
+  animationRegistry: NonNullable<ToPortableOptions["animations"]>;
 };
 
 type Mapper<P> = (props: P, place: Place, ctx: Context, element: React.ReactElement) => void;
@@ -104,18 +159,29 @@ export function toPortableScene(
 ): PortableSceneResult {
   const ctx: Context = {
     nodes: [],
+    polylines: [],
+    interactions: [],
+    animations: [],
     diagnostics: [],
     ids: new Map(),
     resolveSource: options.resolveSource ?? defaultResolveSource,
+    animationRegistry: options.animations ?? {},
   };
   for (const element of elements(tree)) {
-    mapElement(element, { parentId: options.parentId, origin: [0, 0, 0], width: 1 }, ctx);
+    mapElement(
+      element,
+      { parentId: options.parentId, origin: [0, 0, 0], width: 1, world: IDENTITY },
+      ctx
+    );
   }
-  return { nodes: ctx.nodes, diagnostics: ctx.diagnostics };
+  const { nodes, polylines, interactions, animations, diagnostics } = ctx;
+  return { nodes, polylines, interactions, animations, diagnostics };
 }
 
 function defaultResolveSource(source: unknown): string | undefined {
   if (typeof source === "string") return source;
+  // A bundled `require()` asset, named the way the fork's compiler names it.
+  if (typeof source === "number") return "react-native-asset:" + source;
   if (source && typeof source === "object") {
     const s = source as { uri?: string; url?: string; playbackId?: string };
     return s.uri ?? s.url ?? s.playbackId;
@@ -242,6 +308,9 @@ definePortable<SpatialPanelProps>(SpatialPanel, (props, place, ctx, element) => 
     ...(place.parentId ? { parentId: place.parentId } : {}),
   });
 
+  const panelWorld = composeTransform(place.world, {
+    position: (props.position as Vec3 | undefined) ?? place.origin,
+  });
   const hasHeader = panelHasHeader(props);
   if (hasHeader) {
     const { titleY, subtitleY } = panelHeader(height);
@@ -270,7 +339,7 @@ definePortable<SpatialPanelProps>(SpatialPanel, (props, place, ctx, element) => 
     const stackProps = stack.props as PanelStackProps;
     mapColumn(
       stackProps.children,
-      { parentId: scrollId, origin: [0, 0, 0], width: contentWidth },
+      { parentId: scrollId, origin: [0, 0, 0], width: contentWidth, world: panelWorld, inPanel: true },
       contentHeight / 2,
       stackProps.gap,
       ctx
@@ -278,7 +347,13 @@ definePortable<SpatialPanelProps>(SpatialPanel, (props, place, ctx, element) => 
     return;
   }
 
-  const inner: Place = { parentId: id, origin: [0, body.centerY, 0], width: body.width };
+  const inner: Place = {
+    parentId: id,
+    origin: [0, body.centerY, 0],
+    width: body.width,
+    world: panelWorld,
+    inPanel: true,
+  };
   for (const child of children) {
     if (child.type === PanelStack) {
       const stackProps = child.props as PanelStackProps;
@@ -402,3 +477,178 @@ const mapVideoPanel: Mapper<VideoPlayerPanelProps> = (props, place, ctx, element
 definePortable(VideoPlayerPanel, mapVideoPanel);
 // The player-driven variant has no source prop; it maps only when given one.
 definePortable(SpatialVideoPlayerPanel, mapVideoPanel);
+
+/**
+ * Plain Viro primitives. Nodes keep their local transform and a parentId, as
+ * the fork's compiler emits them; only polylines are baked to world space,
+ * because Lens draws a route line in world space.
+ */
+type ViroProps = {
+  viroTag?: string;
+  position?: Vec3;
+  rotation?: Vec3;
+  scale?: Vec3;
+  visible?: boolean;
+  text?: string;
+  source?: unknown;
+  points?: Vec3[];
+  thickness?: number;
+  materials?: string | string[];
+  onHover?: unknown;
+  onClick?: unknown;
+  onClickState?: unknown;
+  onDrag?: unknown;
+  animation?: { name?: string; run?: boolean; loop?: boolean; delay?: number };
+  children?: React.ReactNode;
+};
+
+const EASING: Record<string, PortableAnimation["plan"]["easing"]> = {
+  linear: "linear",
+  easein: "ease-in",
+  "ease-in": "ease-in",
+  easeout: "ease-out",
+  "ease-out": "ease-out",
+  easeineaseout: "ease-in-out",
+  "ease-in-out": "ease-in-out",
+};
+
+const ANIMATION_TARGET: Record<string, string> = {
+  positionX: "transform.position.x",
+  positionY: "transform.position.y",
+  positionZ: "transform.position.z",
+  scaleX: "transform.scale.x",
+  scaleY: "transform.scale.y",
+  scaleZ: "transform.scale.z",
+  rotateX: "transform.rotation.x",
+  rotateY: "transform.rotation.y",
+  rotateZ: "transform.rotation.z",
+  opacity: "material.opacity",
+};
+
+function viroPlacement(props: ViroProps, place: Place) {
+  const rotation = degreesToQuaternion(props.rotation);
+  return {
+    // Inside a panel layout, a primitive without its own position sits where
+    // the layout put it.
+    position: props.position ?? (place.inPanel ? place.origin : undefined),
+    ...(rotation ? { rotation } : {}),
+    ...(props.scale ? { scale: props.scale } : {}),
+    ...(props.visible !== undefined ? { visible: props.visible } : {}),
+    ...(place.parentId ? { parentId: place.parentId } : {}),
+  };
+}
+
+function collectBehaviour(id: string, props: ViroProps, ctx: Context): void {
+  const hover = Boolean(props.onHover);
+  const select = Boolean(props.onClick || props.onClickState);
+  const drag = Boolean(props.onDrag);
+  if (hover || select || drag) {
+    ctx.interactions.push({
+      nodeId: id,
+      interactable: true,
+      manipulation: drag,
+      events: [
+        ...(hover ? (["hover"] as const) : []),
+        ...(select ? (["select"] as const) : []),
+        ...(drag ? (["drag"] as const) : []),
+      ],
+    });
+  }
+
+  const animation = props.animation;
+  if (!animation?.name || animation.run === false) return;
+  const registered = ctx.animationRegistry[animation.name];
+  if (!registered) {
+    ctx.diagnostics.push(
+      "Animation " + animation.name + " on " + id + " is not in the `animations` passed to the mapper."
+    );
+    return;
+  }
+  const easing = EASING[String(registered.easing ?? "linear").toLowerCase()];
+  if (!easing) {
+    ctx.diagnostics.push("Animation " + animation.name + " uses easing " + registered.easing + ", which Specs does not have.");
+    return;
+  }
+  const tracks: PortableAnimation["plan"]["tracks"] = [];
+  for (const [property, value] of Object.entries(registered.properties ?? {})) {
+    if (value === undefined) continue;
+    const target = ANIMATION_TARGET[property];
+    if (!target) {
+      ctx.diagnostics.push("Animation " + animation.name + " property " + property + " has no Specs equivalent.");
+      continue;
+    }
+    // ponytail: absolute values only; "+=0.1" style values need the node's
+    // current value, which the fork's static compiler resolves. Add it here if
+    // a scene needs relative tracks.
+    if (typeof value !== "number") {
+      ctx.diagnostics.push("Animation " + animation.name + " property " + property + " is relative (" + value + "); use an absolute value for Specs.");
+      continue;
+    }
+    tracks.push({ target, from: "current", to: value });
+  }
+  if (!tracks.length) return;
+  ctx.animations.push({
+    nodeId: id,
+    name: animation.name,
+    plan: {
+      engine: "AnimationPlayer",
+      backendPackage: "AnimationExamples",
+      durationSeconds: (registered.duration ?? 0) / 1000,
+      delaySeconds: ((registered.delay ?? 0) + (animation.delay ?? 0)) / 1000,
+      easing,
+      playbackMode: animation.loop ? "loop" : "single",
+      completionEvent: "viro-animation-complete:" + id + ":" + animation.name,
+      tracks,
+    },
+  });
+}
+
+function mapViro(kind: "group" | "text" | "image" | "model"): Mapper<ViroProps> {
+  return (props, place, ctx, element) => {
+    const id = nodeId(ctx, element, "viro-" + kind);
+    const base = { id, ...viroPlacement(props, place) };
+    if (kind === "text") {
+      ctx.nodes.push({ ...base, kind, text: props.text ?? "" });
+    } else if (kind === "image" || kind === "model") {
+      const source = ctx.resolveSource(props.source, kind);
+      if (!source) {
+        ctx.diagnostics.push("<Viro" + (kind === "image" ? "Image" : "3DObject") + "> " + id + " has no Specs source id; pass resolveSource.");
+        return;
+      }
+      ctx.nodes.push({ ...base, kind, source });
+    } else {
+      ctx.nodes.push({ ...base, kind });
+    }
+    collectBehaviour(id, props, ctx);
+
+    const world = composeTransform(place.world, props);
+    for (const child of elements(props.children)) {
+      mapElement(child, { parentId: id, origin: [0, 0, 0], width: place.width, world }, ctx);
+    }
+  };
+}
+
+const mapPolyline: Mapper<ViroProps> = (props, place, ctx, element) => {
+  const id = nodeId(ctx, element, "viro-polyline");
+  if (place.inPanel) {
+    ctx.diagnostics.push("<ViroPolyline> " + id + " is inside a panel; Lens draws route lines in world space, so it would not follow the panel. Left out.");
+    return;
+  }
+  const world = composeTransform(place.world, props);
+  const scale = Math.max(...world.scale.map(Math.abs));
+  const material = Array.isArray(props.materials) ? props.materials[0] : props.materials;
+  ctx.polylines.push({
+    id,
+    primitive: "volumetric-line",
+    backendPackage: "VolumetricLine",
+    points: (props.points ?? []).map((point) => transformPoint(world, point)),
+    radiusMeters: ((props.thickness ?? 0.01) / 2) * scale,
+    ...(material ? { materialId: material } : {}),
+  });
+};
+
+definePortable(ViroNode, mapViro("group"));
+definePortable(ViroText, mapViro("text"));
+definePortable(ViroImage, mapViro("image"));
+definePortable(Viro3DObject, mapViro("model"));
+definePortable(ViroPolyline, mapPolyline);

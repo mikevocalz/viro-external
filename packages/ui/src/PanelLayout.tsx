@@ -14,6 +14,9 @@ import { PremiumMaterials, registerPremiumMaterials } from "./materials";
 /** The content area of the enclosing SpatialPanel, set by the panel. */
 export const PanelBodyContext = createContext<PanelBody | null>(null);
 
+/** True inside a PanelStack or PanelRow, whose children are placed by it. */
+const NestedStackContext = createContext(false);
+
 export type PanelSize = { width: number; height: number };
 
 /**
@@ -53,21 +56,24 @@ export type PanelStackProps = {
 export const PanelStack: Measurable<PanelStackProps> = Object.assign(
   function PanelStack({ children: items, gap = PANEL_GAP }: PanelStackProps) {
     const body = useContext(PanelBodyContext) ?? { centerY: 0, width: 1, height: 1 };
+    const nested = useContext(NestedStackContext);
     const list = children(items);
     const sizes = list.map((child) => measureElement(child, body.width));
-    const { centers } = stackLayout(
-      sizes.map((size) => size.height),
-      body.centerY + body.height / 2,
-      gap
-    );
+    const heights = sizes.map((size) => size.height);
+    // The panel's own stack starts at the body's top edge. A stack placed by
+    // a parent stack or row is centred on its origin, as the Specs mapper does.
+    const top = nested ? stackLayout(heights, 0, gap).height / 2 : body.centerY + body.height / 2;
+    const { centers } = stackLayout(heights, top, gap);
     return (
-      <ViroNode>
-        {list.map((child, index) => (
-          <ViroNode key={child.key ?? index} position={[0, centers[index] ?? 0, 0]}>
-            {child}
-          </ViroNode>
-        ))}
-      </ViroNode>
+      <NestedStackContext.Provider value={true}>
+        <ViroNode>
+          {list.map((child, index) => (
+            <ViroNode key={child.key ?? index} position={[0, centers[index] ?? 0, 0]}>
+              {child}
+            </ViroNode>
+          ))}
+        </ViroNode>
+      </NestedStackContext.Provider>
     );
   },
   {
@@ -93,13 +99,15 @@ export const PanelRow: Measurable<PanelRowProps> = Object.assign(
     const list = children(items);
     const xs = rowLayout(list.map((child) => measureElement(child, width).width), width, gap);
     return (
-      <ViroNode>
-        {list.map((child, index) => (
-          <ViroNode key={child.key ?? index} position={[xs[index] ?? 0, 0, 0]}>
-            {child}
-          </ViroNode>
-        ))}
-      </ViroNode>
+      <NestedStackContext.Provider value={true}>
+        <ViroNode>
+          {list.map((child, index) => (
+            <ViroNode key={child.key ?? index} position={[xs[index] ?? 0, 0, 0]}>
+              {child}
+            </ViroNode>
+          ))}
+        </ViroNode>
+      </NestedStackContext.Provider>
     );
   },
   {
