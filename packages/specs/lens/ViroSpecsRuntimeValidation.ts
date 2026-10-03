@@ -337,7 +337,7 @@ export async function validateGeneratedScene(): Promise<void> {
     expect(player.clips.length).toBe(1);
     print("VIRO_GENERATED animation-loop PASS " + JSON.stringify({cycle, clip, duration:0.5, easing:"ease-in-out", resets, minScale:Math.min(...samples),maxScale:Math.max(...samples),clips:player.clips.length}));
     const generatedLine=findSceneObjectByName("viro:volumetric-line").getComponent(VolumetricLine.getTypeName()) as VolumetricLine;
-    const expectedPoints=[[-30,-20,-138],[0,2,-138],[30,-8,-138]];
+    const expectedPoints=[[-70,-32,-138],[-45,-24,-138],[-20,-30,-138]];
     expect(generatedLine.pathPoints.length).toBe(3);
     expect(generatedLine.radius).toBe(0.4);
     generatedLine.pathPoints.forEach((point,index)=>expect(point.getTransform().getWorldPosition().distance(new vec3(...expectedPoints[index] as [number,number,number]))).toBeLessThan(0.001));

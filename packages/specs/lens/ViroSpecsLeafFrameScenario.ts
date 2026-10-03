@@ -25,10 +25,10 @@ export class ViroSpecsLeafFrameScenario extends Scenario {
     expect(frame).toBeTruthy();
 
     // The panel size each scene source requests: the generated host's PANEL
-    // constant (80 x 56 cm) or ViroSpecsPlatformLab's fixture (60 x 50 cm).
+    // constant (90 x 60 cm) or ViroSpecsPlatformLab's fixture (60 x 50 cm).
     // ponytail: mirrors two constants; read them from the applied scene
     // command once the runtime keeps the last plan per node.
-    const requested = generatedHost() ? [80, 56] : [60, 50];
+    const requested = generatedHost() ? [90, 60] : [60, 50];
     // Frame adds its grab margin and padding around innerSize, so the drawn
     // panel is larger than the request.
     const inner = frame.innerSize;

@@ -316,7 +316,7 @@ export class ViroSpecsSceneRuntime {
     }
 
     // RoundedRectangle is measured in cm by its own `size`; scaling its object
-    // like the 20 cm Image quad below would multiply its default size instead.
+    // like the Image quad below would multiply its default size instead.
     if (record.surface && !record.inUiContext) {
       record.surface.size = new vec2(width, height);
       return;
@@ -325,12 +325,13 @@ export class ViroSpecsSceneRuntime {
     // A ScreenTransform owns its object's transform, so InteractableManipulation
     // cannot move it — a drag is overwritten by the next layout pass. Only use
     // one inside a scroll or panel, where layout is the point. A free-standing
-    // surface is sized against the Image component's own 20 cm quad instead, so
+    // surface is sized by scaling the Image component's own 1 cm quad (measured in
+    // Preview: scale 0.45 drew a 0.45 cm thumbnail), so
     // it stays a normal draggable 3D object.
     if (!record.inUiContext) {
       record.object
         .getTransform()
-        .setLocalScale(new vec3(width / 20, height / 20, 1));
+        .setLocalScale(new vec3(width, height, 1));
 
       // An Image reports no mesh bounds, so a fitVisual collider comes out
       // degenerate and no ray ever hits it. Give the surface a box matching the
@@ -344,7 +345,7 @@ export class ViroSpecsSceneRuntime {
           "ColliderComponent"
         ) as ColliderComponent);
       const shape = Shape.createBoxShape();
-      shape.size = new vec3(20, 20, 1);
+      shape.size = new vec3(1, 1, 1);
       collider.shape = shape;
       collider.fitVisual = false;
       return;
@@ -479,7 +480,9 @@ export class ViroSpecsSceneRuntime {
       image.stretchMode = StretchMode.Stretch;
       return;
     }
-    image.stretchMode = StretchMode.Fill;
+    // Cover crops. Fill scales the same way but draws the overflow past the
+    // node's bounds, which pushed a portrait texture out of its panel slot.
+    image.stretchMode = StretchMode.FillAndCut;
   }
 
   /**
