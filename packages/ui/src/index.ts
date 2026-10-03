@@ -45,3 +45,12 @@ export {
   MuxSpatialPlayerPanel,
   type MuxSpatialPlayerPanelProps,
 } from "./MuxSpatialPlayerPanel";
+
+export {
+  SpatialWorkspaceSlotNode,
+  worldSlot,
+  type SpatialWorkspaceSlot,
+  type SpatialWorkspaceSlotNodeProps,
+  type WorldSlotOptions,
+  type WorldSlotPlacement,
+} from "./SpatialWorkspace";
