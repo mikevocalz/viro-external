@@ -86,8 +86,32 @@ PICO OS 6's standalone Web App Runtime includes WebSpatial Runtime. A WebSpatial
 
 ## Meta Horizon
 
-Do not use this package as Meta's native panel implementation today. WebSpatial currently lists Meta Horizon OS as planned support. Viro's native Meta path uses Standard Android / Meta Layout for system windows and ViroCore/OpenXR for immersive rendering.
+Do not use this package as Meta's spatial-DOM implementation today. WebSpatial 2.x currently lists Meta Horizon OS as **planned** support rather than a supported runtime.
 
-## WebXR
+For Meta web today:
 
-WebSpatial and WebXR are composable but separate. Starting a WebXR session takes over the space; the WebSpatial page UI is hidden while the WebXR renderer owns the immersive session. Do not promise simultaneous unified rendering.
+- normal React/HTML -> Quest Browser or PWA;
+- browser 3D -> Viro Web or Meta IWSDK;
+- immersive -> WebXR / IWSDK;
+- native React Native app -> Meta Layout SDK for OS spatial windows.
+
+That keeps native Meta `SpatialWindow` APIs out of the web bundle.
+
+## Viro Web + WebXR
+
+WebSpatial, Viro Web and WebXR solve different layers:
+
+- WebSpatial spatializes DOM/layout;
+- Viro Web renders 3D/AR into a WebGL2/WASM canvas;
+- WebXR owns immersive browser sessions.
+
+A Viro Web canvas can live inside the normal/web-spatialized React layout, but the current Viro fork does not implement `ViroVRSceneNavigator.web` as a WebXR session. Route immersive web to WebXR/IWSDK until that renderer path exists.
+
+WebSpatial and WebXR are composable but separate. Starting an immersive WebXR session takes over the XR presentation; do not promise that ordinary spatialized page UI remains simultaneously visible.
+
+
+## Scene options
+
+`createWebSpatialMainScene()` also supports current WebSpatial manifest options for `world_scaling`, `world_alignment`, and `baseplate_visibility`.
+
+PICO OS 6 includes the WebSpatial Runtime in its standalone Web App Runtime. WebSpatial 2.x also supports visionOS packaging; Meta Horizon support is currently planned.
