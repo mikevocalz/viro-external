@@ -39,15 +39,7 @@ export class ViroSpecsRuntimeHost extends BaseScriptComponent {
 
     this.runtime = new ViroSpecsSceneRuntime(
       this.root ?? this.getSceneObject(),
-      registry,
-      // Only a ScriptComponent can create Lens events, so the host owns the
-      // "run once every OnStartEvent has finished" primitive the runtime needs
-      // for UIKit components that build their state during their own start.
-      (work) => {
-        const event = this.createEvent("DelayedCallbackEvent");
-        event.bind(() => work());
-        event.reset(0);
-      }
+      registry
     );
     this.createEvent("OnDestroyEvent").bind(() => this.runtime?.clear());
   }

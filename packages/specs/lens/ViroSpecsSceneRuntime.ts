@@ -4,6 +4,7 @@ import type {
   ViroSpecsRenderPrimitive,
 } from "./ViroSpecsProtocol";
 import { Frame } from "SpectaclesUIKit.lspkg/Scripts/Components/Frame/Frame";
+import { RoundedRectangle } from "SpectaclesUIKit.lspkg/Scripts/Visuals/RoundedRectangle/RoundedRectangle";
 import { ScrollWindow } from "SpectaclesUIKit.lspkg/Scripts/Components/ScrollWindow/ScrollWindow";
 import { ViroSpecsAssetRegistry } from "./ViroSpecsAssetRegistry";
 
@@ -32,9 +33,7 @@ export class ViroSpecsSceneRuntime {
 
   constructor(
     private readonly root: SceneObject,
-    private readonly assets: ViroSpecsAssetRegistry,
-    /** Runs `work` on the next frame, after every OnStartEvent has completed. */
-    private readonly afterStart: (work: () => void) => void
+    private readonly assets: ViroSpecsAssetRegistry
   ) {}
 
   apply(plan: ViroSpecsRenderPlan): void {
@@ -257,8 +256,11 @@ export class ViroSpecsSceneRuntime {
       // installed 0.18.0 exposes no readiness event, so apply the size on the
       // next frame, once every OnStartEvent has run. ViroSpecsPlatformLab
       // defers its SIK wiring for the same reason.
+      // Frame builds the state innerSize touches during its own OnStartEvent.
+      // onInitialized is a ReplayEvent, so this is safe whether the Frame is
+      // already up or not.
       const frame = record.frame;
-      this.afterStart(() => {
+      frame.onInitialized.add(() => {
         if (!isNull(frame)) frame.innerSize = new vec2(width, height);
       });
       return;
@@ -427,8 +429,13 @@ export class ViroSpecsSceneRuntime {
 
   /**
    * UIKit's default frame chrome is a pale translucent plate, which disappears
-   * against a light room. Frame exposes its RoundedRectangle, so a product can
-   * give the panel a surface that actually reads.
+   * against a light room.
+   *
+   * Setting Frame.roundedRectangle's colour does not take — it is only non-null
+   * while the current visual is the default. Path Pioneer's
+   * UIKitCustomVisualsFrame shows the supported route: parent a RoundedRectangle
+   * of your own to the Frame and lift it one render-order step above the glass,
+   * which leaves it below the Frame's child content.
    */
   private applyPanelAppearance(
     frame: Frame,
@@ -437,18 +444,42 @@ export class ViroSpecsSceneRuntime {
   ): void {
     if (!tint && cornerRadiusMeters === undefined) return;
 
-    // Like innerSize, these reach into state the Frame builds during its own
-    // OnStartEvent, so they wait a frame.
-    this.afterStart(() => {
+    frame.onInitialized.add(() => {
       if (isNull(frame)) return;
-      const rectangle = frame.roundedRectangle;
-      if (!rectangle) return;
+
+      const object = global.scene.createSceneObject("viro:panel-surface");
+      object.setParent(frame.sceneObject);
+      object.layer = frame.sceneObject.layer;
+      object.getTransform().setLocalPosition(vec3.zero());
+
+      const surface = object.createComponent(
+        RoundedRectangle.getTypeName()
+      ) as RoundedRectangle;
+      const glass = frame.roundedRectangle;
+      surface.cornerRadius =
+        cornerRadiusMeters !== undefined
+          ? cornerRadiusMeters * 100
+          : glass
+            ? glass.cornerRadius
+            : 2;
+      surface.initialize();
+      surface.size = frame.innerSize;
       if (tint) {
-        rectangle.backgroundColor = new vec4(tint[0], tint[1], tint[2], tint[3]);
+        surface.backgroundColor = new vec4(tint[0], tint[1], tint[2], tint[3]);
       }
-      if (cornerRadiusMeters !== undefined) {
-        rectangle.cornerRadius = cornerRadiusMeters * 100;
+      // The sample lifts its surface one step above the glass because its
+      // content are Frame children and so draw later. A portable scene parents
+      // content to the scene root instead, so taking the glass's own order
+      // keeps the surface a backplate rather than a cover.
+      if (glass) {
+        surface.renderMeshVisual.setRenderOrder(
+          glass.renderMeshVisual.getRenderOrder()
+        );
       }
+      // The Frame rescales on drag, so the surface has to follow it.
+      frame.onScalingUpdate.add(() => {
+        if (!isNull(surface)) surface.size = frame.innerSize;
+      });
     });
   }
 
