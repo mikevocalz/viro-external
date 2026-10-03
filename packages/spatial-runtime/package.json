@@ -1,0 +1,30 @@
+{
+  "name": "@viro-external/spatial-runtime",
+  "version": "0.1.0",
+  "description": "Shared Worklets/WebGPU/TypeGPU runtime and memory ownership policy for Viro spatial workloads.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "files": ["src", "README.md", "doc"],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react-native-worklets": ">=0.13.0 <0.14.0",
+    "react-native-webgpu": ">=0.10.4 <0.11.0",
+    "typegpu": ">=0.12.6 <0.13.0",
+    "@typegpu/react": ">=0.12.0 <0.13.0"
+  },
+  "peerDependenciesMeta": {
+    "react-native-webgpu": { "optional": true },
+    "typegpu": { "optional": true },
+    "@typegpu/react": { "optional": true }
+  },
+  "devDependencies": {
+    "react-native-worklets": "0.13.0",
+    "react-native-webgpu": "0.10.4",
+    "typegpu": "0.12.6",
+    "@typegpu/react": "0.12.0",
+    "typescript": "7.0.2"
+  }
+}
