@@ -18,15 +18,15 @@ This document distinguishes **renders on Viro Web** from **full premium interact
 | close / custom actions | supported | React state + click path is available |
 | pinned/follow billboard mode | supported | Viro web node bridge maps billboard transforms |
 | explicit scroll up/down buttons | supported | SpatialScrollView uses clickable PanelButton controls |
-| mouse wheel / trackpad scrolling | not implemented | SpatialScrollView has no wheel/scroll gesture path |
-| draggable panels | **not implemented** | MovableNode passes `dragType` / `onDrag`, but ViroNode.web/useViroNode does not consume or enable OnDrag |
-| pinch resizing | **not implemented** | MovableNode passes `onPinch`, but the Viro web bridge exposes no pinch handler |
+| mouse wheel / trackpad scrolling | implementation open | virocore#79 + viro#40 forward OnScroll; viro-external#36 consumes it in SpatialScrollView |
+| draggable panels | implementation open | virocore#79 activates native drag solving; viro#40 wires ViroNode.onDrag and drag config |
+| pinch resizing | implementation open | virocore#79 exports pinch; viro#40 recognizes browser two-pointer pinch and wires ViroNode.onPinch |
 | flat video rendering | partial | ViroVideo.web renders frames and supports play/pause/mute/loop/volume |
 | curved video rendering | partial | ViroMaterialVideo.web renders video into the shared material |
 | 360 video rendering | partial | Viro360Video.web renders equirectangular video to the background sphere |
-| video seek / +/-10 / replay | **not complete** | current web video components do not expose the imperative seek ref used by SpatialVideoPlayer |
-| player current time / duration | **not complete** | ViroVideo.web does not currently emit `onUpdateTime` |
-| buffering / ready state | **not complete** | web video path does not currently emit `onBufferStart` / `onBufferEnd` |
+| video seek / +/-10 / replay | implementation open | viro#41 adds imperative seek refs to flat/material/360 web video |
+| player current time / duration | implementation open | viro#41 adds HTML media time/duration lifecycle |
+| buffering / ready state | implementation open | viro#41 maps waiting/stalled/canplay/playing into Viro buffer lifecycle |
 | immersive VR web panels | **not implemented in Viro Web** | ViroVRSceneNavigator.web intentionally does not create a WebXR session |
 
 ## What we can claim today
@@ -77,3 +77,13 @@ A product can choose either:
 - WebXR for immersive browser mode.
 
 Do not silently swap a Viro engine panel for a DOM panel unless the product explicitly selects that fallback.
+
+
+## Open implementation PR chain
+
+- `mikevocalz/virocore#79` — WASM drag, pinch and wheel/trackpad event plumbing.
+- `mikevocalz/viro#40` — React-Viro web drag/pinch/scroll bridge.
+- `mikevocalz/viro#41` — web video seek/time/buffering parity + reusable source textures.
+- `mikevocalz/viro-external#36` — premium SpatialScrollView wheel/trackpad consumption.
+
+Until those PRs merge and the updated WASM artifact is packaged, the compatibility table should be read as **implementation open**, not released support.
