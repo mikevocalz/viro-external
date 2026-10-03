@@ -29,7 +29,9 @@ const environment = {
   width: window.innerWidth,
   webSpatial: "pico-os-6",
   viroWeb: true,
-  webXR: "xr" in navigator,
+  // `"xr" in navigator` is true on desktop Chrome with no headset attached.
+  // Ask for the session mode you will actually request.
+  webXR: (await navigator.xr?.isSessionSupported("immersive-vr")) ?? false,
 } as const;
 
 const reference = resolveWebSurface(
@@ -51,4 +53,12 @@ On PICO OS 6, that inspector can become a WebSpatial element. In a normal browse
 - dual pane: master = rail, content = main, inspector = secondary inspector
 - triple pane: master / content / inspector all visible
 
-Use `createWebWorkspaceStyle()` for the expanded CSS grid and your app's normal drawer/sheet primitives in compact mode.
+Use `createWebWorkspaceStyle()` for the expanded CSS grid and your app's normal drawer/sheet primitives in compact mode. The compact grid only defines `content` and `accessory` areas, so do not give a master or inspector element `createWebSurfaceStyle()` there; an undefined area name adds implicit grid tracks.
+
+## Capability flags
+
+Leave a `WebRuntimeEnvironment` flag undefined until you have probed it. `WebLayoutAdapter` reports an undefined flag as `unverified` and only reports `unsupported` for an explicit `false` (or `webSpatial: "none"` / `"planned-meta"`).
+
+## Status
+
+`resolveWebSurface()`, the CSS grid helpers and `WebLayoutAdapter` are typechecked in CI. There are no unit tests, and none of this has run on PICO OS 6, Quest Browser or visionOS. The platform matrix comes from vendor documentation, not device testing.

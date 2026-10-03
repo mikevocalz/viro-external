@@ -109,9 +109,8 @@ A Viro Web canvas can live inside the normal/web-spatialized React layout, but t
 
 WebSpatial and WebXR are composable but separate. Starting an immersive WebXR session takes over the XR presentation; do not promise that ordinary spatialized page UI remains simultaneously visible.
 
-
 ## Scene options
 
-`createWebSpatialMainScene()` also supports current WebSpatial manifest options for `world_scaling`, `world_alignment`, and `baseplate_visibility`.
+`createWebSpatialMainScene()` also writes the WebSpatial 2.0 manifest options `world_scaling`, `world_alignment`, and `baseplate_visibility`. `@webspatial/core-sdk` 2.0.0 reads the snake_case keys; the manifest output has not been loaded on a PICO or visionOS runtime.
 
 PICO OS 6 includes the WebSpatial Runtime in its standalone Web App Runtime. WebSpatial 2.x also supports visionOS packaging; Meta Horizon support is currently planned.

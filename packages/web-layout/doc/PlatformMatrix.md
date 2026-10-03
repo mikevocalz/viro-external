@@ -1,6 +1,6 @@
 # Web platform matrix
 
-Status verified 2026-10-03.
+Checked against PICO, WebSpatial and Meta developer documentation on 2026-10-03. Nothing in this file was tested on a device.
 
 ## PICO OS 6
 
@@ -10,7 +10,7 @@ WebSpatial 2.x currently supports PICO OS 6 and visionOS. Its documentation list
 
 ## Meta Horizon OS
 
-Meta officially supports:
+Meta's developer documentation lists:
 
 - ordinary hosted 2D websites in Quest Browser;
 - PWAs distributed through the Horizon Store;

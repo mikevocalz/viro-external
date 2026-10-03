@@ -4,6 +4,8 @@ Audit date: 2026-10-03.
 
 This document distinguishes **renders on Viro Web** from **full premium interaction parity**.
 
+The audit read the Viro `.web` component sources. "supported" below means a web code path exists for the feature; no browser render or interaction test was run for any row.
+
 ## Current matrix
 
 | Premium feature | Web status | Evidence / limitation |
@@ -31,7 +33,7 @@ This document distinguishes **renders on Viro Web** from **full premium interact
 
 ## What we can claim today
 
-`@viro-external/ui` panels have **real Viro Web rendering support** for geometry, text, images, materials, hover/click controls, billboarding, and button-driven scroll.
+`@viro-external/ui` panels have Viro Web code paths for geometry, text, images, materials, hover/click controls, billboarding, and button-driven scroll. None of them has been rendered in a browser as part of this audit.
 
 They do **not** yet have full premium behavioral parity on web.
 
@@ -77,7 +79,6 @@ A product can choose either:
 - WebXR for immersive browser mode.
 
 Do not silently swap a Viro engine panel for a DOM panel unless the product explicitly selects that fallback.
-
 
 ## Open implementation PR chain
 
