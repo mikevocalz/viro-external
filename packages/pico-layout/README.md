@@ -171,10 +171,8 @@ The existing Viro three-slot composition maps onto roles and placements without 
 Side selection for `master` and `inspector`:
 
 - With no `placement`, `master` goes to `"start"` and `inspector` goes to `"end"`.
-- `placement: "start"` gives the start Subwindow. Any other value (`"center"`, `"end"`, `"top"`, `"bottom"`, `"user"`) gives the end Subwindow.
+- `placement: "start"` gives the start Subwindow and `placement: "end"` gives the end Subwindow. Any other value (`"center"`, `"top"`, `"bottom"`, `"user"`) is treated as no placement, so `master` stays on start and `inspector` on end. `@expo-pico/spatial` resolves the same way.
 - `content` ignores `placement`. The planar `WindowContainer` is the main window.
-
-Set `placement` on `master` explicitly or leave it unset. `{ role: "master", placement: "center" }` resolves to `"subwindow-end"` here, while `resolvePicoLayoutPrimitive` in `@expo-pico/spatial` (branch `feat/spatial-layout-contract-v2`) defaults `placement` to `"center"` and sends `master` to `"subwindow-start"` for anything except `"end"`. The two agree whenever `placement` is `"start"`, `"end"`, or unset.
 
 ## Capability reporting
 
