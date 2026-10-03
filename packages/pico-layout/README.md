@@ -61,7 +61,7 @@ const surface = resolvePicoSurface(
 );
 ```
 
-The result is consumed by the PICO native bridge in `expo-pico`.
+The result will be consumed by `@expo-pico/spatial` once it binds the PICO SDK 6 containers. That bridge does not exist yet (`nativeLayoutBridgeBound` is `false`).
 
 ## Viro ownership
 

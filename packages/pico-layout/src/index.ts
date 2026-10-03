@@ -40,7 +40,10 @@ export type PicoResolvedSurface = {
 };
 
 function sideFor(intent: SpatialSurfaceIntent): "start" | "end" {
-  return intent.placement === "start" ? "start" : "end";
+  // Slot continuity: master defaults to start, everything else to end.
+  const placement =
+    intent.placement ?? (intent.role === "master" ? "start" : "end");
+  return placement === "start" ? "start" : "end";
 }
 
 export function resolvePicoSpatialPrimitive(
@@ -115,7 +118,9 @@ export class PicoSpatialLayoutAdapter implements XRPlatformAdapter {
   }
 
   getCapabilities(): XRCapabilityReport {
-    const spatial = this.runtime.isSpatialAvailable ? "supported" : "unsupported";
+    // Flags describe SDK classes the caller probed, not bound native calls.
+    // Nothing is "supported" until expo-pico binds and device-validates it.
+    const spatial = this.runtime.isSpatialAvailable ? "unverified" : "unsupported";
 
     return {
       "system-window": this.runtime.supportsWindowContainer ? spatial : "unsupported",
@@ -124,14 +129,14 @@ export class PicoSpatialLayoutAdapter implements XRPlatformAdapter {
         this.runtime.supportsSubwindow || this.runtime.supportsAugment
           ? spatial
           : "unsupported",
-      "spatial-fallback": "supported",
+      "spatial-fallback": "unverified",
       "spatial-volume": this.runtime.supportsVolume ? spatial : "unsupported",
       "spatial-stage": this.runtime.supportsStage ? spatial : "unsupported",
       "surface-placement":
         this.runtime.supportsAugment || this.runtime.supportsAttachmentPanel
           ? spatial
           : "unsupported",
-      display: "supported",
+      display: "unverified",
     };
   }
 
