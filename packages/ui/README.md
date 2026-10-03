@@ -82,3 +82,21 @@ Components the mapper does not know are left out, with a warning. To map
 your own component, register it with `definePortable(Component, mapper)`.
 Native scrolling for a variable-height `PanelStack` is not built yet; use
 `SpatialScrollView` on native until it is.
+
+## Rive panels
+
+`RivePanel` shows a Rive file with no chrome of its own. Its header and
+buttons are in the art. Both hosts use one pipeline: the build reads each
+file's clips through the Rive runtime and its buttons from the RML project's
+listener hit shapes (`rive inspect`). Then it bakes the clips and plays them
+with one state graph:
+
+- Specs: `pnpm specs:scene` bakes into the Lens project.
+- Native Viro: `pnpm specs:bake-rive-native -- --entry scene.tsx --out <app assets dir>`
+  writes a GIF per clip and an `index.ts`. Pass the entry as
+  `<RivePanel baked={RIVE_BAKES[tag]} />`.
+
+Without `baked`, the panel renders the file live through `ViroRivePanel`,
+which needs nitro-canvas-in-Vision and keeps data binding. `specs` only
+overrides what the build reads: `clips`, `play`, `next`, `onSelect`, and
+`actions`, which maps button ids to clips.

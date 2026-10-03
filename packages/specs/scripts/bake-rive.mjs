@@ -96,7 +96,12 @@ async function withRivePage(riv, use, background = "#181B24") {
   }
 }
 
-export async function bakeRive({ riv, clips, out, width = 640, fps = 25, background = "#181B24", artboard }) {
+/**
+ * `out` gets one GIF of every clip (Lens plays it as one animated texture by
+ * frame range). `clipsDir`, if set, also gets a GIF per clip named after it,
+ * for players that switch whole images instead, such as ViroAnimatedImage.
+ */
+export async function bakeRive({ riv, clips, out, clipsDir, width = 640, fps = 25, background = "#181B24", artboard }) {
   const frameDir = await mkdtemp(path.join(os.tmpdir(), "viro-rive-"));
   try {
     return await withRivePage(riv, async (page) => {
@@ -151,14 +156,23 @@ export async function bakeRive({ riv, clips, out, width = 640, fps = 25, backgro
       manifest.clips[clip.name] = { start, end: manifest.frames - 1, loop: clip.loop ?? false };
     }
 
-    // One palette for the whole sheet keeps colours stable across clips.
-    const ffmpeg = spawnSync("ffmpeg", [
-      "-y", "-loglevel", "error", "-framerate", String(fps),
-      "-i", path.join(frameDir, "f%05d.png"),
-      "-filter_complex", "[0:v]split[a][b];[a]palettegen=stats_mode=full[p];[b][p]paletteuse=dither=sierra2_4a",
-      "-loop", "0", path.resolve(out),
-    ], { encoding: "utf8" });
-    if (ffmpeg.status !== 0) throw new Error("ffmpeg failed: " + ffmpeg.stderr);
+    const gif = (target, start, count, loop) => {
+      // One palette per file keeps colours stable across its frames.
+      const ffmpeg = spawnSync("ffmpeg", [
+        "-y", "-loglevel", "error", "-framerate", String(fps), "-start_number", String(start),
+        "-i", path.join(frameDir, "f%05d.png"), "-frames:v", String(count),
+        "-filter_complex", "[0:v]split[a][b];[a]palettegen=stats_mode=full[p];[b][p]paletteuse=dither=sierra2_4a",
+        // GIF loop count: 0 forever, -1 once.
+        "-loop", loop ? "0" : "-1", path.resolve(target),
+      ], { encoding: "utf8" });
+      if (ffmpeg.status !== 0) throw new Error("ffmpeg failed: " + ffmpeg.stderr);
+    };
+    if (out) gif(out, 0, manifest.frames, true);
+    if (clipsDir) {
+      for (const [name, clip] of Object.entries(manifest.clips)) {
+        gif(path.join(clipsDir, name + ".gif"), clip.start, clip.end - clip.start + 1, clip.loop);
+      }
+    }
     return manifest;
     }, background);
   } finally {

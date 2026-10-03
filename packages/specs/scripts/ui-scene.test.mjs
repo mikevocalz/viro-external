@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
-import { mkdtemp, mkdir, writeFile, readdir, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile, readdir, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import os from "node:os";
@@ -132,4 +132,18 @@ test("Rive buttons and clips come from the file, with the panel's overrides", as
   assert.equal(auto.clips[0].animation, "EntranceLoading");
   assert.equal(auto.play, "EntranceLoading", "first looping clip plays first");
   assert.deepEqual(auto.buttons, [], "no RML source, no discovered buttons");
+});
+
+test("the native Rive bake uses the same clips, graph and buttons as Specs", async () => {
+  const { bakeRiveNative } = await import("./bake-rive-native.mjs");
+  const out = await mkdtemp(path.join(os.tmpdir(), "viro-rive-native-"));
+  await bakeRiveNative(example, out);
+  const index = await readFile(path.join(out, "index.ts"), "utf8");
+  for (const clip of ["Loading", "Entering", "Idle", "Submitting", "Correct"]) {
+    assert.ok(existsSync(path.join(out, "platform-lab-lesson", clip + ".gif")), clip + ".gif written");
+    assert.match(index, new RegExp('require\\("\\./platform-lab-lesson/' + clip + '\\.gif"\\)'));
+  }
+  assert.match(index, /play: "Loading"/);
+  assert.match(index, /"id":"submit","label":"Submit","rect":\[0\.73\d*,0\.945,0\.117\d*,0\.042\d*\],"play":"Submitting"/);
+  await rm(out, { recursive: true, force: true });
 });

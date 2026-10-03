@@ -1,6 +1,13 @@
-import React from "react";
-import { ViroRivePanel, type ViroRivePanelProps } from "@reactvision/react-viro";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ViroAnimatedImage,
+  ViroNode,
+  ViroQuad,
+  ViroRivePanel,
+  type ViroRivePanelProps,
+} from "@reactvision/react-viro";
 import { MovableNode, type Vec3 } from "@viro-external/core";
+import { PremiumMaterials, registerPremiumMaterials } from "./materials";
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
@@ -64,6 +71,28 @@ export type RiveSpecsProps = {
   maxFrames?: number;
 };
 
+/** A button after baking: hit area 0-1 of the artboard from its top-left. */
+export type RiveBakedButton = {
+  id: string;
+  label: string;
+  rect: [number, number, number, number];
+  play?: string;
+};
+
+/**
+ * A Rive panel baked by `pnpm specs:bake-rive-native`: one GIF per clip plus
+ * the same state graph and buttons the Specs build uses.
+ */
+export type RiveBaked = {
+  /** Artboard width over height. */
+  aspect: number;
+  clips: Record<string, { source: number | { uri: string }; loop: boolean; durationMs: number }>;
+  play: string;
+  next: Record<string, string>;
+  onSelect: Record<string, string>;
+  buttons: RiveBakedButton[];
+};
+
 export type RivePanelProps = {
   /** Stable id for the panel in the Specs scene. */
   tag?: string;
@@ -73,15 +102,26 @@ export type RivePanelProps = {
   rotation?: Vec3;
   /** Pinch to move it. The Rive file draws its own header and controls. */
   draggable?: boolean;
-  /** The native Rive source and its bindings, passed to ViroRivePanel. */
-  rive: RiveNativeProps;
+  /**
+   * Live Rive: the source and bindings for ViroRivePanel, which needs
+   * nitro-canvas-in-Vision. Used when `baked` is not given.
+   */
+  rive?: RiveNativeProps;
+  /**
+   * Baked Rive from `pnpm specs:bake-rive-native`: the same clips, state graph
+   * and buttons as on Specs, played without the canvas runtime.
+   */
+  baked?: RiveBaked;
+  /** Called with a button id when one of the Rive file's buttons is pressed (baked). */
+  onButtonPress?: (id: string) => void;
   specs?: RiveSpecsProps;
 };
 
 /**
  * A Rive file as a spatial panel, with no chrome of its own: the art carries
- * its header and buttons. Natively the Rive runtime renders it live with its
- * bindings and listeners; on Specs it plays the baked clips in `specs`.
+ * its header and buttons. With `baked` it plays the clips the build rendered,
+ * through the same state graph Specs uses; otherwise ViroRivePanel renders
+ * the file live with its bindings and listeners.
  */
 export function RivePanel({
   tag,
@@ -91,16 +131,118 @@ export function RivePanel({
   rotation,
   draggable = true,
   rive,
+  baked,
+  onButtonPress,
 }: RivePanelProps): React.ReactElement {
   return (
     <MovableNode movable={draggable} tag={tag ?? "vxp-rive-panel"} position={position}>
-      <ViroRivePanel
-        {...(rive as ViroRivePanelProps)}
-        width={width}
-        height={height}
-        position={[0, 0, 0]}
-        rotation={rotation}
-      />
+      {baked ? (
+        <BakedRive baked={baked} width={width} height={height} rotation={rotation} onButtonPress={onButtonPress} />
+      ) : rive ? (
+        <ViroRivePanel
+          {...(rive as ViroRivePanelProps)}
+          width={width}
+          height={height}
+          position={[0, 0, 0]}
+          rotation={rotation}
+        />
+      ) : (
+        <ViroNode />
+      )}
     </MovableNode>
+  );
+}
+
+/**
+ * The baked player: one ViroAnimatedImage showing the current clip's GIF.
+ * Same rules as the Specs runtime: a looping clip repeats, a one-shot clip
+ * moves to `next` when it ends, a pinch on the art moves by `onSelect`, a
+ * button plays its clip.
+ */
+function BakedRive({
+  baked,
+  width,
+  height,
+  rotation,
+  onButtonPress,
+}: {
+  baked: RiveBaked;
+  width: number;
+  height: number;
+  rotation?: Vec3;
+  onButtonPress?: (id: string) => void;
+}): React.ReactElement {
+  registerPremiumMaterials();
+  const [clip, setClip] = useState(baked.play);
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [pressed, setPressed] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const current = baked.clips[clip];
+
+  // ViroAnimatedImage reports no end of playback, so a one-shot clip hands
+  // over to `next` after its baked length.
+  useEffect(() => {
+    if (!current || current.loop) return;
+    const following = baked.next[clip];
+    if (!following) return;
+    timer.current = setTimeout(() => setClip(following), current.durationMs);
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, [baked.next, clip, current]);
+
+  const play = useCallback(
+    (name: string | undefined) => {
+      if (name && baked.clips[name]) setClip(name);
+    },
+    [baked.clips]
+  );
+
+  // Fit the art inside the panel at its own aspect.
+  const artWidth = Math.min(width, height * baked.aspect);
+  const artHeight = artWidth / baked.aspect;
+
+  return (
+    <ViroNode rotation={rotation}>
+      {current ? (
+        <ViroAnimatedImage
+          key={clip}
+          source={current.source as never}
+          width={artWidth}
+          height={artHeight}
+          loop={current.loop}
+          onClick={() => play(baked.onSelect[clip])}
+        />
+      ) : null}
+      {baked.buttons.map((button) => {
+        const [x, y, w, h] = button.rect;
+        const lit = pressed === button.id ? 0.28 : hovered === button.id ? 0.14 : 0;
+        return (
+          <ViroQuad
+            key={button.id}
+            viroTag={"viro-button:" + button.label}
+            position={[
+              (x + w / 2 - 0.5) * artWidth,
+              (0.5 - (y + h / 2)) * artHeight,
+              pressed === button.id ? 0.0005 : 0.002,
+            ]}
+            width={w * artWidth}
+            height={h * artHeight}
+            materials={[PremiumMaterials.thumb]}
+            opacity={lit}
+            onHover={(isHovering: boolean) => setHovered(isHovering ? button.id : null)}
+            onClickState={(state: number) => {
+              // Viro click states: 1 down, 2 up, 3 clicked.
+              if (state === 1) setPressed(button.id);
+              if (state === 2) setPressed(null);
+              if (state === 3) {
+                play(button.play);
+                onButtonPress?.(button.id);
+              }
+            }}
+          />
+        );
+      })}
+    </ViroNode>
   );
 }

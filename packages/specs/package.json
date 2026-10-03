@@ -26,7 +26,8 @@
     "build": "tsc -p tsconfig.build.json",
     "prepack": "pnpm --filter @viro-external/xr-contract build && pnpm build && node -e \"require('./dist/index.js')\" && pnpm specs:validate-lens && pnpm specs:test-runner",
     "specs:scene": "node scripts/compile-ui-scene.mjs",
-    "specs:bake-rive": "node scripts/bake-rive.mjs"
+    "specs:bake-rive": "node scripts/bake-rive.mjs",
+    "specs:bake-rive-native": "node scripts/bake-rive-native.mjs"
   },
   "peerDependencies": {
     "@viro-external/xr-contract": ">=0.2.0-rc.1 <0.3.0"

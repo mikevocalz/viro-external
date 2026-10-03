@@ -87,6 +87,8 @@ export {
 
 export {
   RivePanel,
+  type RiveBaked,
+  type RiveBakedButton,
   type RiveButton,
   type RiveNativeProps,
   type RivePanelProps,
