@@ -1,4 +1,6 @@
 import type {
+  ViroSpecsRiveButton,
+  ViroSpecsRiveState,
   ViroSpecsRenderCommand,
   ViroSpecsRenderPlan,
   ViroSpecsRenderPrimitive,
@@ -31,6 +33,7 @@ type NodeRecord = {
   scroll?: ScrollWindow;
   scrollBar?: ScrollBarParts;
   videoControls?: SceneObject;
+  riveState?: () => string;
   /** Requested video box in cm; the video fits its source aspect inside it. */
   videoBox?: vec2;
   wantsVideoControls?: boolean;
@@ -168,6 +171,7 @@ export class ViroSpecsSceneRuntime {
         break;
 
       case "image":
+      case "rive-surface":
         record.image = object.createComponent("Component.Image") as Image;
         if (this.assets.defaultImageMaterial) {
           record.image.mainMaterial = this.assets.defaultImageMaterial.clone();
@@ -614,6 +618,143 @@ export class ViroSpecsSceneRuntime {
     });
   }
 
+  /**
+   * Plays a baked Rive panel: one animated texture holding every clip, each a
+   * frame range. Looping clips wrap inside their range; a clip that ends
+   * moves to `next`, a select (pinch or tap) moves to `onSelect`, and the
+   * Rive file's own buttons become press targets over the art.
+   */
+  private playRive(record: NodeRecord, rive: ViroSpecsRiveState): void {
+    const texture = record.image?.mainPass.baseTex;
+    const control = texture?.control as AnimatedTextureFileProvider | undefined;
+    if (!control || typeof control.playFromFrame !== "function") {
+      throw new Error("Rive panel texture is not an animated texture: " + record.object.name);
+    }
+    // Lens packs GIF frames into an atlas and may keep fewer than were baked;
+    // map baked frame numbers onto the frames it kept.
+    const kept = control.getFramesCount();
+    const scale = rive.frames && rive.frames > 1 ? (kept - 1) / (rive.frames - 1) : 1;
+    const range = (name: string) => {
+      const clip = rive.clips[name];
+      if (!clip) return undefined;
+      const start = Math.min(kept - 1, Math.round(clip.start * scale));
+      return { start, end: Math.max(start, Math.min(kept - 1, Math.round(clip.end * scale))), loop: clip.loop };
+    };
+
+    let current = rive.clip;
+    let held = false;
+    const play = (name: string) => {
+      const clip = range(name);
+      if (!clip) return;
+      current = name;
+      held = false;
+      control.playFromFrame(clip.start, -1);
+    };
+    play(current);
+
+    const driver = record.object.createComponent("Component.ScriptComponent") as ScriptComponent;
+    driver.createEvent("UpdateEvent").bind(() => {
+      const clip = range(current);
+      if (!clip || held) return;
+      const frame = control.getCurrentPlayingFrame();
+      if (frame >= clip.start && frame <= clip.end) return;
+      if (clip.loop) {
+        control.playFromFrame(clip.start, -1);
+        return;
+      }
+      const following = rive.next?.[current];
+      if (following) {
+        play(following);
+      } else {
+        control.pauseAtFrame(clip.end);
+        held = true;
+      }
+    });
+
+    if (rive.onSelect && Object.keys(rive.onSelect).length) {
+      const interactable =
+        (record.object.getComponent(Interactable.getTypeName()) as Interactable | null) ??
+        (record.object.createComponent(Interactable.getTypeName()) as Interactable);
+      interactable.onTriggerEnd.add(() => {
+        const target = rive.onSelect?.[current];
+        if (target) play(target);
+      });
+    }
+    for (const button of rive.buttons ?? []) this.createRiveButton(record, button, play);
+    record.riveState = () => current;
+  }
+
+  /**
+   * A press target over a button drawn in the Rive art. The art is a 1 cm
+   * quad scaled to the panel, so the button lives in that unit space. It
+   * lights on hover, dips on press, and is named with the button's label so
+   * it reads correctly to anything that lists interactables.
+   * ponytail: feedback is a light overlay and a small press dip; bake the Rive
+   * file's own pressed state as a clip if a button needs its real look.
+   */
+  private createRiveButton(
+    record: NodeRecord,
+    button: ViroSpecsRiveButton,
+    play: (clip: string) => void
+  ): void {
+    const [x, y, w, h] = button.rect;
+    const object = global.scene.createSceneObject("viro-button:" + button.label);
+    object.setParent(record.object);
+    object.layer = record.object.layer;
+    const transform = object.getTransform();
+    // Quad space: -0.5..0.5 on each axis, +y up; the rect is from the top-left.
+    // z is in cm (the quad keeps unit depth): 2 mm in front, 1.5 mm dip on press.
+    const home = new vec3(x + w / 2 - 0.5, 0.5 - (y + h / 2), 0.2);
+    transform.setLocalPosition(home);
+    transform.setLocalScale(new vec3(w, h, 1));
+
+    const overlay = object.createComponent(RoundedRectangle.getTypeName()) as RoundedRectangle;
+    overlay.initialize();
+    overlay.size = new vec2(1, 1);
+    overlay.cornerRadius = 0.08;
+    overlay.renderMeshVisual.setRenderOrder(CONTENT_RENDER_ORDER + 1);
+    overlay.renderMeshVisual.mainPass.blendMode = BlendMode.PremultipliedAlphaAuto;
+    const tint = (alpha: number) => {
+      const color = new vec4(1, 1, 1, alpha);
+      overlay.setBackgroundGradient({
+        enabled: true, type: "Linear", start: new vec2(0, 1), end: new vec2(0, -1),
+        stop0: { enabled: true, percent: 0, color }, stop1: { enabled: true, percent: 1, color },
+      });
+    };
+    tint(0);
+
+    const box = Shape.createBoxShape();
+    box.size = new vec3(1, 1, 1);
+    const collider = object.createComponent("ColliderComponent") as ColliderComponent;
+    collider.fitVisual = false;
+    collider.shape = box;
+    const press = object.createComponent(Interactable.getTypeName()) as Interactable;
+    press.onHoverEnter.add(() => tint(0.14));
+    press.onHoverExit.add(() => tint(0));
+    // SIK bubbles trigger events to parent Interactables; a button press must
+    // not also count as a pinch on the panel behind it.
+    press.onTriggerStart.add((event) => {
+      event.stopPropagation();
+      tint(0.28);
+      transform.setLocalPosition(new vec3(home.x, home.y, home.z - 0.15));
+    });
+    press.onTriggerEnd.add((event) => {
+      event.stopPropagation();
+      tint(0.14);
+      transform.setLocalPosition(home);
+      if (button.play) play(button.play);
+    });
+    press.onTriggerCanceled.add(() => {
+      tint(0);
+      transform.setLocalPosition(home);
+    });
+  }
+
+  /** The clip a Rive panel is playing, for validation. */
+  riveClip(id: string): string | undefined {
+    return this.nodes.get(id)?.riveState?.();
+  }
+
   private createScrollBar(record: NodeRecord, scroll: ScrollWindow): ScrollBarParts {
     // A sibling of the ScrollWindow, as in the sample: ScrollWindow toggles
     // every collider in its own subtree and its Interactable takes the pinch,
@@ -783,6 +924,13 @@ export class ViroSpecsSceneRuntime {
     }
 
     if (command.source === undefined) {
+      return;
+    }
+
+    if (record.primitive === "rive-surface" && command.rive) {
+      this.applyImageSource(record, command.source, command.id);
+      this.applyFit(record.image, command.fit ?? "contain");
+      this.playRive(record, command.rive);
       return;
     }
 

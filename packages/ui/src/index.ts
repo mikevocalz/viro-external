@@ -86,8 +86,18 @@ export {
 } from "./layout";
 
 export {
+  RivePanel,
+  type RiveButton,
+  type RiveNativeProps,
+  type RivePanelProps,
+  type RiveSpecsClip,
+  type RiveSpecsProps,
+} from "./RivePanel";
+
+export {
   definePortable,
   toPortableScene,
+  type PortableRiveBake,
   type PortableSceneResult,
   type PortableSourceKind,
   type ToPortableOptions,

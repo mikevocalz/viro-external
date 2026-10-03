@@ -52,6 +52,20 @@ export class ViroSpecsAssetRegistry extends BaseScriptComponent {
     return this.resolveById(source, this.modelIds, this.modelPrefabs);
   }
 
+  /**
+   * Add an image the scene host loads itself (for example a baked Rive
+   * texture via requireAsset), so it resolves by id like the inspector ones.
+   */
+  registerImage(id: string, texture: Texture): void {
+    const index = this.imageIds.indexOf(id);
+    if (index >= 0) {
+      this.imageTextures[index] = texture;
+      return;
+    }
+    this.imageIds.push(id);
+    this.imageTextures.push(texture);
+  }
+
   resolveImage(source: string): Texture | null {
     return this.resolveById(source, this.imageIds, this.imageTextures);
   }

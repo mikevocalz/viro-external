@@ -100,3 +100,22 @@ test("sync --clean keeps .meta files and everything outside lens/", async () => 
   assert.ok((await readdir(path.join(specs, "lens"))).includes("ViroSpecsSceneRuntime.ts"));
   await rm(project, { recursive: true, force: true });
 });
+
+test("a RivePanel maps to a chrome-less Frame, a bake request and button targets", () => {
+  const { nodes, riveBakes } = compileUiScene(example);
+  const panel = nodes.find((n) => n.id === "platform-lab-lesson");
+  assert.equal(panel.kind, "panel");
+  assert.equal(panel.tint, undefined, "the Rive art is the panel's look");
+  assert.ok(!nodes.some((n) => n.parentId === "platform-lab-lesson" && n.kind === "text"), "no header");
+
+  const rive = nodes.find((n) => n.kind === "rive");
+  assert.equal(rive.source, "rive/platform-lab-lesson-rive");
+  assert.equal(rive.clip, "Loading");
+  const submit = rive.buttons.find((b) => b.id === "submit");
+  assert.deepEqual(submit.rect.map((v) => +v.toFixed(4)), [0.7328, 0.945, 0.1172, 0.0425]);
+  assert.equal(submit.label, "Submit");
+
+  assert.equal(riveBakes.length, 1);
+  assert.equal(riveBakes[0].file, "assets/moyo_learning_question.riv");
+  assert.deepEqual(riveBakes[0].clips.find((c) => c.name === "Loading"), { name: "Loading", animation: "EntranceLoading", loop: true });
+});

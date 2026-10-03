@@ -13,7 +13,17 @@ export type SpecsRenderPrimitive =
   | "ui-frame"
   | "flat-surface"
   | "scroll-window"
-  | "video-surface";
+  | "video-surface"
+  | "rive-surface";
+
+export type SpecsRiveState = {
+  clips: Record<string, { start: number; end: number; loop: boolean }>;
+  clip: string;
+  next?: Record<string, string>;
+  onSelect?: Record<string, string>;
+  frames?: number;
+  buttons?: { id: string; label: string; rect: [number, number, number, number]; play?: string }[];
+};
 
 export type SpecsRenderDiagnostic = {
   level: "warning" | "error";
@@ -50,6 +60,7 @@ export type SpecsRenderCommand =
       wrapWidthMeters?: number;
       contentHeightMeters?: number;
       controls?: boolean;
+      rive?: SpecsRiveState;
     }
   | {
       op: "visibility";
@@ -65,7 +76,7 @@ export type SpecsRenderPlan = {
 };
 
 /** Kinds whose variant declares `source` as required. */
-const SOURCE_REQUIRED = new Set<string>(["model", "image", "video"]);
+const SOURCE_REQUIRED = new Set<string>(["model", "image", "video", "rive"]);
 
 const RENDER_MAPPING: Record<
   PortableXRNode["kind"],
@@ -92,6 +103,8 @@ const RENDER_MAPPING: Record<
   },
   // Video is a core Lens Texture driven by VideoTextureProvider, no upstream package.
   video: { primitive: "video-surface" },
+  // A baked Rive animation, played as an animated texture.
+  rive: { primitive: "rive-surface" },
 };
 
 /** `scale` exists only on the multiplier-scaled variants. */
@@ -188,6 +201,17 @@ export function compileSpecsRenderPlan(
     const contentHeightMeters =
       "contentHeightMeters" in node ? node.contentHeightMeters : undefined;
     const controls = "controls" in node ? node.controls : undefined;
+    const rive: SpecsRiveState | undefined =
+      node.kind === "rive"
+        ? {
+            clips: node.clips,
+            clip: node.clip,
+            next: node.next,
+            onSelect: node.onSelect,
+            frames: node.frames,
+            buttons: node.buttons,
+          }
+        : undefined;
     if (
       text !== undefined ||
       source !== undefined ||
@@ -205,6 +229,7 @@ export function compileSpecsRenderPlan(
         ...(wrapWidthMeters !== undefined ? { wrapWidthMeters } : {}),
         ...(contentHeightMeters !== undefined ? { contentHeightMeters } : {}),
         ...(controls ? { controls } : {}),
+        ...(rive ? { rive } : {}),
       });
     }
 

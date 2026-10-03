@@ -2,6 +2,7 @@ import { scenariosIndex } from "Leaf.lspkg/Scenarios/decorator/ScenarioIndexDeco
 import { ScenarioMetadata } from "Leaf.lspkg/Scenarios/scenario/ScenarioMetadata";
 import { ViroSpecsLeafInteractionScenario } from "./ViroSpecsLeafInteractionScenario";
 import { ViroSpecsLeafFrameScenario } from "./ViroSpecsLeafFrameScenario";
+import { ViroSpecsLeafRiveScenario } from "./ViroSpecsLeafRiveScenario";
 import { ViroSpecsLeafSceneSmokeScenario } from "./ViroSpecsLeafSceneSmokeScenario";
 
 @component
@@ -20,6 +21,10 @@ export class ViroSpecsLeafIndex extends BaseScriptComponent {
     {
       id: "viro_specs_frame",
       typename: ViroSpecsLeafFrameScenario.getTypeName(),
+    },
+    {
+      id: "viro_specs_rive",
+      typename: ViroSpecsLeafRiveScenario.getTypeName(),
     },
   ];
 }

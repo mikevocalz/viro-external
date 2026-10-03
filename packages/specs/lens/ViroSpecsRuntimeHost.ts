@@ -22,6 +22,7 @@ export class ViroSpecsRuntimeHost extends BaseScriptComponent {
   assetRegistryObject: SceneObject;
 
   private runtime: ViroSpecsSceneRuntime | null = null;
+  private registry: ViroSpecsAssetRegistry | null = null;
 
   onAwake(): void {
     (globalThis as unknown as { __VIRO_SPECS_BUILD__?: boolean })
@@ -37,6 +38,7 @@ export class ViroSpecsRuntimeHost extends BaseScriptComponent {
       );
     }
 
+    this.registry = registry;
     this.runtime = new ViroSpecsSceneRuntime(
       this.root ?? this.getSceneObject(),
       registry
@@ -58,6 +60,17 @@ export class ViroSpecsRuntimeHost extends BaseScriptComponent {
 
   getNode(id: string): SceneObject | null {
     return this.requireRuntime().getSceneObject(id);
+  }
+
+  /** Register an image the scene host loads itself, before applying a scene. */
+  registerTexture(id: string, texture: Texture): void {
+    if (!this.registry) throw new Error("Viro Specs runtime has not initialized.");
+    this.registry.registerImage(id, texture);
+  }
+
+  /** The clip a Rive panel is playing. */
+  getRiveClip(id: string): string | undefined {
+    return this.requireRuntime().riveClip(id);
   }
 
   private requireRuntime(): ViroSpecsSceneRuntime {

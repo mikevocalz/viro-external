@@ -38,6 +38,7 @@ import {
 } from "./PanelData";
 import { PanelImage, PanelText, type PanelImageProps, type PanelTextProps } from "./PanelContent";
 import { SpatialPanel, type SpatialPanelProps } from "./SpatialPanel";
+import { RivePanel, type RivePanelProps } from "./RivePanel";
 import { IDENTITY, composeTransform, degreesToQuaternion, transformPoint, type Transform, type Vec3 } from "./transform";
 import {
   SpatialVideoPlayerPanel,
@@ -114,8 +115,19 @@ export type PortableAnimation = {
   };
 };
 
+/** A Rive panel the build must bake before the scene runs on Specs. */
+export type PortableRiveBake = {
+  /** The rive node to fill with the baked texture id and clip ranges. */
+  nodeId: string;
+  file: string;
+  artboard?: string;
+  clips: { name: string; animation: string; loop: boolean }[];
+  resolution?: number;
+};
+
 export type PortableSceneResult = {
   nodes: PortableXRNode[];
+  riveBakes: PortableRiveBake[];
   polylines: PortablePolyline[];
   interactions: PortableInteraction[];
   animations: PortableAnimation[];
@@ -159,6 +171,7 @@ export function toPortableScene(
 ): PortableSceneResult {
   const ctx: Context = {
     nodes: [],
+    riveBakes: [],
     polylines: [],
     interactions: [],
     animations: [],
@@ -174,8 +187,8 @@ export function toPortableScene(
       ctx
     );
   }
-  const { nodes, polylines, interactions, animations, diagnostics } = ctx;
-  return { nodes, polylines, interactions, animations, diagnostics };
+  const { nodes, riveBakes, polylines, interactions, animations, diagnostics } = ctx;
+  return { nodes, riveBakes, polylines, interactions, animations, diagnostics };
 }
 
 function defaultResolveSource(source: unknown): string | undefined {
@@ -652,3 +665,68 @@ definePortable(ViroText, mapViro("text"));
 definePortable(ViroImage, mapViro("image"));
 definePortable(Viro3DObject, mapViro("model"));
 definePortable(ViroPolyline, mapPolyline);
+
+/**
+ * A Rive panel on Specs: a Frame (for grab and resize) filled by the baked
+ * Rive art, with no header of its own, since the Rive file draws it. The
+ * mapper records what to bake; `pnpm specs:scene` renders the clips and fills
+ * in the texture id, frame ranges and frame count. Without `specs`, the panel
+ * is left out.
+ */
+definePortable<RivePanelProps>(RivePanel, (props, place, ctx, element) => {
+  const id = nodeId(ctx, element, "rive-panel");
+  const specs = props.specs;
+  if (!specs) {
+    ctx.diagnostics.push("RivePanel " + id + " has no `specs` clips, so it is left out of the Specs scene.");
+    return;
+  }
+  const width = props.width ?? 1.2;
+  const height = props.height ?? 0.75;
+  ctx.nodes.push({
+    id,
+    kind: "panel",
+    position: (props.position as Vec3 | undefined) ?? place.origin,
+    sizeMeters: [width, height],
+    ...(place.parentId ? { parentId: place.parentId } : {}),
+  });
+  const [artW, artH] = specs.artboardSize;
+  const riveId = id + "-rive";
+  ctx.nodes.push({
+    id: riveId,
+    kind: "rive",
+    parentId: id,
+    source: "rive/" + riveId,
+    position: [0, 0, Z.image],
+    sizeMeters: [width, height],
+    clips: {},
+    clip: specs.play,
+    ...(specs.next ? { next: specs.next } : {}),
+    ...(specs.onSelect ? { onSelect: specs.onSelect } : {}),
+    ...(specs.buttons?.length
+      ? {
+          buttons: specs.buttons.map((b) => ({
+            id: b.id,
+            label: b.label,
+            rect: [b.rect[0] / artW, b.rect[1] / artH, b.rect[2] / artW, b.rect[3] / artH] as [number, number, number, number],
+            ...(b.play ? { play: b.play } : {}),
+          })),
+        }
+      : {}),
+  });
+  for (const b of specs.buttons ?? []) {
+    if (b.play && !specs.clips[b.play]) {
+      ctx.diagnostics.push("Rive button " + b.id + " plays " + b.play + ", which is not one of the panel's clips.");
+    }
+  }
+  ctx.riveBakes.push({
+    nodeId: riveId,
+    file: specs.file,
+    artboard: specs.artboard,
+    resolution: specs.resolution,
+    clips: Object.entries(specs.clips).map(([name, clip]) =>
+      typeof clip === "string"
+        ? { name, animation: clip, loop: false }
+        : { name, animation: clip.animation, loop: clip.loop ?? false }
+    ),
+  });
+});

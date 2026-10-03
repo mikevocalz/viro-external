@@ -25,7 +25,8 @@
     "specs:test-runner": "node --test scripts/go-clad.test.mjs scripts/render-plan.test.mjs scripts/ui-scene.test.mjs",
     "build": "tsc -p tsconfig.build.json",
     "prepack": "pnpm --filter @viro-external/xr-contract build && pnpm build && node -e \"require('./dist/index.js')\" && pnpm specs:validate-lens && pnpm specs:test-runner",
-    "specs:scene": "node scripts/compile-ui-scene.mjs"
+    "specs:scene": "node scripts/compile-ui-scene.mjs",
+    "specs:bake-rive": "node scripts/bake-rive.mjs"
   },
   "peerDependencies": {
     "@viro-external/xr-contract": ">=0.2.0-rc.1 <0.3.0"
@@ -35,8 +36,10 @@
     "@babel/plugin-transform-modules-commonjs": "7.29.7",
     "@babel/plugin-transform-react-jsx": "7.29.7",
     "@babel/preset-typescript": "7.29.7",
+    "@rive-app/webgl2": "2.43.1",
     "@viro-external/ui": "workspace:*",
     "@viro-external/xr-contract": "workspace:*",
+    "playwright-core": "1.63.0",
     "react": "19.3.0",
     "typescript": "7.0.2"
   },

@@ -14,6 +14,7 @@ import {
   PanelStack,
   PanelStat,
   PanelSurface,
+  RivePanel,
   SpatialPanel,
   VideoPlayerPanel,
 } from "@viro-external/ui";
@@ -56,7 +57,13 @@ export const animations = {
   },
 };
 
-export default function HarlemCourts(): React.ReactElement {
+/**
+ * `lessonRiv` is the bytes of assets/moyo_learning_question.riv, which the app
+ * loads (for example with expo-asset). The Specs build reads the file itself.
+ */
+export default function HarlemCourts({
+  lessonRiv = new ArrayBuffer(0),
+}: { lessonRiv?: ArrayBuffer } = {}): React.ReactElement {
   return (
     <ViroNode viroTag="platform-lab-root" position={[0, 0, -1.5]}>
       <ViroText
@@ -128,6 +135,34 @@ export default function HarlemCourts(): React.ReactElement {
         width={0.6}
         height={0.34}
         position={[-0.46, 0.02, 0]}
+      />
+
+      <RivePanel
+        tag="platform-lab-lesson"
+        width={0.56}
+        height={0.35}
+        position={[-0.46, 0.46, 0]}
+        rive={{ source: { rivBytes: lessonRiv, stateMachine: "QuestionFlow" } }}
+        specs={{
+          file: "assets/moyo_learning_question.riv",
+          artboardSize: [1280, 800],
+          clips: {
+            Loading: { animation: "EntranceLoading", loop: true },
+            Entering: "Entering",
+            Idle: "Idle",
+            Submitting: { animation: "Submitting", loop: true },
+            Correct: "FeedbackCorrect",
+          },
+          play: "Loading",
+          next: { Entering: "Idle", Correct: "Idle" },
+          // Pinch anywhere to start the lesson; then its own buttons drive it.
+          onSelect: { Loading: "Entering", Submitting: "Correct" },
+          buttons: [
+            { id: "board", label: "Board", rect: [288, 756, 108, 34], play: "Loading" },
+            { id: "retry", label: "Retry", rect: [408, 756, 108, 34], play: "Entering" },
+            { id: "submit", label: "Submit", rect: [938, 756, 150, 34], play: "Submitting" },
+          ],
+        }}
       />
     </ViroNode>
   );

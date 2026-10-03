@@ -238,6 +238,49 @@ export interface PortableXRScrollNode extends PortableXRSizedNode {
  *
  * @see {@linkcode XRPlatformAdapter.updatePortableScene}
  */
+/** A frame range of a baked Rive animation. */
+export interface PortableXRRiveClip {
+  start: number;
+  end: number;
+  loop: boolean;
+}
+
+/**
+ * A Rive panel as a host that cannot run Rive plays it: baked clips of one
+ * animated texture, switched by a small state graph. Native Viro renders the
+ * Rive file itself and does not use this node.
+ */
+export interface PortableXRRiveNode extends PortableXRSizedNode {
+  kind: "rive";
+  /** Registry id of the baked animated texture. */
+  source: string;
+  clips: Record<string, PortableXRRiveClip>;
+  /** Clip that plays first. */
+  clip: string;
+  /** When a non-looping clip ends, the clip that follows it. */
+  next?: Record<string, string>;
+  /** On select (pinch or tap) while a clip plays, the clip to switch to. */
+  onSelect?: Record<string, string>;
+  /**
+   * Frames baked. A host that resamples the texture (Lens packs GIF frames
+   * into an atlas) scales clip ranges by its own frame count over this.
+   */
+  frames?: number;
+  /** The Rive file's own buttons, as press targets over the baked art. */
+  buttons?: PortableXRRiveButton[];
+}
+
+/** A button drawn in the Rive art, made pressable where the art is baked. */
+export interface PortableXRRiveButton {
+  id: string;
+  /** Spoken and shown label, so the target is named for assistive input. */
+  label: string;
+  /** Hit area as [x, y, width, height], 0-1 of the artboard, from its top-left. */
+  rect: [number, number, number, number];
+  /** Clip to play when pressed. */
+  play?: string;
+}
+
 export type PortableXRNode =
   | PortableXRGroupNode
   | PortableXRTextNode
@@ -246,7 +289,8 @@ export type PortableXRNode =
   | PortableXRVideoNode
   | PortableXRPanelNode
   | PortableXRSurfaceNode
-  | PortableXRScrollNode;
+  | PortableXRScrollNode
+  | PortableXRRiveNode;
 
 export type XRInteractionSource =
   | "gaze"

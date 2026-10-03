@@ -15,7 +15,8 @@ export type ViroSpecsNodeKind =
   | "panel"
   | "surface"
   | "scroll"
-  | "video";
+  | "video"
+  | "rive";
 
 /** Linear RGBA, each channel 0-1. */
 export type ViroSpecsColor = [number, number, number, number];
@@ -50,7 +51,27 @@ export type ViroSpecsSceneNode =
   | (ViroSpecsSizedNode & { kind: "video"; source: string; fit?: ViroSpecsSurfaceFit; controls?: boolean })
   | (ViroSpecsSizedNode & { kind: "panel"; tint?: ViroSpecsColor; cornerRadiusMeters?: number })
   | (ViroSpecsSizedNode & { kind: "surface"; tint?: ViroSpecsColor; cornerRadiusMeters?: number })
-  | (ViroSpecsSizedNode & { kind: "scroll"; contentHeightMeters?: number });
+  | (ViroSpecsSizedNode & { kind: "scroll"; contentHeightMeters?: number })
+  | (ViroSpecsSizedNode & { kind: "rive"; source: string } & ViroSpecsRiveState);
+
+/** Baked Rive clips (frame ranges of one animated texture) and their state graph. */
+export type ViroSpecsRiveState = {
+  clips: Record<string, { start: number; end: number; loop: boolean }>;
+  clip: string;
+  next?: Record<string, string>;
+  onSelect?: Record<string, string>;
+  /** Frames baked; clip ranges are scaled to the imported texture's count. */
+  frames?: number;
+  buttons?: ViroSpecsRiveButton[];
+};
+
+/** A button in the Rive art: hit area 0-1 of the artboard from its top-left. */
+export type ViroSpecsRiveButton = {
+  id: string;
+  label: string;
+  rect: [number, number, number, number];
+  play?: string;
+};
 
 export type ViroSpecsSceneSnapshot = {
   version: 1;
@@ -65,7 +86,8 @@ export type ViroSpecsRenderPrimitive =
   | "ui-frame"
   | "flat-surface"
   | "scroll-window"
-  | "video-surface";
+  | "video-surface"
+  | "rive-surface";
 
 export type ViroSpecsRenderDiagnostic = {
   level: "warning" | "error";
@@ -101,6 +123,7 @@ export type ViroSpecsRenderCommand =
       wrapWidthMeters?: number;
       contentHeightMeters?: number;
       controls?: boolean;
+      rive?: ViroSpecsRiveState;
     }
   | {
       op: "visibility";
@@ -260,7 +283,7 @@ export type ViroSpecsCapabilityReport = Record<
 >;
 
 /** Kinds whose variant declares `source` as required. */
-const SOURCE_REQUIRED: readonly string[] = ["model", "image", "video"];
+const SOURCE_REQUIRED: readonly string[] = ["model", "image", "video", "rive"];
 
 const PRIMITIVES: Record<ViroSpecsNodeKind, ViroSpecsRenderPrimitive> = {
   group: "scene-object",
@@ -271,6 +294,7 @@ const PRIMITIVES: Record<ViroSpecsNodeKind, ViroSpecsRenderPrimitive> = {
   surface: "flat-surface",
   scroll: "scroll-window",
   video: "video-surface",
+  rive: "rive-surface",
 };
 
 export function compileLensRenderPlan(
@@ -331,6 +355,17 @@ export function compileLensRenderPlan(
     const contentHeightMeters =
       "contentHeightMeters" in node ? node.contentHeightMeters : undefined;
     const controls = "controls" in node ? node.controls : undefined;
+    const rive: ViroSpecsRiveState | undefined =
+      node.kind === "rive"
+        ? {
+            clips: node.clips,
+            clip: node.clip,
+            next: node.next,
+            onSelect: node.onSelect,
+            frames: node.frames,
+            buttons: node.buttons,
+          }
+        : undefined;
     if (
       text !== undefined ||
       source !== undefined ||
@@ -348,6 +383,7 @@ export function compileLensRenderPlan(
         ...(wrapWidthMeters !== undefined ? { wrapWidthMeters } : {}),
         ...(contentHeightMeters !== undefined ? { contentHeightMeters } : {}),
         ...(controls ? { controls } : {}),
+        ...(rive ? { rive } : {}),
       });
     }
 
