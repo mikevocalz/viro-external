@@ -44,13 +44,13 @@ export type ViroSpecsSizedNode = ViroSpecsSceneNodeBase & {
 
 export type ViroSpecsSceneNode =
   | (ViroSpecsScaledNode & { kind: "group" })
-  | (ViroSpecsScaledNode & { kind: "text"; text: string })
+  | (ViroSpecsScaledNode & { kind: "text"; text: string; wrapWidthMeters?: number })
   | (ViroSpecsScaledNode & { kind: "model"; source: string })
   | (ViroSpecsSizedNode & { kind: "image"; source: string; fit?: ViroSpecsSurfaceFit })
   | (ViroSpecsSizedNode & { kind: "video"; source: string; fit?: ViroSpecsSurfaceFit })
   | (ViroSpecsSizedNode & { kind: "panel"; tint?: ViroSpecsColor; cornerRadiusMeters?: number })
   | (ViroSpecsSizedNode & { kind: "surface"; tint?: ViroSpecsColor; cornerRadiusMeters?: number })
-  | (ViroSpecsSizedNode & { kind: "scroll" });
+  | (ViroSpecsSizedNode & { kind: "scroll"; contentHeightMeters?: number });
 
 export type ViroSpecsSceneSnapshot = {
   version: 1;
@@ -98,6 +98,8 @@ export type ViroSpecsRenderCommand =
       fit?: ViroSpecsSurfaceFit;
       tint?: ViroSpecsColor;
       cornerRadiusMeters?: number;
+      wrapWidthMeters?: number;
+      contentHeightMeters?: number;
     }
   | {
       op: "visibility";
@@ -323,7 +325,16 @@ export function compileLensRenderPlan(
     const tint = "tint" in node ? node.tint : undefined;
     const cornerRadiusMeters =
       "cornerRadiusMeters" in node ? node.cornerRadiusMeters : undefined;
-    if (text !== undefined || source !== undefined || tint !== undefined) {
+    const wrapWidthMeters =
+      "wrapWidthMeters" in node ? node.wrapWidthMeters : undefined;
+    const contentHeightMeters =
+      "contentHeightMeters" in node ? node.contentHeightMeters : undefined;
+    if (
+      text !== undefined ||
+      source !== undefined ||
+      tint !== undefined ||
+      contentHeightMeters !== undefined
+    ) {
       commands.push({
         op: "content",
         id: node.id,
@@ -332,6 +343,8 @@ export function compileLensRenderPlan(
         ...(fit !== undefined ? { fit } : {}),
         ...(tint !== undefined ? { tint } : {}),
         ...(cornerRadiusMeters !== undefined ? { cornerRadiusMeters } : {}),
+        ...(wrapWidthMeters !== undefined ? { wrapWidthMeters } : {}),
+        ...(contentHeightMeters !== undefined ? { contentHeightMeters } : {}),
       });
     }
 

@@ -47,6 +47,8 @@ export type SpecsRenderCommand =
       fit?: PortableXRSurfaceFit;
       tint?: PortableXRColor;
       cornerRadiusMeters?: number;
+      wrapWidthMeters?: number;
+      contentHeightMeters?: number;
     }
   | {
       op: "visibility";
@@ -180,7 +182,16 @@ export function compileSpecsRenderPlan(
     const tint = "tint" in node ? node.tint : undefined;
     const cornerRadiusMeters =
       "cornerRadiusMeters" in node ? node.cornerRadiusMeters : undefined;
-    if (text !== undefined || source !== undefined || tint !== undefined) {
+    const wrapWidthMeters =
+      "wrapWidthMeters" in node ? node.wrapWidthMeters : undefined;
+    const contentHeightMeters =
+      "contentHeightMeters" in node ? node.contentHeightMeters : undefined;
+    if (
+      text !== undefined ||
+      source !== undefined ||
+      tint !== undefined ||
+      contentHeightMeters !== undefined
+    ) {
       commands.push({
         op: "content",
         id: node.id,
@@ -189,6 +200,8 @@ export function compileSpecsRenderPlan(
         ...(fit !== undefined ? { fit } : {}),
         ...(tint !== undefined ? { tint } : {}),
         ...(cornerRadiusMeters !== undefined ? { cornerRadiusMeters } : {}),
+        ...(wrapWidthMeters !== undefined ? { wrapWidthMeters } : {}),
+        ...(contentHeightMeters !== undefined ? { contentHeightMeters } : {}),
       });
     }
 

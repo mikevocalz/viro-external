@@ -18,9 +18,10 @@ type NodeRecord = {
   image?: Image;
   instantiatedModel?: SceneObject;
   scroll?: ScrollWindow;
-  screenTransform?: ScreenTransform;
+  scrollBar?: { track: RoundedRectangle; knob: RoundedRectangle };
   /** True when this node sits inside a scroll or panel, i.e. a UI layout context. */
-  inUiContext?: boolean;
+  /** Scroll content height in cm, once a content command has set it. */
+  scrollContentHeight?: number;
   frame?: Frame;
   surface?: RoundedRectangle;
   video?: Image;
@@ -129,10 +130,11 @@ export class ViroSpecsSceneRuntime {
     object.setParent(parent);
 
     const record: NodeRecord = { object, primitive };
-    // Only ScrollWindow content is laid out by ScreenTransform. A Frame's
-    // children stay plain 3D objects under the Frame's SceneObject, so its
-    // InteractableManipulation carries them when the panel is grabbed.
-    record.inUiContext = parentRecord?.primitive === "scroll-window";
+    // Panel and scroll children stay plain 3D objects. A ScrollWindow scrolls
+    // and masks whatever sits under its internal scroller, and `addObject` is
+    // the public way in once it is initialized (as in specs-devs/samples Agent
+    // Manager ChatMessageList).
+    if (parentRecord?.scroll) parentRecord.scroll.addObject(object);
 
     switch (primitive) {
       case "text":
@@ -260,15 +262,6 @@ export class ViroSpecsSceneRuntime {
       );
     }
 
-    // A ScreenTransform owns its object's layout, so setLocalPosition above is
-    // ignored for these and every sibling collapses onto the parent's centre.
-    // Place them through the same offsets rect that sizes them.
-    if (command.position && record.screenTransform) {
-      record.screenTransform.offsets.setCenter(
-        new vec2(command.position[0] * 100, command.position[1] * 100)
-      );
-    }
-
     if (command.scale) {
       transform.setLocalScale(
         new vec3(
@@ -310,67 +303,140 @@ export class ViroSpecsSceneRuntime {
       // are private in the installed SpectaclesUIKit 0.18.0 — it exposes the
       // windowSize/scrollDimensions setters instead.
       record.scroll.windowSize = new vec2(width, height);
-      // Scrolling is only reachable when the content exceeds the viewport.
-      record.scroll.scrollDimensions = new vec2(width, height * 4);
+      this.applyScrollContent(record);
       return;
     }
 
     // RoundedRectangle is measured in cm by its own `size`; scaling its object
     // like the Image quad below would multiply its default size instead.
-    if (record.surface && !record.inUiContext) {
+    if (record.surface) {
       record.surface.size = new vec2(width, height);
       return;
     }
 
-    // A ScreenTransform owns its object's transform, so InteractableManipulation
-    // cannot move it — a drag is overwritten by the next layout pass. Only use
-    // one inside a scroll or panel, where layout is the point. A free-standing
-    // surface is sized by scaling the Image component's own 1 cm quad (measured in
-    // Preview: scale 0.45 drew a 0.45 cm thumbnail), so
-    // it stays a normal draggable 3D object.
-    if (!record.inUiContext) {
-      record.object
-        .getTransform()
-        .setLocalScale(new vec3(width, height, 1));
+    // Images and video are sized by scaling the Image component's own 1 cm
+    // quad (measured in Preview: scale 0.45 drew a 0.45 cm thumbnail), so they
+    // stay plain 3D objects that a Frame grab or a ScrollWindow can move.
+    record.object
+      .getTransform()
+      .setLocalScale(new vec3(width, height, 1));
 
-      // An Image reports no mesh bounds, so a fitVisual collider comes out
-      // degenerate and no ray ever hits it. Give the surface a box matching the
-      // quad it draws, in local units, so it can be hovered and grabbed.
-      const existingCollider = record.object.getComponent(
+    // An Image reports no mesh bounds, so a fitVisual collider comes out
+    // degenerate and no ray ever hits it. Give the surface a box matching the
+    // quad it draws, in local units, so it can be hovered and grabbed.
+    const existingCollider = record.object.getComponent(
+      "ColliderComponent"
+    ) as ColliderComponent | null;
+    const collider =
+      existingCollider ??
+      (record.object.createComponent(
         "ColliderComponent"
-      ) as ColliderComponent | null;
-      const collider =
-        existingCollider ??
-        (record.object.createComponent(
-          "ColliderComponent"
-        ) as ColliderComponent);
-      const shape = Shape.createBoxShape();
-      shape.size = new vec3(1, 1, 1);
-      collider.shape = shape;
-      collider.fitVisual = false;
-      return;
+      ) as ColliderComponent);
+    const shape = Shape.createBoxShape();
+    shape.size = new vec3(1, 1, 1);
+    collider.shape = shape;
+    collider.fitVisual = false;
+  }
+
+  /**
+   * Content taller than the window scrolls. ScrollWindow centres content on
+   * its scroller, so the region opens at its top edge, -content/2 + window/2.
+   */
+  private applyScrollContent(record: NodeRecord): void {
+    const scroll = record.scroll;
+    if (!scroll) return;
+    const window = scroll.windowSize;
+    const content = Math.max(record.scrollContentHeight ?? window.y, window.y);
+    scroll.scrollDimensions = new vec2(window.x, content);
+    scroll.scrollPosition = new vec2(0, -content / 2 + window.y / 2);
+    this.updateScrollBar(record);
+  }
+
+  /**
+   * A side scrollbar: track and knob drawn inside the window's right edge, so
+   * the ScrollWindow mask keeps them in bounds. Built from RoundedRectangles
+   * the way specs-devs/samples Agent Manager `createVerticalScrollBar` does,
+   * because the installed UI Kit 0.18.0 ScrollBar can only be wired in the
+   * editor.
+   * ponytail: indicator only. Scrolling is by dragging the window; add a
+   * draggable knob if long lists need a fast jump.
+   */
+  private updateScrollBar(record: NodeRecord): void {
+    const scroll = record.scroll;
+    if (!scroll) return;
+    const window = scroll.windowSize;
+    const content = scroll.scrollDimensions.y;
+    const thickness = 0.8;
+
+    if (!record.scrollBar) {
+      const make = (name: string, color: vec4, order: number) => {
+        const object = global.scene.createSceneObject(name);
+        object.setParent(record.object);
+        object.layer = record.object.layer;
+        const bar = object.createComponent(
+          RoundedRectangle.getTypeName()
+        ) as RoundedRectangle;
+        bar.initialize();
+        bar.backgroundColor = color;
+        bar.setBackgroundGradient({
+          enabled: true,
+          type: "Linear",
+          start: new vec2(0, 1),
+          end: new vec2(0, -1),
+          stop0: { enabled: true, percent: 0, color },
+          stop1: { enabled: true, percent: 1, color },
+        });
+        bar.renderMeshVisual.setRenderOrder(order);
+        // Without this the track's 12% alpha draws opaque and hides the knob.
+        bar.renderMeshVisual.mainPass.blendMode = BlendMode.PremultipliedAlphaAuto;
+        bar.renderMeshVisual.mainPass.colorMask = new vec4b(true, true, true, true);
+        return bar;
+      };
+      record.scrollBar = {
+        track: make("viro:scroll-track", new vec4(1, 1, 1, 0.12), SURFACE_RENDER_ORDER),
+        knob: make("viro:scroll-knob", new vec4(1, 1, 1, 0.7), CONTENT_RENDER_ORDER),
+      };
+      scroll.onScrollPositionUpdated.add(() => this.updateScrollBar(record));
     }
 
-    const existing = record.object.getComponent(
-      "Component.ScreenTransform"
-    ) as ScreenTransform | null;
-    const screenTransform =
-      existing ??
-      (record.object.createComponent(
-        "Component.ScreenTransform"
-      ) as ScreenTransform);
+    const { track, knob } = record.scrollBar;
+    const visible = content > window.y + 0.01;
+    track.sceneObject.enabled = visible;
+    knob.sceneObject.enabled = visible;
+    if (!visible) return;
 
-    // Zero anchors collapse the element to its parent's centre, so the offsets
-    // alone give an absolute size. Anchoring to the full parent rect (-1..1)
-    // would make offsets additive and the surface would inherit parent size.
-    screenTransform.anchors.left = 0;
-    screenTransform.anchors.right = 0;
-    screenTransform.anchors.bottom = 0;
-    screenTransform.anchors.top = 0;
-    // setSize keeps the current centre, so a later position command can move it
-    // without the size resetting it back to the parent's middle.
-    screenTransform.offsets.setSize(new vec2(width, height));
-    record.screenTransform = screenTransform;
+    const x = window.x / 2 - thickness * 1.5;
+    const trackHeight = window.y - 2;
+    track.size = new vec2(thickness, trackHeight);
+    track.cornerRadius = thickness / 2;
+    track.sceneObject.getTransform().setLocalPosition(new vec3(x, 0, 1));
+
+    const knobHeight = Math.max(3, (trackHeight * window.y) / content);
+    const topEdge = -content / 2 + window.y / 2;
+    const travel = content - window.y;
+    const t = Math.min(1, Math.max(0, (scroll.scrollPosition.y - topEdge) / travel));
+    knob.size = new vec2(thickness, knobHeight);
+    knob.cornerRadius = thickness / 2;
+    knob.sceneObject
+      .getTransform()
+      .setLocalPosition(
+        new vec3(x, trackHeight / 2 - knobHeight / 2 - t * (trackHeight - knobHeight), 1.2)
+      );
+  }
+
+  /**
+   * A paragraph: left-aligned, wrapped to a width, growing down from the
+   * node's position. layoutRect is in the text object's local units, so the
+   * width is divided by the scale the transform command already applied.
+   */
+  private applyTextWrap(text: Text, wrapWidthMeters: number): void {
+    const scale = text.getSceneObject().getTransform().getLocalScale().x || 1;
+    const width = (wrapWidthMeters * 100) / scale;
+    text.horizontalOverflow = HorizontalOverflow.Wrap;
+    text.verticalOverflow = VerticalOverflow.Overflow;
+    text.horizontalAlignment = HorizontalAlignment.Left;
+    text.verticalAlignment = VerticalAlignment.Top;
+    text.layoutRect = Rect.create(0, width, -1, 0);
   }
 
   private applyContent(
@@ -385,6 +451,15 @@ export class ViroSpecsSceneRuntime {
         );
       }
       record.text.text = command.text;
+      if (command.wrapWidthMeters !== undefined) {
+        this.applyTextWrap(record.text, command.wrapWidthMeters);
+      }
+    }
+
+    if (record.scroll && command.contentHeightMeters !== undefined) {
+      record.scrollContentHeight = command.contentHeightMeters * 100;
+      this.applyScrollContent(record);
+      return;
     }
 
     if (record.surface) {

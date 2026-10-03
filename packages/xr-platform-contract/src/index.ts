@@ -124,6 +124,11 @@ export interface PortableXRGroupNode extends PortableXRScaledNode {
 export interface PortableXRTextNode extends PortableXRScaledNode {
   kind: "text";
   text: string;
+  /**
+   * Wrap the text into a left-aligned block this wide, in meters, growing
+   * downward from `position`. Omit for a single centred line.
+   */
+  wrapWidthMeters?: number;
 }
 
 /** A 3D model resolved from the adapter's asset registry by {@linkcode PortableXRModelNode.source}. */
@@ -212,6 +217,12 @@ export interface PortableXRSurfaceNode extends PortableXRSizedNode {
 /** A clipped, scrollable region. Children scroll within {@linkcode PortableXRSizedNode.sizeMeters}. */
 export interface PortableXRScrollNode extends PortableXRSizedNode {
   kind: "scroll";
+  /**
+   * Height of the scrollable content in meters. Children are laid out from
+   * the content's centre, so its top edge is at `+contentHeightMeters / 2`.
+   * The region opens scrolled to the top. Omit when the content fits.
+   */
+  contentHeightMeters?: number;
 }
 
 /**
