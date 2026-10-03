@@ -202,7 +202,14 @@ export class ViroSpecsSceneRuntime {
       }
 
       case "scroll-window": {
-        const scroll = object.createComponent(
+        // The node's object is a holder that takes the transform. ScrollWindow
+        // lays itself out with anchors around its own origin, so it sits on a
+        // child at identity (as in specs-devs/samples ChatMessageList), and
+        // the scrollbar sits beside it in the same holder.
+        const windowObject = global.scene.createSceneObject("viro:scroll-window");
+        windowObject.setParent(object);
+        windowObject.layer = object.layer;
+        const scroll = windowObject.createComponent(
           ScrollWindow.getTypeName()
         ) as ScrollWindow;
         scroll.initialize();
@@ -248,15 +255,6 @@ export class ViroSpecsSceneRuntime {
         command.position[2] * 100
       );
       transform.setLocalPosition(position);
-      // ScrollWindow copies the transform into its own ScreenTransform once,
-      // in initialize(), which runs before this command. Without this the
-      // window stays at its parent's centre and overlaps the panel header.
-      if (record.scroll) {
-        const screen = record.object.getComponent(
-          "Component.ScreenTransform"
-        ) as ScreenTransform | null;
-        if (screen) screen.position = position;
-      }
     }
 
     if (command.rotation) {
@@ -372,8 +370,7 @@ export class ViroSpecsSceneRuntime {
   }
 
   /**
-   * A side scrollbar inside the window's right edge, so the ScrollWindow mask
-   * keeps it in bounds: a track, a knob you can pinch and drag up or down,
+   * A side scrollbar just outside the window's right edge: a track, a knob you can pinch and drag up or down,
    * and up/down buttons at the ends that page by one window. Built from
    * RoundedRectangles the way specs-devs/samples Agent Manager
    * `createVerticalScrollBar` does, because the installed UI Kit 0.18.0
@@ -392,7 +389,9 @@ export class ViroSpecsSceneRuntime {
     bar.root.enabled = visible;
     if (!visible) return;
 
-    const x = window.x / 2 - button / 2 - 0.4;
+    // Just outside the window, as the sample does (windowWidth / 2 + gap):
+    // inside it, ScrollWindow's own collider swallowed the pinch.
+    const x = window.x / 2 + button / 2 + 0.6;
     bar.root.getTransform().setLocalPosition(new vec3(x, 0, 1));
     const trackHeight = window.y - button * 2 - 1.6;
     bar.track.size = new vec2(thickness, trackHeight);
@@ -554,6 +553,10 @@ export class ViroSpecsSceneRuntime {
   }
 
   private createScrollBar(record: NodeRecord, scroll: ScrollWindow): ScrollBarParts {
+    // A sibling of the ScrollWindow, as in the sample: ScrollWindow toggles
+    // every collider in its own subtree and its Interactable takes the pinch,
+    // so a child bar was never hit and dragging it scrolled the content in
+    // touch direction instead.
     const root = global.scene.createSceneObject("viro:scroll-bar");
     root.setParent(record.object);
     root.layer = record.object.layer;
