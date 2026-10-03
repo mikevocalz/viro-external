@@ -68,6 +68,9 @@ export type WebSpatialMainScene = {
     min_height?: number;
     max_height?: number;
   };
+  world_scaling?: "automatic" | "dynamic";
+  world_alignment?: "adaptive" | "automatic" | "gravityAligned";
+  baseplate_visibility?: "automatic" | "visible" | "hidden";
 };
 
 /** Build the `xr_main_scene` portion of a Web App Manifest. */
@@ -77,10 +80,20 @@ export function createWebSpatialMainScene(
     type?: "window" | "volume";
     minScale?: number;
     maxScale?: number;
+    worldScaling?: "automatic" | "dynamic";
+    worldAlignment?: "adaptive" | "automatic" | "gravityAligned";
+    baseplateVisibility?: "automatic" | "visible" | "hidden";
   } = {}
 ): WebSpatialMainScene {
   const size = intent.preferredSize;
-  const scene: WebSpatialMainScene = { type: options.type ?? "window" };
+  const scene: WebSpatialMainScene = {
+    type: options.type ?? "window",
+    ...(options.worldScaling ? { world_scaling: options.worldScaling } : {}),
+    ...(options.worldAlignment ? { world_alignment: options.worldAlignment } : {}),
+    ...(options.baseplateVisibility
+      ? { baseplate_visibility: options.baseplateVisibility }
+      : {}),
+  };
 
   if (size) {
     scene.default_size = { width: size.width, height: size.height };
@@ -117,7 +130,11 @@ export class WebSpatialAdapter implements XRPlatformAdapter {
           : "unverified";
 
     return {
+      "responsive-web": "supported",
       "spatial-web": spatialState,
+      "spatial-layout": spatialState,
+      "spatial-volume": spatialState,
+      "spatial-fallback": "supported",
       "system-window": spatialState,
       display: "supported",
     };

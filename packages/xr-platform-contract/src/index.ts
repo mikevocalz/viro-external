@@ -1,6 +1,7 @@
 export type XRPlatformFamily =
   | "viro-openxr"
   | "viro-visionos"
+  | "web"
   | "viro-web"
   | "webspatial"
   | "meta-horizon-layout"
@@ -26,6 +27,10 @@ export type XRCapabilityName =
   | "spatial-volume"
   | "spatial-stage"
   | "spatial-web"
+  | "responsive-web"
+  | "pwa"
+  | "browser-3d"
+  | "webxr"
   | "eye-gaze"
   | "gaze-targeting"
   | "hand-tracking"
@@ -62,6 +67,8 @@ export type SpatialPresentation =
   | "spatial-volume"
   | "spatial-stage"
   | "spatial-web-element"
+  | "responsive-web"
+  | "webxr-immersive"
   | "immersive-scene"
   | "wearable-display";
 
