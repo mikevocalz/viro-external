@@ -1,5 +1,6 @@
 import React, { createContext, useContext } from "react";
-import { ViroNode, ViroQuad, ViroText } from "@reactvision/react-viro";
+import { ScaledViroText } from "./ScaledViroText";
+import { ViroNode, ViroQuad } from "@reactvision/react-viro";
 import {
   PANEL_GAP,
   PANEL_TYPE,
@@ -134,7 +135,7 @@ export const PanelLabel: Measurable<PanelLabelProps> = Object.assign(
     const w = width ?? body?.width ?? 0.8;
     const h = wrap ? paragraphHeight(text, w, variant) : PANEL_TYPE[variant].lineHeight;
     return (
-      <ViroText
+      <ScaledViroText
         text={text}
         width={w}
         height={h}

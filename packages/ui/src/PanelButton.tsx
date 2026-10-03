@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { ViroNode, ViroQuad, ViroText } from "@reactvision/react-viro";
+import { ScaledViroText } from "./ScaledViroText";
+import { ViroNode, ViroQuad } from "@reactvision/react-viro";
 import type { Vec3 } from "@viro-external/core";
 import { PremiumMaterials, registerPremiumMaterials } from "./materials";
 
@@ -42,7 +43,7 @@ export function PanelButton({
         onHover={(value: boolean) => setHovered(value)}
         onClick={disabled ? undefined : onPress}
       />
-      <ViroText
+      <ScaledViroText
         text={label}
         color="#F7F8FC"
         width={width * 0.9}

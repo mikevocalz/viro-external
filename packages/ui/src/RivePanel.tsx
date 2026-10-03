@@ -4,6 +4,7 @@ import {
   ViroNode,
   ViroQuad,
   ViroRivePanel,
+  ViroSpinner,
   type ViroRivePanelProps,
 } from "@reactvision/react-viro";
 import { MovableNode, type Vec3 } from "@viro-external/core";
@@ -176,6 +177,8 @@ function BakedRive({
   const [clip, setClip] = useState(baked.play);
   const [hovered, setHovered] = useState<string | null>(null);
   const [pressed, setPressed] = useState<string | null>(null);
+  // The host's own spinner covers loading; no Rive clip is baked for it.
+  const [loaded, setLoaded] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const current = baked.clips[clip];
 
@@ -211,9 +214,11 @@ function BakedRive({
           width={artWidth}
           height={artHeight}
           loop={current.loop}
+          onLoadEnd={() => setLoaded(true)}
           onClick={() => play(baked.onSelect[clip])}
         />
       ) : null}
+      {!loaded ? <ViroSpinner type="Light" position={[0, 0, 0.01]} scale={[0.1, 0.1, 0.1]} /> : null}
       {baked.buttons.map((button) => {
         const [x, y, w, h] = button.rect;
         const lit = pressed === button.id ? 0.28 : hovered === button.id ? 0.14 : 0;

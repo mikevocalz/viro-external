@@ -1,9 +1,9 @@
 import React from "react";
+import { ScaledViroText } from "./ScaledViroText";
 import {
   ViroImage,
   ViroNode,
-  ViroText,
-} from "@reactvision/react-viro";
+  } from "@reactvision/react-viro";
 import type { Vec3 } from "@viro-external/core";
 
 export type PanelTextProps = {
@@ -26,7 +26,7 @@ function PanelTextView({
   weight = "normal",
 }: PanelTextProps): React.ReactElement {
   return (
-    <ViroText
+    <ScaledViroText
       text={text}
       color={color}
       width={width}

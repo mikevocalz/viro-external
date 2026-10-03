@@ -1,5 +1,6 @@
 import React from "react";
-import { ViroNode, ViroQuad, ViroText } from "@reactvision/react-viro";
+import { ScaledViroText } from "./ScaledViroText";
+import { ViroNode, ViroQuad } from "@reactvision/react-viro";
 import type { Vec3 } from "@viro-external/core";
 import { PanelButton } from "./PanelButton";
 import { PremiumMaterials, registerPremiumMaterials } from "./materials";
@@ -45,7 +46,7 @@ export function PanelHeader({
       />
       <ViroNode position={[-width / 2 + 0.04, 0, 0.003]}>
         {title ? (
-          <ViroText
+          <ScaledViroText
             text={title}
             color="#F7F8FC"
             width={titleWidth}
@@ -59,7 +60,7 @@ export function PanelHeader({
           />
         ) : null}
         {subtitle ? (
-          <ViroText
+          <ScaledViroText
             text={subtitle}
             color="#B7BFCE"
             width={titleWidth}

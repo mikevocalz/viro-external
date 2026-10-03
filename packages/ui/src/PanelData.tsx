@@ -1,5 +1,6 @@
 import React from "react";
-import { ViroNode, ViroQuad, ViroText } from "@reactvision/react-viro";
+import { ScaledViroText } from "./ScaledViroText";
+import { ViroNode, ViroQuad } from "@reactvision/react-viro";
 import { PANEL_TYPE } from "./layout";
 import type { Measurable } from "./PanelLayout";
 import { PremiumMaterials, registerPremiumMaterials } from "./materials";
@@ -56,14 +57,14 @@ export const PanelBarChart: Measurable<PanelBarChartProps> = Object.assign(
                   : PremiumMaterials.button,
               ]}
             />
-            <ViroText
+            <ScaledViroText
               text={String(bar.value)}
               position={[bar.x, bar.valueY, 0.002]}
               width={0.1}
               height={0.03}
               style={{ fontSize: font, textAlign: "center" }}
             />
-            <ViroText
+            <ScaledViroText
               text={bar.label}
               position={[bar.x, bar.labelY, 0.002]}
               width={0.1}
@@ -92,14 +93,14 @@ export const PanelStat: Measurable<PanelStatProps> = Object.assign(
     return (
       <ViroNode>
         <ViroQuad width={width} height={height} materials={[PremiumMaterials.header]} />
-        <ViroText
+        <ScaledViroText
           text={value}
           position={[0, 0.014, 0.004]}
           width={width}
           height={0.05}
           style={{ fontSize: PANEL_TYPE.figure.fontSize, textAlign: "center" }}
         />
-        <ViroText
+        <ScaledViroText
           text={caption}
           position={[0, -0.03, 0.004]}
           width={width}

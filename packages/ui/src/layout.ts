@@ -104,7 +104,7 @@ export const PANEL_TYPE = {
   heading: { specsScale: 2.2, fontSize: 22, lineHeight: 0.035 },
   figure: { specsScale: 3, fontSize: 28, lineHeight: 0.04 },
   label: { specsScale: 1.7, fontSize: 18, lineHeight: 0.026 },
-  body: { specsScale: 1.5, fontSize: 16, lineHeight: 0.017 },
+  body: { specsScale: 1.5, fontSize: 14, lineHeight: 0.017 },
   caption: { specsScale: 1.4, fontSize: 14, lineHeight: 0.022 },
 } as const;
 
