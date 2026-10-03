@@ -21,6 +21,8 @@ import {
   PremiumMaterials,
   registerPremiumMaterials,
 } from "./materials";
+import { PANEL_HEADER_HEIGHT, panelBody, panelHasHeader } from "./layout";
+import { PanelBodyContext } from "./PanelLayout";
 
 export type SpatialPanelShape = "square" | "rounded" | "curved";
 export type SpatialPanelVariant = "solid" | "glass";
@@ -85,8 +87,11 @@ export function SpatialPanel({
 
   const [pinned, setPinned] = useState(defaultPinned);
   const [closed, setClosed] = useState(false);
-  const headerHeight = Math.max(0.1, height * 0.11);
-  const headerY = height / 2 + headerHeight / 2 + 0.015;
+  // Header sits inside the top edge, as on Specs (OBJECTIVE D2).
+  const headerHeight = PANEL_HEADER_HEIGHT;
+  const headerY = height / 2 - headerHeight / 2;
+  const hasHeader = panelHasHeader({ title, subtitle, headerActions, showPinAction, showCloseAction });
+  const body = panelBody(width, height, hasHeader);
 
   const rounded = useMemo(
     () =>
@@ -186,7 +191,9 @@ export function SpatialPanel({
 
         {children ? (
           <ViroNode position={[0, 0, 0.012]}>
-            {children}
+            <PanelBodyContext.Provider value={body}>
+              {children}
+            </PanelBodyContext.Provider>
           </ViroNode>
         ) : null}
 

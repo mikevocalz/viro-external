@@ -18,6 +18,8 @@ import {
 
 export type SpatialVideoPlayerPanelProps = {
   player: SpatialVideoPlayer;
+  /** Stable id for this panel in the Specs scene. */
+  tag?: string;
   title?: string;
   width?: number;
   height?: number;

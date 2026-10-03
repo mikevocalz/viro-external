@@ -22,15 +22,22 @@
     "specs:doctor": "node scripts/doctor-lens-project.mjs",
     "specs:bootstrap": "node scripts/bootstrap-platform-lab.mjs",
     "specs:go": "node scripts/go-clad.mjs",
-    "specs:test-runner": "node --test scripts/go-clad.test.mjs scripts/render-plan.test.mjs",
+    "specs:test-runner": "node --test scripts/go-clad.test.mjs scripts/render-plan.test.mjs scripts/ui-scene.test.mjs",
     "build": "tsc -p tsconfig.build.json",
-    "prepack": "pnpm --filter @viro-external/xr-contract build && pnpm build && node -e \"require('./dist/index.js')\" && pnpm specs:validate-lens && pnpm specs:test-runner"
+    "prepack": "pnpm --filter @viro-external/xr-contract build && pnpm build && node -e \"require('./dist/index.js')\" && pnpm specs:validate-lens && pnpm specs:test-runner",
+    "specs:scene": "node scripts/compile-ui-scene.mjs"
   },
   "peerDependencies": {
     "@viro-external/xr-contract": ">=0.2.0-rc.1 <0.3.0"
   },
   "devDependencies": {
+    "@babel/core": "7.29.7",
+    "@babel/plugin-transform-modules-commonjs": "7.29.7",
+    "@babel/plugin-transform-react-jsx": "7.29.7",
+    "@babel/preset-typescript": "7.29.7",
+    "@viro-external/ui": "workspace:*",
     "@viro-external/xr-contract": "workspace:*",
+    "react": "19.3.0",
     "typescript": "7.0.2"
   },
   "dependencies": {

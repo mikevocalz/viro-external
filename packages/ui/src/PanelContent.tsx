@@ -16,7 +16,7 @@ export type PanelTextProps = {
   weight?: "normal" | "400" | "500" | "600" | "700" | "bold";
 };
 
-export function PanelText({
+function PanelTextView({
   text,
   width,
   height,
@@ -48,7 +48,7 @@ export type PanelImageProps = {
   position?: Vec3;
 };
 
-export function PanelImage({
+function PanelImageView({
   source,
   width,
   height,
@@ -64,3 +64,13 @@ export function PanelImage({
     </ViroNode>
   );
 }
+
+/** Fixed-size text box; measurable so it can sit in a PanelStack or PanelRow. */
+export const PanelText = Object.assign(PanelTextView, {
+  measure: ({ width, height }: PanelTextProps) => ({ width, height }),
+});
+
+/** Fixed-size image; measurable so it can sit in a PanelStack or PanelRow. */
+export const PanelImage = Object.assign(PanelImageView, {
+  measure: ({ width, height }: PanelImageProps) => ({ width, height }),
+});

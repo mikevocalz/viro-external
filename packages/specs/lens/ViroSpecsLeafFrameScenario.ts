@@ -24,8 +24,7 @@ export class ViroSpecsLeafFrameScenario extends Scenario {
    */
   private async checkVideoPanel(): Promise<void> {
     const panel = findSceneObjectByName("viro:platform-lab-video-panel");
-    const video = findSceneObjectByName("viro-interactable:platform-lab-video")
-      ?? findSceneObjectByName("viro:platform-lab-video");
+    const video = findSceneObjectByName("viro:platform-lab-video-panel-video");
     expect(panel).toBeTruthy();
     expect(video).toBeTruthy();
     const frame = panel.getComponent(Frame.getTypeName()) as Frame;
@@ -105,7 +104,7 @@ export class ViroSpecsLeafFrameScenario extends Scenario {
     // Panel content has to ride along with a grab. Frame's Billboard turns the
     // panel while it moves, so compare the header in the panel's own space:
     // rigidly attached content keeps the same panel-local position.
-    const header = findSceneObjectByName("viro:platform-lab-header-title");
+    const header = findSceneObjectByName("viro:platform-lab-panel-title");
     expect(header).toBeTruthy();
     const local = () =>
       panel.getTransform().getInvertedWorldTransform()
