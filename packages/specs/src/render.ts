@@ -49,6 +49,7 @@ export type SpecsRenderCommand =
       cornerRadiusMeters?: number;
       wrapWidthMeters?: number;
       contentHeightMeters?: number;
+      controls?: boolean;
     }
   | {
       op: "visibility";
@@ -186,6 +187,7 @@ export function compileSpecsRenderPlan(
       "wrapWidthMeters" in node ? node.wrapWidthMeters : undefined;
     const contentHeightMeters =
       "contentHeightMeters" in node ? node.contentHeightMeters : undefined;
+    const controls = "controls" in node ? node.controls : undefined;
     if (
       text !== undefined ||
       source !== undefined ||
@@ -202,6 +204,7 @@ export function compileSpecsRenderPlan(
         ...(cornerRadiusMeters !== undefined ? { cornerRadiusMeters } : {}),
         ...(wrapWidthMeters !== undefined ? { wrapWidthMeters } : {}),
         ...(contentHeightMeters !== undefined ? { contentHeightMeters } : {}),
+        ...(controls ? { controls } : {}),
       });
     }
 

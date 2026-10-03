@@ -51,25 +51,28 @@ export class ViroSpecsLeafFrameScenario extends Scenario {
 
     const grab = findInteractableByName("viro-interactable:platform-lab-panel");
     expect(grab).toBeTruthy();
-    // Panel content has to ride along with a grab, not stay where it was laid out.
+    // Panel content has to ride along with a grab. Frame's Billboard turns the
+    // panel while it moves, so compare the header in the panel's own space:
+    // rigidly attached content keeps the same panel-local position.
     const header = findSceneObjectByName("viro:platform-lab-header-title");
     expect(header).toBeTruthy();
+    const local = () =>
+      panel.getTransform().getInvertedWorldTransform()
+        .multiplyPoint(header.getTransform().getWorldPosition());
     const before = panel.getTransform().getWorldPosition();
-    const headerBefore = header.getTransform().getWorldPosition();
+    const headerLocalBefore = local();
     // LEAF adds this vector on every drag-update frame, not once in total.
     await new DefaultLeafInteractor().drag(grab, new vec3(1, 0, 0), 400);
     await sleep(50);
-    const after = panel.getTransform().getWorldPosition();
-    const headerAfter = header.getTransform().getWorldPosition();
-    const moved = after.sub(before);
-    const headerMoved = headerAfter.sub(headerBefore);
+    const moved = panel.getTransform().getWorldPosition().sub(before);
+    const drift = local().distance(headerLocalBefore);
     print("VIRO_VALIDATION frame:grab measured " + JSON.stringify({
       panelMovedCm: [moved.x, moved.y, moved.z],
-      headerMovedCm: [headerMoved.x, headerMoved.y, headerMoved.z],
+      headerDriftInPanelCm: drift,
     }));
     expect(moved.x).toBeGreaterThan(3);
     expect(Math.abs(moved.y)).toBeLessThan(2);
-    expect(headerMoved.distance(moved)).toBeLessThan(0.5);
+    expect(drift).toBeLessThan(0.1);
     print("VIRO_VALIDATION frame:grab PASS content follows panel");
 
     print("VIRO_VALIDATION frame:resize SKIP device-only (LEAF drag targets the centre; Frame scales from corner margins)");

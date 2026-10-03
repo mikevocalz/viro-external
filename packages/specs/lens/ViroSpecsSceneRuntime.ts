@@ -30,6 +30,7 @@ type NodeRecord = {
   instantiatedModel?: SceneObject;
   scroll?: ScrollWindow;
   scrollBar?: ScrollBarParts;
+  videoControls?: SceneObject;
   /** True when this node sits inside a scroll or panel, i.e. a UI layout context. */
   /** Scroll content height in cm, once a content command has set it. */
   scrollContentHeight?: number;
@@ -414,6 +415,144 @@ export class ViroSpecsSceneRuntime {
       );
   }
 
+  /**
+   * A control bar under a video: play/pause, a seek track you can pinch or
+   * drag, a progress fill with a knob, and elapsed / total time.
+   *
+   * It is a child of the video so a grab carries it. The video object is
+   * scaled to its size in cm (the Image quad is 1 cm), so the bar's root
+   * undoes that scale and everything inside is laid out in cm.
+   */
+  private createVideoControls(record: NodeRecord): void {
+    const texture = record.video?.mainPass.baseTex;
+    const control = texture?.control as VideoTextureProvider | undefined;
+    if (!control || record.videoControls) return;
+
+    const size = record.object.getTransform().getLocalScale();
+    const width = size.x;
+    const barHeight = 5;
+    const gap = 1;
+    const root = global.scene.createSceneObject("viro:video-controls");
+    root.setParent(record.object);
+    root.layer = record.object.layer;
+    root.getTransform().setLocalScale(new vec3(1 / size.x, 1 / size.y, 1));
+    // Local y of the quad's bottom edge is -0.5, which is -height/2 in cm.
+    root.getTransform().setLocalPosition(
+      new vec3(0, -0.5 - (gap + barHeight / 2) / size.y, 0.01)
+    );
+    record.videoControls = root;
+
+    const rect = (name: string, w: number, h: number, color: vec4, order: number, x = 0, z = 0) => {
+      const object = global.scene.createSceneObject(name);
+      object.setParent(root);
+      object.layer = root.layer;
+      object.getTransform().setLocalPosition(new vec3(x, 0, z));
+      const r = object.createComponent(RoundedRectangle.getTypeName()) as RoundedRectangle;
+      r.initialize();
+      r.size = new vec2(w, h);
+      r.cornerRadius = h / 2;
+      r.backgroundColor = color;
+      r.setBackgroundGradient({
+        enabled: true, type: "Linear", start: new vec2(0, 1), end: new vec2(0, -1),
+        stop0: { enabled: true, percent: 0, color }, stop1: { enabled: true, percent: 1, color },
+      });
+      r.renderMeshVisual.setRenderOrder(order);
+      r.renderMeshVisual.mainPass.blendMode = BlendMode.PremultipliedAlphaAuto;
+      return r;
+    };
+    const label = (name: string, parent: SceneObject, value: string, size: number, x = 0) => {
+      const object = global.scene.createSceneObject(name);
+      object.setParent(parent);
+      object.layer = parent.layer;
+      object.getTransform().setLocalPosition(new vec3(x, 0, 0.2));
+      const text = object.createComponent("Component.Text") as Text;
+      if (this.assets.defaultFont) text.font = this.assets.defaultFont;
+      text.text = value;
+      text.size = size;
+      text.horizontalAlignment = HorizontalAlignment.Center;
+      text.verticalAlignment = VerticalAlignment.Center;
+      text.setRenderOrder(CONTENT_RENDER_ORDER + 1);
+      return text;
+    };
+    const hitBox = (object: SceneObject, w: number, h: number) => {
+      const box = Shape.createBoxShape();
+      box.size = new vec3(w, h, 1);
+      const collider = object.createComponent("ColliderComponent") as ColliderComponent;
+      collider.fitVisual = false;
+      collider.shape = box;
+      return object.createComponent(Interactable.getTypeName()) as Interactable;
+    };
+
+    rect("viro:video-bar", width, barHeight, new vec4(0.06, 0.07, 0.09, 0.85), SURFACE_RENDER_ORDER);
+
+    // Play / pause.
+    const buttonX = -width / 2 + barHeight / 2 + 0.5;
+    const button = rect("viro:video-play", 3.6, 3.6, new vec4(1, 1, 1, 0.16), CONTENT_RENDER_ORDER, buttonX, 0.1);
+    const glyph = label("viro:video-play-label", button.sceneObject, "❚❚", 44);
+    const playing = () => control.status === VideoStatus.Playing;
+    hitBox(button.sceneObject, 3.6, 3.6).onTriggerEnd.add(() => {
+      if (playing()) control.pause();
+      else if (control.status === VideoStatus.Paused) control.resume();
+      else control.play(-1);
+    });
+
+    // Time readout on the right; the seek track fills the space between.
+    const timeWidth = 11;
+    const timeX = width / 2 - timeWidth / 2 - 0.5;
+    const time = label("viro:video-time", root, "0:00 / 0:00", 34, timeX);
+    const trackLeft = buttonX + 3.6 / 2 + 1.5;
+    const trackRight = timeX - timeWidth / 2 - 1;
+    const trackWidth = Math.max(4, trackRight - trackLeft);
+    const trackX = trackLeft + trackWidth / 2;
+    const track = rect("viro:video-track", trackWidth, 0.6, new vec4(1, 1, 1, 0.22), CONTENT_RENDER_ORDER, trackX, 0.1);
+    const fill = rect("viro:video-progress", 0.6, 0.6, new vec4(0.36, 0.62, 0.98, 1), CONTENT_RENDER_ORDER + 1, trackLeft, 0.15);
+    const knob = rect("viro:video-knob", 1.6, 1.6, new vec4(1, 1, 1, 1), CONTENT_RENDER_ORDER + 2, trackLeft, 0.2);
+
+    // Seek: pinch anywhere on the track, or drag along it.
+    const seekHit = global.scene.createSceneObject("viro:video-seek");
+    seekHit.setParent(root);
+    seekHit.layer = root.layer;
+    seekHit.getTransform().setLocalPosition(new vec3(trackX, 0, 0.3));
+    const seek = hitBox(seekHit, trackWidth, barHeight);
+    seek.enableInstantDrag = true;
+    let scrubbing = false;
+    const seekTo = (point: vec3 | null | undefined) => {
+      if (!point) return;
+      const local = root.getTransform().getInvertedWorldTransform().multiplyPoint(point);
+      const t = Math.min(1, Math.max(0, (local.x - trackLeft) / trackWidth));
+      if (control.totalDuration > 0) control.seek(t * control.totalDuration);
+    };
+    seek.onTriggerStart.add((event) => {
+      scrubbing = true;
+      seekTo(event.interactor.planecastPoint);
+    });
+    seek.onDragUpdate.add((event) => seekTo(event.interactor.planecastPoint));
+    const endScrub = () => { scrubbing = false; };
+    seek.onTriggerEnd.add(endScrub);
+    seek.onTriggerCanceled.add(endScrub);
+
+    const clock = (seconds: number) => {
+      const whole = Math.max(0, Math.floor(seconds));
+      return Math.floor(whole / 60) + ":" + String(whole % 60).padStart(2, "0");
+    };
+    const driver = root.createComponent("Component.ScriptComponent") as ScriptComponent;
+    driver.createEvent("UpdateEvent").bind(() => {
+      if (isNull(root)) return;
+      const total = control.totalDuration;
+      const t = total > 0 ? Math.min(1, control.currentTime / total) : 0;
+      const filled = Math.max(0.6, t * trackWidth);
+      fill.size = new vec2(filled, 0.6);
+      fill.sceneObject.getTransform().setLocalPosition(new vec3(trackLeft + filled / 2, 0, 0.15));
+      knob.sceneObject.getTransform().setLocalPosition(
+        new vec3(trackLeft + t * trackWidth, 0, 0.2)
+      );
+      knob.size = scrubbing ? new vec2(2.2, 2.2) : new vec2(1.6, 1.6);
+      knob.cornerRadius = knob.size.x / 2;
+      glyph.text = playing() ? "❚❚" : "▶";
+      time.text = clock(control.currentTime) + " / " + clock(total);
+    });
+  }
+
   private createScrollBar(record: NodeRecord, scroll: ScrollWindow): ScrollBarParts {
     const root = global.scene.createSceneObject("viro:scroll-bar");
     root.setParent(record.object);
@@ -596,6 +735,7 @@ export class ViroSpecsSceneRuntime {
     if (record.primitive === "video-surface") {
       this.applyVideoSource(record, command.source, command.id);
       this.applyFit(record.video, command.fit);
+      if (command.controls) this.createVideoControls(record);
       return;
     }
 

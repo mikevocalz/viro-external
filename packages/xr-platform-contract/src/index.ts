@@ -162,6 +162,11 @@ export interface PortableXRImageNode extends PortableXRSizedNode {
    * @default "cover"
    */
   fit?: PortableXRSurfaceFit;
+  /**
+   * Show the host's playback controls (play/pause, seek, time) under the
+   * video. Playback still starts and loops on its own.
+   */
+  controls?: boolean;
 }
 
 /** A video surface. Playback starts when the node is created and loops. */

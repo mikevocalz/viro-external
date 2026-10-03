@@ -47,7 +47,7 @@ export type ViroSpecsSceneNode =
   | (ViroSpecsScaledNode & { kind: "text"; text: string; wrapWidthMeters?: number })
   | (ViroSpecsScaledNode & { kind: "model"; source: string })
   | (ViroSpecsSizedNode & { kind: "image"; source: string; fit?: ViroSpecsSurfaceFit })
-  | (ViroSpecsSizedNode & { kind: "video"; source: string; fit?: ViroSpecsSurfaceFit })
+  | (ViroSpecsSizedNode & { kind: "video"; source: string; fit?: ViroSpecsSurfaceFit; controls?: boolean })
   | (ViroSpecsSizedNode & { kind: "panel"; tint?: ViroSpecsColor; cornerRadiusMeters?: number })
   | (ViroSpecsSizedNode & { kind: "surface"; tint?: ViroSpecsColor; cornerRadiusMeters?: number })
   | (ViroSpecsSizedNode & { kind: "scroll"; contentHeightMeters?: number });
@@ -100,6 +100,7 @@ export type ViroSpecsRenderCommand =
       cornerRadiusMeters?: number;
       wrapWidthMeters?: number;
       contentHeightMeters?: number;
+      controls?: boolean;
     }
   | {
       op: "visibility";
@@ -329,6 +330,7 @@ export function compileLensRenderPlan(
       "wrapWidthMeters" in node ? node.wrapWidthMeters : undefined;
     const contentHeightMeters =
       "contentHeightMeters" in node ? node.contentHeightMeters : undefined;
+    const controls = "controls" in node ? node.controls : undefined;
     if (
       text !== undefined ||
       source !== undefined ||
@@ -345,6 +347,7 @@ export function compileLensRenderPlan(
         ...(cornerRadiusMeters !== undefined ? { cornerRadiusMeters } : {}),
         ...(wrapWidthMeters !== undefined ? { wrapWidthMeters } : {}),
         ...(contentHeightMeters !== undefined ? { contentHeightMeters } : {}),
+        ...(controls ? { controls } : {}),
       });
     }
 
