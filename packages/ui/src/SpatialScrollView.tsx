@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Platform } from "react-native";
 import { ViroNode, ViroQuad } from "@reactvision/react-viro";
 import type { Vec3 } from "@viro-external/core";
 import { PanelButton } from "./PanelButton";
@@ -31,17 +32,40 @@ export function SpatialScrollView({
   const visibleCount = Math.max(1, Math.floor(height / itemHeight));
   const maxStart = Math.max(0, items.length - visibleCount);
   const [start, setStart] = useState(0);
+  // Mirrors `start` synchronously. Wheel events arrive from a native DOM
+  // listener, so React may not re-render between two events of one fast
+  // spin; reading `start` from the render closure would drop steps.
+  const startRef = useRef(0);
+  const webScrollAccumulator = useRef(0);
 
   useEffect(() => {
     if (start <= maxStart) return;
+    startRef.current = maxStart;
     setStart(maxStart);
     onIndexChange?.(maxStart);
   }, [maxStart, onIndexChange, start]);
 
   const commit = (next: number) => {
     const value = Math.max(0, Math.min(maxStart, next));
+    if (value === startRef.current) return;
+    startRef.current = value;
     setStart(value);
     onIndexChange?.(value);
+  };
+
+  const handleWebScroll = (scrollPos: Vec3) => {
+    if (Platform.OS !== "web" || maxStart === 0) return;
+
+    // Trackpads emit many small deltas; mouse wheels emit fewer large ones.
+    // Accumulate both into deterministic item steps so a single gesture does
+    // not skip an unpredictable number of spatial rows.
+    webScrollAccumulator.current += scrollPos[1];
+    const threshold = 24;
+    if (Math.abs(webScrollAccumulator.current) < threshold) return;
+
+    const direction = webScrollAccumulator.current > 0 ? 1 : -1;
+    webScrollAccumulator.current = 0;
+    commit(startRef.current + direction * step);
   };
 
   const visible = items.slice(start, start + visibleCount);
@@ -56,7 +80,10 @@ export function SpatialScrollView({
   const thumbY = trackHeight / 2 - thumbHeight / 2 - progress * travel;
 
   return (
-    <ViroNode position={position}>
+    <ViroNode
+      position={position}
+      onScroll={Platform.OS === "web" ? handleWebScroll : undefined}
+    >
       {visible.map((child, index) => {
         const y =
           height / 2 -
@@ -75,7 +102,7 @@ export function SpatialScrollView({
         height={buttonSize}
         position={[railX, height / 2 - buttonSize / 2, 0.006]}
         disabled={start === 0}
-        onPress={() => commit(start - step)}
+        onPress={() => commit(startRef.current - step)}
       />
       <PanelButton
         label="▼"
@@ -83,7 +110,7 @@ export function SpatialScrollView({
         height={buttonSize}
         position={[railX, -height / 2 + buttonSize / 2, 0.006]}
         disabled={start >= maxStart}
-        onPress={() => commit(start + step)}
+        onPress={() => commit(startRef.current + step)}
       />
 
       {showRail ? (
