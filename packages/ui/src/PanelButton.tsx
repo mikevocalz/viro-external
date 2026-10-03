@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { ScaledViroText } from "./ScaledViroText";
 import { ViroNode, ViroQuad } from "@reactvision/react-viro";
 import type { Vec3 } from "@viro-external/core";
-import { PremiumMaterials, registerPremiumMaterials } from "./materials";
+import { PremiumMaterials, RenderOrder, registerPremiumMaterials } from "./materials";
 
 export type PanelButtonProps = {
   label: string;
@@ -40,6 +40,7 @@ export function PanelButton({
         width={width}
         height={height}
         materials={[material]}
+        renderingOrder={RenderOrder.backing}
         onHover={(value: boolean) => setHovered(value)}
         onClick={disabled ? undefined : onPress}
       />

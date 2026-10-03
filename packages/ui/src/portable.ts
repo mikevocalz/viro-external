@@ -17,6 +17,7 @@ import {
   rowLayout,
   stackLayout,
   type PanelTextVariant,
+  SCROLLBAR_STRIP,
 } from "./layout";
 import {
   measureElement,
@@ -332,7 +333,7 @@ definePortable<SpatialPanelProps>(SpatialPanel, (props, place, ctx, element) => 
   const children = elements(props.children);
   // A single PanelStack taller than the body scrolls; anything else is placed as is.
   const stack = children.length === 1 && children[0]!.type === PanelStack ? children[0]! : null;
-  const scrollbarStrip = 0.04;
+  const scrollbarStrip = SCROLLBAR_STRIP;
   const contentWidth = body.width - scrollbarStrip;
   const contentHeight = stack ? measureElement(stack, contentWidth).height : 0;
 

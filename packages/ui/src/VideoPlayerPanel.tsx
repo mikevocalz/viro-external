@@ -11,6 +11,7 @@ import {
 } from "@viro-external/media";
 import type { Vec3 } from "@viro-external/core";
 import { PanelButton } from "./PanelButton";
+import { PANEL_GAP, panelBody, rowLayout } from "./layout";
 import {
   SpatialPanel,
   type SpatialPanelShape,
@@ -53,9 +54,25 @@ export function SpatialVideoPlayerPanel({
   const basePresentation: VideoPresentation =
     presentation === "360" ? "flat" : presentation;
 
-  const videoWidth = width * 0.92;
-  const videoHeight = height * 0.65;
-  const controlsY = -height * 0.4;
+  // The video fills the body under the header and the controls sit along its
+  // bottom edge, all derived from the panel size so nothing leaves the panel.
+  const body = panelBody(width, height, true);
+  const controlsHeight = 0.06;
+  const videoWidth = body.width;
+  const videoHeight = Math.max(0.05, body.height - controlsHeight - PANEL_GAP);
+  const bodyTop = body.centerY + body.height / 2;
+  const videoY = bodyTop - videoHeight / 2;
+  const controlsY = body.centerY - body.height / 2 + controlsHeight / 2;
+  const controls = [
+    { label: snapshot.paused ? "Play" : "Pause", onPress: () => player.togglePlay() },
+    { label: snapshot.muted ? "Unmute" : "Mute", onPress: () => player.setMuted(!snapshot.muted) },
+    { label: "-10s", onPress: () => player.seekBy(-10) },
+    { label: "+10s", onPress: () => player.seekBy(10) },
+    { label: "Replay", onPress: () => player.replay() },
+  ];
+  const buttonGap = 0.012;
+  const buttonWidth = (body.width - buttonGap * (controls.length - 1)) / controls.length;
+  const buttonXs = rowLayout(controls.map(() => buttonWidth), body.width, buttonGap);
   const status = snapshot.status;
   const subtitle =
     status.duration > 0
@@ -99,42 +116,20 @@ export function SpatialVideoPlayerPanel({
         width={videoWidth}
         height={videoHeight}
         curvature={curvature}
-        position={[0, height * 0.08, 0.02]}
+        position={[0, videoY, 0.002]}
       />
 
-      <ViroNode position={[0, controlsY, 0.03]}>
-        <PanelButton
-          label={snapshot.paused ? "Play" : "Pause"}
-          width={0.22}
-          onPress={() => player.togglePlay()}
-          position={[-0.39, 0, 0]}
-        />
-        <PanelButton
-          label={snapshot.muted ? "Unmute" : "Mute"}
-          width={0.22}
-          onPress={() =>
-            player.setMuted(!snapshot.muted)
-          }
-          position={[-0.14, 0, 0]}
-        />
-        <PanelButton
-          label="-10s"
-          width={0.18}
-          onPress={() => player.seekBy(-10)}
-          position={[0.09, 0, 0]}
-        />
-        <PanelButton
-          label="+10s"
-          width={0.18}
-          onPress={() => player.seekBy(10)}
-          position={[0.3, 0, 0]}
-        />
-        <PanelButton
-          label="Replay"
-          width={0.2}
-          onPress={() => player.replay()}
-          position={[0.52, 0, 0]}
-        />
+      <ViroNode position={[0, controlsY, 0.004]}>
+        {controls.map((control, index) => (
+          <PanelButton
+            key={index}
+            label={control.label}
+            width={buttonWidth}
+            height={controlsHeight}
+            onPress={control.onPress}
+            position={[buttonXs[index] ?? 0, 0, 0]}
+          />
+        ))}
       </ViroNode>
     </SpatialPanel>
   );

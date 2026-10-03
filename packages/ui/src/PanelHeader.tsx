@@ -3,7 +3,7 @@ import { ScaledViroText } from "./ScaledViroText";
 import { ViroNode, ViroQuad } from "@reactvision/react-viro";
 import type { Vec3 } from "@viro-external/core";
 import { PanelButton } from "./PanelButton";
-import { PremiumMaterials, registerPremiumMaterials } from "./materials";
+import { PremiumMaterials, RenderOrder, registerPremiumMaterials } from "./materials";
 
 export type PanelHeaderAction = {
   id: string;
@@ -43,6 +43,7 @@ export function PanelHeader({
         width={width}
         height={height}
         materials={[PremiumMaterials.header]}
+        renderingOrder={RenderOrder.backing}
       />
       <ViroNode position={[-width / 2 + 0.04, 0, 0.003]}>
         {title ? (

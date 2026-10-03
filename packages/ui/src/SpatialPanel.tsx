@@ -19,6 +19,7 @@ import {
 } from "./PanelHeader";
 import {
   PremiumMaterials,
+  RenderOrder,
   registerPremiumMaterials,
 } from "./materials";
 import { PANEL_HEADER_HEIGHT, panelBody, panelHasHeader } from "./layout";
@@ -178,6 +179,7 @@ export function SpatialPanel({
             width={width}
             height={height}
             materials={[panelMaterial]}
+            renderingOrder={RenderOrder.panel}
           />
         ) : (
           <ViroGeometry
@@ -186,6 +188,7 @@ export function SpatialPanel({
             texcoords={(rounded ?? curved)!.texcoords}
             triangleIndices={(rounded ?? curved)!.triangleIndices}
             materials={[panelMaterial]}
+            renderingOrder={RenderOrder.panel}
           />
         )}
 

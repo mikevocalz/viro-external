@@ -10,6 +10,11 @@ export const PANEL_HEADER_HEIGHT = 0.1;
 export const PANEL_PADDING = 0.04;
 /** Space between stacked items. */
 export const PANEL_GAP = 0.03;
+/**
+ * Strip on the right of a scrolling panel body for the scrollbar. 5 cm keeps
+ * the up/down buttons near Meta's 48 mm minimum ray target.
+ */
+export const SCROLLBAR_STRIP = 0.05;
 
 export type PanelBody = {
   /** Centre of the content area, below the header. */

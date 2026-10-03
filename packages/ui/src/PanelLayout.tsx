@@ -1,16 +1,18 @@
-import React, { createContext, useContext } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { ScaledViroText } from "./ScaledViroText";
+import { PanelButton } from "./PanelButton";
 import { ViroNode, ViroQuad } from "@reactvision/react-viro";
 import {
   PANEL_GAP,
   PANEL_TYPE,
+  SCROLLBAR_STRIP,
   paragraphHeight,
   rowLayout,
   stackLayout,
   type PanelBody,
   type PanelTextVariant,
 } from "./layout";
-import { PremiumMaterials, registerPremiumMaterials } from "./materials";
+import { PremiumMaterials, RenderOrder, registerPremiumMaterials } from "./materials";
 
 /** The content area of the enclosing SpatialPanel, set by the panel. */
 export const PanelBodyContext = createContext<PanelBody | null>(null);
@@ -50,15 +52,17 @@ export type PanelStackProps = {
 /**
  * A top-down column filling the panel body. Items are placed by their
  * measured heights from the body's top edge.
- * ponytail: native overflow is not clipped or scrolled yet; on Specs a stack
- * taller than the body becomes a scroll region. Use SpatialScrollView for
- * native scrolling until the native side gets the same treatment.
+ * A panel's own stack taller than the body scrolls, as on Specs: same
+ * scrollbar strip, same measuring width.
  */
 export const PanelStack: Measurable<PanelStackProps> = Object.assign(
   function PanelStack({ children: items, gap = PANEL_GAP }: PanelStackProps) {
     const body = useContext(PanelBodyContext) ?? { centerY: 0, width: 1, height: 1 };
     const nested = useContext(NestedStackContext);
     const list = children(items);
+    if (!nested && overflows(list, body, gap)) {
+      return <ScrollingStack list={list} body={body} gap={gap} />;
+    }
     const sizes = list.map((child) => measureElement(child, body.width));
     const heights = sizes.map((size) => size.height);
     // The panel's own stack starts at the body's top edge. A stack placed by
@@ -86,6 +90,100 @@ export const PanelStack: Measurable<PanelStackProps> = Object.assign(
     },
   }
 );
+
+function overflows(list: React.ReactElement[], body: PanelBody, gap: number): boolean {
+  const width = body.width - SCROLLBAR_STRIP;
+  const heights = list.map((child) => measureElement(child, width).height);
+  return stackLayout(heights, 0, gap).height > body.height + 1e-6;
+}
+
+/** How many items from `start` fit in `height`; always at least one. */
+function fitCount(heights: readonly number[], start: number, height: number, gap: number): number {
+  let used = 0;
+  let count = 0;
+  for (let i = start; i < heights.length; i += 1) {
+    const next = used + (count > 0 ? gap : 0) + heights[i]!;
+    if (count > 0 && next > height + 1e-6) break;
+    used = next;
+    count += 1;
+  }
+  return count;
+}
+
+/**
+ * A panel stack taller than its body, scrolled one item per step with up and
+ * down buttons and a thumb in a strip on the right.
+ * ponytail: items that do not fully fit are hidden, not clipped; Viro has no
+ * rect clip. Shader-modifier clipping would allow partial items and smooth
+ * drag scrolling.
+ */
+function ScrollingStack({ list, body, gap }: { list: React.ReactElement[]; body: PanelBody; gap: number }) {
+  registerPremiumMaterials();
+  const [start, setStart] = useState(0);
+  const width = body.width - SCROLLBAR_STRIP;
+  const heights = list.map((child) => measureElement(child, width).height);
+  const total = stackLayout(heights, 0, gap).height;
+  // The first start index from which every remaining item fits.
+  let maxStart = 0;
+  while (maxStart < list.length - 1 && maxStart + fitCount(heights, maxStart, body.height, gap) < list.length) {
+    maxStart += 1;
+  }
+  const first = Math.min(start, maxStart);
+  const count = fitCount(heights, first, body.height, gap);
+  const top = body.centerY + body.height / 2;
+  const shown = heights.slice(first, first + count);
+  const { centers, height: shownHeight } = stackLayout(shown, top, gap);
+
+  const stripX = body.width / 2 - SCROLLBAR_STRIP / 2;
+  const button = SCROLLBAR_STRIP;
+  const track = Math.max(0.04, body.height - button * 2 - 0.02);
+  const thumb = Math.max(0.03, track * Math.min(1, shownHeight / total));
+  const progress = maxStart === 0 ? 0 : first / maxStart;
+  const thumbY = body.centerY + track / 2 - thumb / 2 - progress * (track - thumb);
+
+  return (
+    <NestedStackContext.Provider value={true}>
+      <PanelBodyContext.Provider value={{ ...body, width }}>
+        <ViroNode position={[-SCROLLBAR_STRIP / 2, 0, 0]}>
+          {list.slice(first, first + count).map((child, index) => (
+            <ViroNode key={child.key ?? first + index} position={[0, centers[index] ?? 0, 0]}>
+              {child}
+            </ViroNode>
+          ))}
+        </ViroNode>
+      </PanelBodyContext.Provider>
+      <PanelButton
+        label="▲"
+        width={button}
+        height={button}
+        position={[stripX, top - button / 2, 0.004]}
+        disabled={first === 0}
+        onPress={() => setStart(Math.max(0, first - 1))}
+      />
+      <PanelButton
+        label="▼"
+        width={button}
+        height={button}
+        position={[stripX, body.centerY - body.height / 2 + button / 2, 0.004]}
+        disabled={first >= maxStart}
+        onPress={() => setStart(Math.min(maxStart, first + 1))}
+      />
+      <ViroQuad
+        position={[stripX, body.centerY, 0.002]}
+        width={0.012}
+        height={track}
+        materials={[PremiumMaterials.rail]}
+        renderingOrder={RenderOrder.backing}
+      />
+      <ViroQuad
+        position={[stripX, thumbY, 0.004]}
+        width={0.022}
+        height={thumb}
+        materials={[PremiumMaterials.thumb]}
+      />
+    </NestedStackContext.Provider>
+  );
+}
 
 export type PanelRowProps = {
   children: React.ReactNode;
@@ -172,7 +270,7 @@ export const PanelSurface: Measurable<PanelSurfaceProps> = Object.assign(
     registerPremiumMaterials();
     return (
       <ViroNode>
-        <ViroQuad width={width} height={height} materials={[PremiumMaterials.header]} />
+        <ViroQuad width={width} height={height} materials={[PremiumMaterials.header]} renderingOrder={RenderOrder.backing} />
         <ViroNode position={[0, 0, 0.004]}>{content}</ViroNode>
       </ViroNode>
     );

@@ -1,5 +1,9 @@
 import { ViroMaterials } from "@reactvision/react-viro";
 
+/**
+ * Colours are #RRGGBBAA: React Native's processColor, which Viro uses, reads
+ * the last byte as alpha.
+ */
 export const PremiumMaterials = {
   panel: "vxp_ui_panel",
   panelGlass: "vxp_ui_panel_glass",
@@ -11,6 +15,13 @@ export const PremiumMaterials = {
   thumb: "vxp_ui_scroll_thumb",
 } as const;
 
+/**
+ * renderingOrder for panel layers. Viro sorts translucent geometry by
+ * distance, which flips as the head moves, so a backing drawn after the video
+ * or text in front of it covers them. Backings always draw first.
+ */
+export const RenderOrder = { panel: -2, backing: -1 } as const;
+
 let registered = false;
 
 export function registerPremiumMaterials(): void {
@@ -19,35 +30,35 @@ export function registerPremiumMaterials(): void {
 
   ViroMaterials.createMaterials({
     [PremiumMaterials.panel]: {
-      diffuseColor: "#F2181B24",
+      diffuseColor: "#181B24F2",
       lightingModel: "Constant",
     },
     [PremiumMaterials.panelGlass]: {
-      diffuseColor: "#D5222733",
+      diffuseColor: "#222733D5",
       lightingModel: "Constant",
     },
     [PremiumMaterials.header]: {
-      diffuseColor: "#F52A2F3C",
+      diffuseColor: "#2A2F3CF5",
       lightingModel: "Constant",
     },
     [PremiumMaterials.button]: {
-      diffuseColor: "#F43A4152",
+      diffuseColor: "#3A4152F4",
       lightingModel: "Constant",
     },
     [PremiumMaterials.buttonHover]: {
-      diffuseColor: "#FF587CFF",
+      diffuseColor: "#587CFFFF",
       lightingModel: "Constant",
     },
     [PremiumMaterials.buttonDisabled]: {
-      diffuseColor: "#99404755",
+      diffuseColor: "#40475599",
       lightingModel: "Constant",
     },
     [PremiumMaterials.rail]: {
-      diffuseColor: "#AA343B4A",
+      diffuseColor: "#343B4AAA",
       lightingModel: "Constant",
     },
     [PremiumMaterials.thumb]: {
-      diffuseColor: "#FFE4E9F5",
+      diffuseColor: "#E4E9F5FF",
       lightingModel: "Constant",
     },
   });

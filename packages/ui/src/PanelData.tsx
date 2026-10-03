@@ -3,7 +3,7 @@ import { ScaledViroText } from "./ScaledViroText";
 import { ViroNode, ViroQuad } from "@reactvision/react-viro";
 import { PANEL_TYPE } from "./layout";
 import type { Measurable } from "./PanelLayout";
-import { PremiumMaterials, registerPremiumMaterials } from "./materials";
+import { PremiumMaterials, RenderOrder, registerPremiumMaterials } from "./materials";
 
 export type PanelBarDatum = { label: string; value: number };
 
@@ -49,6 +49,7 @@ export const PanelBarChart: Measurable<PanelBarChartProps> = Object.assign(
           <ViroNode key={bar.label}>
             <ViroQuad
               position={[bar.x, bar.barY, 0]}
+              renderingOrder={RenderOrder.backing}
               width={bar.barWidth}
               height={bar.barHeight}
               materials={[
@@ -92,7 +93,7 @@ export const PanelStat: Measurable<PanelStatProps> = Object.assign(
     registerPremiumMaterials();
     return (
       <ViroNode>
-        <ViroQuad width={width} height={height} materials={[PremiumMaterials.header]} />
+        <ViroQuad width={width} height={height} materials={[PremiumMaterials.header]} renderingOrder={RenderOrder.backing} />
         <ScaledViroText
           text={value}
           position={[0, 0.014, 0.004]}
