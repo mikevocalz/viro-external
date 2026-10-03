@@ -61,15 +61,15 @@ export const PanelBarChart: Measurable<PanelBarChartProps> = Object.assign(
             <ScaledViroText
               text={String(bar.value)}
               position={[bar.x, bar.valueY, 0.002]}
-              width={0.1}
-              height={0.03}
+              width={props.width / Math.max(1, props.data.length)}
+              height={PANEL_TYPE.caption.lineHeight}
               style={{ fontSize: font, textAlign: "center" }}
             />
             <ScaledViroText
               text={bar.label}
               position={[bar.x, bar.labelY, 0.002]}
-              width={0.1}
-              height={0.03}
+              width={props.width / Math.max(1, props.data.length)}
+              height={PANEL_TYPE.caption.lineHeight}
               style={{ fontSize: font, textAlign: "center" }}
             />
           </ViroNode>
@@ -80,6 +80,9 @@ export const PanelBarChart: Measurable<PanelBarChartProps> = Object.assign(
   { measure: ({ width, height }: PanelBarChartProps) => ({ width, height }) }
 );
 
+const STAT_INSET = 0.01;
+const STAT_HEIGHT = PANEL_TYPE.figure.lineHeight + PANEL_TYPE.caption.lineHeight + STAT_INSET * 2;
+
 export type PanelStatProps = {
   value: string;
   caption: string;
@@ -89,27 +92,27 @@ export type PanelStatProps = {
 
 /** A tile with a large figure over a caption. */
 export const PanelStat: Measurable<PanelStatProps> = Object.assign(
-  function PanelStat({ value, caption, width, height = 0.11 }: PanelStatProps) {
+  function PanelStat({ value, caption, width, height = STAT_HEIGHT }: PanelStatProps) {
     registerPremiumMaterials();
     return (
       <ViroNode>
         <ViroQuad width={width} height={height} materials={[PremiumMaterials.header]} renderingOrder={RenderOrder.backing} />
         <ScaledViroText
           text={value}
-          position={[0, 0.014, 0.004]}
+          position={[0, height / 2 - STAT_INSET - PANEL_TYPE.figure.lineHeight / 2, 0.004]}
           width={width}
-          height={0.05}
+          height={PANEL_TYPE.figure.lineHeight}
           style={{ fontSize: PANEL_TYPE.figure.fontSize, textAlign: "center" }}
         />
         <ScaledViroText
           text={caption}
-          position={[0, -0.03, 0.004]}
+          position={[0, -height / 2 + STAT_INSET + PANEL_TYPE.caption.lineHeight / 2, 0.004]}
           width={width}
-          height={0.03}
+          height={PANEL_TYPE.caption.lineHeight}
           style={{ fontSize: PANEL_TYPE.caption.fontSize, textAlign: "center" }}
         />
       </ViroNode>
     );
   },
-  { measure: ({ width, height = 0.11 }: PanelStatProps) => ({ width, height }) }
+  { measure: ({ width, height = STAT_HEIGHT }: PanelStatProps) => ({ width, height }) }
 );

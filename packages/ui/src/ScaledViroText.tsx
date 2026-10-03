@@ -1,5 +1,6 @@
 import React from "react";
 import { ViroText } from "@reactvision/react-viro";
+import { PANEL_TYPE } from "./layout";
 
 /**
  * Viro lays text out at 1 cm per font point (VROText.h
@@ -14,10 +15,13 @@ type ScaledViroTextProps = React.ComponentProps<typeof ViroText> & {
   height: number;
 };
 
-export function ScaledViroText({ width, height, ...rest }: ScaledViroTextProps): React.ReactElement {
+export function ScaledViroText({ width, height, style, ...rest }: ScaledViroTextProps): React.ReactElement {
   return (
     <ViroText
       {...rest}
+      // Viro's own default is 18 pt, under the 1 degree readability floor.
+      style={{ fontSize: PANEL_TYPE.body.fontSize, ...(style as object) }}
+      textClipMode="ClipToBounds"
       width={width / TEXT_SCALE}
       height={height / TEXT_SCALE}
       scale={[TEXT_SCALE, TEXT_SCALE, TEXT_SCALE]}

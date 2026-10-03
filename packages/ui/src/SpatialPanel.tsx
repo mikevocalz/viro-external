@@ -59,7 +59,8 @@ export function SpatialPanel({
   variant = "solid",
   width = 1.6,
   height = 1,
-  cornerRadius = 0.06,
+  // Horizon OS system panels round about 2 cm.
+  cornerRadius = 0.02,
   curvature = 0.32,
   segments = 36,
   draggable = true,
@@ -100,8 +101,8 @@ export function SpatialPanel({
         ? buildRoundedPanelGeometry(
             width,
             height,
-            cornerRadius,
-            14
+            Math.min(cornerRadius, Math.min(width, height) * 0.1),
+            8
           )
         : null,
     [cornerRadius, height, shape, width]

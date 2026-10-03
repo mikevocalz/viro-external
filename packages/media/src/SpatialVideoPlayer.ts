@@ -263,6 +263,21 @@ export class SpatialVideoPlayer {
     duration: number
   ): void {
     if (this.released) return;
+    const status = this.paused
+      ? this.statusState.status === "loading"
+        ? "ready"
+        : "paused"
+      : "playing";
+    // Viro reports time many times a second. Re-rendering the panel and
+    // re-sending props to the native video on each tick made playback judder;
+    // the UI shows whole seconds, so commit only when one of those changes.
+    if (
+      Math.floor(currentTime) === Math.floor(this.statusState.currentTime) &&
+      duration === this.statusState.duration &&
+      status === this.statusState.status
+    ) {
+      return;
+    }
     this.statusState = {
       ...this.statusState,
       currentTime,

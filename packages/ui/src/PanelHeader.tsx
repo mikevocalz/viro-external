@@ -3,6 +3,7 @@ import { ScaledViroText } from "./ScaledViroText";
 import { ViroNode, ViroQuad } from "@reactvision/react-viro";
 import type { Vec3 } from "@viro-external/core";
 import { PanelButton } from "./PanelButton";
+import { PANEL_HEADER_HEIGHT, PANEL_TYPE, headerTextOffsets } from "./layout";
 import { PremiumMaterials, RenderOrder, registerPremiumMaterials } from "./materials";
 
 export type PanelHeaderAction = {
@@ -23,7 +24,7 @@ export type PanelHeaderProps = {
 
 export function PanelHeader({
   width,
-  height = 0.12,
+  height = PANEL_HEADER_HEIGHT,
   title,
   subtitle,
   actions = [],
@@ -31,7 +32,7 @@ export function PanelHeader({
 }: PanelHeaderProps): React.ReactElement {
   registerPremiumMaterials();
 
-  const buttonWidth = Math.min(0.18, width * 0.13);
+  const buttonWidth = Math.min(0.2, width * 0.15);
   const gap = 0.012;
   const actionSpan =
     actions.length * buttonWidth + Math.max(0, actions.length - 1) * gap;
@@ -51,9 +52,10 @@ export function PanelHeader({
             text={title}
             color="#F7F8FC"
             width={titleWidth}
-            height={subtitle ? height * 0.48 : height * 0.7}
-            position={[titleWidth / 2, subtitle ? height * 0.16 : 0, 0]}
+            height={PANEL_TYPE.title.lineHeight}
+            position={[titleWidth / 2, subtitle ? headerTextOffsets().titleY : 0, 0]}
             style={{
+              fontSize: PANEL_TYPE.title.fontSize,
               textAlign: "left",
               textAlignVertical: "center",
               fontWeight: "700",
@@ -65,9 +67,10 @@ export function PanelHeader({
             text={subtitle}
             color="#B7BFCE"
             width={titleWidth}
-            height={height * 0.34}
-            position={[titleWidth / 2, -height * 0.22, 0]}
+            height={PANEL_TYPE.caption.lineHeight}
+            position={[titleWidth / 2, headerTextOffsets().subtitleY, 0]}
             style={{
+              fontSize: PANEL_TYPE.caption.fontSize,
               textAlign: "left",
               textAlignVertical: "center",
             }}

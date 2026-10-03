@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ScaledViroText } from "./ScaledViroText";
 import { ViroNode, ViroQuad } from "@reactvision/react-viro";
 import type { Vec3 } from "@viro-external/core";
+import { PANEL_TYPE } from "./layout";
 import { PremiumMaterials, RenderOrder, registerPremiumMaterials } from "./materials";
 
 export type PanelButtonProps = {
@@ -11,6 +12,7 @@ export type PanelButtonProps = {
   width?: number;
   height?: number;
   position?: Vec3;
+  fontSize?: number;
 };
 
 export function PanelButton({
@@ -20,6 +22,7 @@ export function PanelButton({
   width = 0.18,
   height = 0.07,
   position,
+  fontSize = PANEL_TYPE.label.fontSize,
 }: PanelButtonProps): React.ReactElement {
   registerPremiumMaterials();
   const [hovered, setHovered] = useState(false);
@@ -31,11 +34,7 @@ export function PanelButton({
       : PremiumMaterials.button;
 
   return (
-    <ViroNode
-      position={position}
-      dragType={"Gizmo" as never}
-      onDrag={() => {}}
-    >
+    <ViroNode position={position}>
       <ViroQuad
         width={width}
         height={height}
@@ -51,6 +50,7 @@ export function PanelButton({
         height={height * 0.8}
         position={[0, 0, 0.002]}
         style={{
+          fontSize,
           textAlign: "center",
           textAlignVertical: "center",
           fontWeight: "600",

@@ -5,7 +5,7 @@
  */
 
 /** Header band at the top of a titled panel. */
-export const PANEL_HEADER_HEIGHT = 0.1;
+export const PANEL_HEADER_HEIGHT = 0.14;
 /** Inset between the panel edge and its content. */
 export const PANEL_PADDING = 0.04;
 /** Space between stacked items. */
@@ -63,7 +63,18 @@ export function panelHasHeader(props: {
 /** Header title and subtitle centres. */
 export function panelHeader(height: number): { titleY: number; subtitleY: number } {
   const centerY = height / 2 - PANEL_HEADER_HEIGHT / 2;
-  return { titleY: centerY + 0.012, subtitleY: centerY - 0.03 };
+  const offsets = headerTextOffsets();
+  return { titleY: centerY + offsets.titleY, subtitleY: centerY + offsets.subtitleY };
+}
+
+/** Title and subtitle centres relative to the header band's centre. */
+export function headerTextOffsets(): { titleY: number; subtitleY: number } {
+  const half = PANEL_HEADER_HEIGHT / 2;
+  const inset = 0.01;
+  return {
+    titleY: half - inset - PANEL_TYPE.title.lineHeight / 2,
+    subtitleY: -half + inset + PANEL_TYPE.caption.lineHeight / 2,
+  };
 }
 
 /**
@@ -100,33 +111,57 @@ export function rowLayout(
   });
 }
 
+/** Distance panels are designed to be read from (Meta: primary UI at 1.0-2.0 m). */
+export const PANEL_VIEW_DISTANCE = 1.5;
+
+/** Height in meters that subtends `degrees` of view at `distance`. */
+export function arcHeight(degrees: number, distance = PANEL_VIEW_DISTANCE): number {
+  return 2 * distance * Math.tan((degrees * Math.PI) / 360);
+}
+
 /**
- * Text sizes as multipliers of the Specs runtime's base label, and the
- * matching native font sizes. Line heights are in meters.
+ * Glyph size from visual angle. ScaledViroText draws 1 mm per point, so the
+ * font size in points is the em height in millimeters.
+ */
+function typeSize(degrees: number) {
+  const em = arcHeight(degrees);
+  const lineHeight = Math.round(em * 1300) / 1000;
+  return {
+    fontSize: Math.round(em * 1000),
+    lineHeight,
+    // Specs label scale tracks line height at the ratio the Lens runtime used.
+    specsScale: Math.round(lineHeight * 65 * 100) / 100,
+  };
+}
+
+/**
+ * Text sizes by visual angle, from Meta's VR readability guidance: nothing
+ * under 1 degree, body text about 1.5 degrees (4 cm character height at 1.5 m).
  */
 export const PANEL_TYPE = {
-  title: { specsScale: 3.2, fontSize: 30, lineHeight: 0.045 },
-  heading: { specsScale: 2.2, fontSize: 22, lineHeight: 0.035 },
-  figure: { specsScale: 3, fontSize: 28, lineHeight: 0.04 },
-  label: { specsScale: 1.7, fontSize: 18, lineHeight: 0.026 },
-  body: { specsScale: 1.5, fontSize: 14, lineHeight: 0.017 },
-  caption: { specsScale: 1.4, fontSize: 14, lineHeight: 0.022 },
+  title: typeSize(2.2),
+  heading: typeSize(2),
+  figure: typeSize(2.5),
+  label: typeSize(1.5),
+  body: typeSize(1.5),
+  caption: typeSize(1),
 } as const;
 
 export type PanelTextVariant = keyof typeof PANEL_TYPE;
 
 /**
  * Height a wrapped paragraph takes.
- * ponytail: estimated from character count (about 95 body characters per
- * 0.82 m line, scaled by width); measure laid-out Text bounds if long
- * paragraphs start overlapping what follows.
+ * ponytail: estimated with a 0.6 em average glyph width, wider than the
+ * default font's, so the box is never shorter than the wrapped text.
+ * ScaledViroText clips to its box either way.
  */
 export function paragraphHeight(
   text: string,
   width: number,
   variant: PanelTextVariant = "body"
 ): number {
-  const charsPerLine = Math.max(10, Math.floor((95 * width) / 0.82));
+  const glyph = (PANEL_TYPE[variant].fontSize / 1000) * 0.6;
+  const charsPerLine = Math.max(8, Math.floor(width / glyph));
   const lines = Math.max(1, Math.ceil(text.length / charsPerLine));
   return lines * PANEL_TYPE[variant].lineHeight;
 }
