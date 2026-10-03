@@ -4,7 +4,10 @@ import type {
   ViroSpecsRenderPrimitive,
 } from "./ViroSpecsProtocol";
 import { Frame } from "SpectaclesUIKit.lspkg/Scripts/Components/Frame/Frame";
-import { RoundedRectangle } from "SpectaclesUIKit.lspkg/Scripts/Visuals/RoundedRectangle/RoundedRectangle";
+import {
+  GradientParameters,
+  RoundedRectangle,
+} from "SpectaclesUIKit.lspkg/Scripts/Visuals/RoundedRectangle/RoundedRectangle";
 import { ScrollWindow } from "SpectaclesUIKit.lspkg/Scripts/Components/ScrollWindow/ScrollWindow";
 import { ViroSpecsAssetRegistry } from "./ViroSpecsAssetRegistry";
 
@@ -28,6 +31,9 @@ type NodeRecord = {
  * This class deliberately owns only renderer mechanics. Scene compilation,
  * Viro semantics, and diagnostics stay in the portable TypeScript package.
  */
+/** Draw text, images and video above any panel surface beneath them. */
+const CONTENT_RENDER_ORDER = 100;
+
 export class ViroSpecsSceneRuntime {
   private readonly nodes = new Map<string, NodeRecord>();
 
@@ -124,6 +130,7 @@ export class ViroSpecsSceneRuntime {
         record.text.horizontalAlignment = HorizontalAlignment.Center;
         record.text.horizontalOverflow = HorizontalOverflow.Overflow;
         record.text.layoutRect = Rect.create(-36, 36, -4, 4);
+        record.text.setRenderOrder(CONTENT_RENDER_ORDER);
         break;
 
       case "image":
@@ -131,6 +138,7 @@ export class ViroSpecsSceneRuntime {
         if (this.assets.defaultImageMaterial) {
           record.image.mainMaterial = this.assets.defaultImageMaterial.clone();
         }
+        record.image.setRenderOrder(CONTENT_RENDER_ORDER);
         break;
 
       // UIKit's Frame is what gives a panel visible chrome and situates it in
@@ -172,6 +180,7 @@ export class ViroSpecsSceneRuntime {
         if (this.assets.defaultImageMaterial) {
           record.video.mainMaterial = this.assets.defaultImageMaterial.clone();
         }
+        record.video.setRenderOrder(CONTENT_RENDER_ORDER);
         break;
 
       case "scene-object":
@@ -464,16 +473,41 @@ export class ViroSpecsSceneRuntime {
             : 2;
       surface.initialize();
       surface.size = frame.innerSize;
+
       if (tint) {
-        surface.backgroundColor = new vec4(tint[0], tint[1], tint[2], tint[3]);
+        // backgroundColor alone does not reach the shader on a layered surface;
+        // the visual draws its background from the gradient, which is the path
+        // Path Pioneer's frame styling uses. A flat tint is a gradient whose
+        // stops share a colour, lifted slightly at the top so the panel reads
+        // as a lit surface rather than a sticker.
+        const [r, g, b, a] = tint;
+        const lift = 0.06;
+        const gradient: GradientParameters = {
+          enabled: true,
+          type: "Linear",
+          start: new vec2(0, 1),
+          end: new vec2(0, -1),
+          stop0: {
+            enabled: true,
+            percent: 0,
+            color: new vec4(r + lift, g + lift, b + lift, a),
+          },
+          stop1: {
+            enabled: true,
+            percent: 1,
+            color: new vec4(r, g, b, a),
+          },
+        };
+        surface.setBackgroundGradient(gradient);
+        surface.borderColor = new vec4(1, 1, 1, 0.12);
       }
-      // The sample lifts its surface one step above the glass because its
-      // content are Frame children and so draw later. A portable scene parents
-      // content to the scene root instead, so taking the glass's own order
-      // keeps the surface a backplate rather than a cover.
+      // One step above the Frame's own glass, or the pale default wins the tie
+      // and the tint never shows. Scene content is pushed above both by
+      // CONTENT_RENDER_ORDER, since a portable scene parents content to the
+      // scene root rather than to the Frame.
       if (glass) {
         surface.renderMeshVisual.setRenderOrder(
-          glass.renderMeshVisual.getRenderOrder()
+          glass.renderMeshVisual.getRenderOrder() + 1
         );
       }
       // The Frame rescales on drag, so the surface has to follow it.
