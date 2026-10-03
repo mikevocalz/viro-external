@@ -14,6 +14,7 @@
     "Instantiation": { "required": true, "role": "rendering" },
     "AnimationExamples": { "required": true, "role": "rendering" },
     "SpecsInteractionKitExamples": { "required": true, "role": "interaction" },
+    "SpectaclesUIKit": { "required": true, "role": "interaction" },
     "InteractableHelper": { "required": true, "role": "interaction" },
     "WorldQueryHit": { "required": true, "role": "world" },
     "SurfacePlacement": { "required": true, "role": "world" },

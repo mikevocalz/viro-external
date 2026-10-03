@@ -22,7 +22,7 @@
     "specs:doctor": "node scripts/doctor-lens-project.mjs",
     "specs:bootstrap": "node scripts/bootstrap-platform-lab.mjs",
     "specs:go": "node scripts/go-clad.mjs",
-    "specs:test-runner": "node --test scripts/go-clad.test.mjs",
+    "specs:test-runner": "node --test scripts/go-clad.test.mjs scripts/render-plan.test.mjs",
     "build": "tsc -p tsconfig.build.json",
     "prepack": "pnpm --filter @viro-external/xr-contract build && pnpm build && node -e \"require('./dist/index.js')\" && pnpm specs:validate-lens && pnpm specs:test-runner"
   },

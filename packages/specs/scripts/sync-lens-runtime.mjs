@@ -61,6 +61,7 @@ const dependencies = {
   },
   requiredPackages: [
     "SpectaclesInteractionKit.lspkg",
+    "SpectaclesUIKit.lspkg",
     "SurfacePlacement.lspkg",
     "VolumetricLine.lspkg",
     "SpecsNavigationKit.lspkg",

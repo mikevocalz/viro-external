@@ -1,4 +1,5 @@
 import type {
+  PortableXRColor,
   PortableXRNode,
   PortableXRSurfaceFit,
 } from "@viro-external/xr-contract";
@@ -44,6 +45,8 @@ export type SpecsRenderCommand =
       text?: string;
       source?: string;
       fit?: PortableXRSurfaceFit;
+      tint?: PortableXRColor;
+      cornerRadiusMeters?: number;
     }
   | {
       op: "visibility";
@@ -72,16 +75,17 @@ const RENDER_MAPPING: Record<
   text: { primitive: "text" },
   image: { primitive: "image" },
   model: { primitive: "render-mesh", backendPackage: "Instantiation" },
+  // UI Kit `Frame`; the Lens runtime imports it from SpectaclesUIKit.lspkg.
   panel: {
     primitive: "ui-frame",
-    backendPackage: "SpecsInteractionKitExamples",
+    backendPackage: "SpectaclesUIKit",
   },
   // A plain tinted rectangle needs no container chrome.
   surface: { primitive: "flat-surface" },
-  // ScrollWindow ships in the same UIKit reference set the panel prefab comes from.
+  // ScrollWindow is a separate UI Kit component; Frame has no scrolling of its own.
   scroll: {
     primitive: "scroll-window",
-    backendPackage: "SpecsInteractionKitExamples",
+    backendPackage: "SpectaclesUIKit",
   },
   // Video is a core Lens Texture driven by VideoTextureProvider, no upstream package.
   video: { primitive: "video-surface" },
@@ -173,13 +177,18 @@ export function compileSpecsRenderPlan(
     const text = node.kind === "text" ? node.text : undefined;
     const source = sourceOf(node);
     const fit = "fit" in node ? node.fit : undefined;
-    if (text !== undefined || source !== undefined) {
+    const tint = "tint" in node ? node.tint : undefined;
+    const cornerRadiusMeters =
+      "cornerRadiusMeters" in node ? node.cornerRadiusMeters : undefined;
+    if (text !== undefined || source !== undefined || tint !== undefined) {
       commands.push({
         op: "content",
         id: node.id,
         ...(text !== undefined ? { text } : {}),
         ...(source !== undefined ? { source } : {}),
         ...(fit !== undefined ? { fit } : {}),
+        ...(tint !== undefined ? { tint } : {}),
+        ...(cornerRadiusMeters !== undefined ? { cornerRadiusMeters } : {}),
       });
     }
 

@@ -2,7 +2,10 @@ packages:
   - "packages/*"
 
 overrides:
-  "@reactvision/react-viro": "link:../viro"
+  # Sibling worktree of the fork on its Specs-preview branch: it carries the
+  # Specs compiler and satisfies the >=3.0.1-moyo.0 peer range. ../viro (decax9)
+  # has neither and stays on its branch for Harlem-Might.
+  "@reactvision/react-viro": "link:../viro-specs-preview"
 
 allowBuilds:
   sharp: true

@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@reactvision/react-viro': link:../viro
+  '@reactvision/react-viro': link:../viro-specs-preview
 
 importers:
 
@@ -14,8 +14,8 @@ importers:
   packages/media:
     dependencies:
       '@reactvision/react-viro':
-        specifier: link:../../../viro
-        version: link:../../../viro
+        specifier: link:../../../viro-specs-preview
+        version: link:../../../viro-specs-preview
     devDependencies:
       '@types/react':
         specifier: 19.3.0
@@ -51,8 +51,8 @@ importers:
   packages/orb-pass:
     dependencies:
       '@reactvision/react-viro':
-        specifier: link:../../../viro
-        version: link:../../../viro
+        specifier: link:../../../viro-specs-preview
+        version: link:../../../viro-specs-preview
     devDependencies:
       '@expo/config-plugins':
         specifier: ^58.0.4
@@ -76,8 +76,8 @@ importers:
   packages/pano:
     dependencies:
       '@reactvision/react-viro':
-        specifier: link:../../../viro
-        version: link:../../../viro
+        specifier: link:../../../viro-specs-preview
+        version: link:../../../viro-specs-preview
     devDependencies:
       '@types/react':
         specifier: 19.3.0
@@ -98,8 +98,8 @@ importers:
   packages/premium:
     dependencies:
       '@reactvision/react-viro':
-        specifier: link:../../../viro
-        version: link:../../../viro
+        specifier: link:../../../viro-specs-preview
+        version: link:../../../viro-specs-preview
       '@viro-external/core':
         specifier: workspace:*
         version: link:../viro-external-core
@@ -126,8 +126,8 @@ importers:
   packages/react-native-viro-mux:
     dependencies:
       '@reactvision/react-viro':
-        specifier: link:../../../viro
-        version: link:../../../viro
+        specifier: link:../../../viro-specs-preview
+        version: link:../../../viro-specs-preview
     devDependencies:
       '@types/react':
         specifier: 19.3.0
@@ -151,8 +151,8 @@ importers:
   packages/render-passes:
     dependencies:
       '@reactvision/react-viro':
-        specifier: link:../../../viro
-        version: link:../../../viro
+        specifier: link:../../../viro-specs-preview
+        version: link:../../../viro-specs-preview
     devDependencies:
       '@types/react':
         specifier: 19.3.0
@@ -195,8 +195,8 @@ importers:
   packages/splat-pass:
     dependencies:
       '@reactvision/react-viro':
-        specifier: link:../../../viro
-        version: link:../../../viro
+        specifier: link:../../../viro-specs-preview
+        version: link:../../../viro-specs-preview
     devDependencies:
       '@expo/config-plugins':
         specifier: ^58.0.4
@@ -223,8 +223,8 @@ importers:
   packages/ui:
     dependencies:
       '@reactvision/react-viro':
-        specifier: link:../../../viro
-        version: link:../../../viro
+        specifier: link:../../../viro-specs-preview
+        version: link:../../../viro-specs-preview
     devDependencies:
       '@types/react':
         specifier: 19.3.0
@@ -248,8 +248,8 @@ importers:
   packages/viro-external-core:
     dependencies:
       '@reactvision/react-viro':
-        specifier: link:../../../viro
-        version: link:../../../viro
+        specifier: link:../../../viro-specs-preview
+        version: link:../../../viro-specs-preview
     devDependencies:
       '@types/react':
         specifier: 19.3.0
@@ -270,8 +270,8 @@ importers:
   packages/viro-external-gui:
     dependencies:
       '@reactvision/react-viro':
-        specifier: link:../../../viro
-        version: link:../../../viro
+        specifier: link:../../../viro-specs-preview
+        version: link:../../../viro-specs-preview
     devDependencies:
       '@types/react':
         specifier: 19.3.0
@@ -304,8 +304,8 @@ importers:
   packages/viro-external-meta:
     dependencies:
       '@reactvision/react-viro':
-        specifier: link:../../../viro
-        version: link:../../../viro
+        specifier: link:../../../viro-specs-preview
+        version: link:../../../viro-specs-preview
       '@viro-external/core':
         specifier: workspace:*
         version: link:../viro-external-core

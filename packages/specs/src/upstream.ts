@@ -51,6 +51,13 @@ export const SPECS_UPSTREAM_PACKAGES = [
     purpose: "SIK interaction and UIKit reference implementations.",
   },
   {
+    // Ships from the Lens Studio Asset Library, not from specs-devs/packages.
+    name: "SpectaclesUIKit",
+    role: "interaction",
+    required: true,
+    purpose: "UI Kit Frame (panel chrome, grab, resize) and ScrollWindow.",
+  },
+  {
     name: "InteractableHelper",
     role: "interaction",
     required: true,
