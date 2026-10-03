@@ -115,15 +115,24 @@ export class ViroSpecsSceneRuntime {
     }
 
     const parentRecord = parentId ? this.requireNode(parentId) : null;
-    const parent = parentRecord ? parentRecord.object : this.root;
+    // A Frame keeps its children under its own `content` object, which it
+    // creates on OnStartEvent and fills with whatever is already parented to
+    // the Frame. Children created after that go into `content` directly.
+    const frameContent = parentRecord?.frame?.content;
+    const parent = frameContent && !isNull(frameContent)
+      ? frameContent
+      : parentRecord
+        ? parentRecord.object
+        : this.root;
 
     const object = global.scene.createSceneObject("viro:" + id);
     object.setParent(parent);
 
     const record: NodeRecord = { object, primitive };
-    record.inUiContext =
-      parentRecord?.primitive === "scroll-window" ||
-      parentRecord?.primitive === "ui-frame";
+    // Only ScrollWindow content is laid out by ScreenTransform. A Frame's
+    // children stay plain 3D objects under the Frame's SceneObject, so its
+    // InteractableManipulation carries them when the panel is grabbed.
+    record.inUiContext = parentRecord?.primitive === "scroll-window";
 
     switch (primitive) {
       case "text":
@@ -152,6 +161,11 @@ export class ViroSpecsSceneRuntime {
       // panel is grabbable without extra wiring.
       case "ui-frame": {
         record.frame = object.createComponent(Frame.getTypeName()) as Frame;
+        // Content is laid out in meters from the panel's centre. Frame's
+        // auto-scale would stretch it by innerSize/defaultSize every time the
+        // runtime sizes the panel (as in specs-devs/samples Agent Manager
+        // HorizontalFrame, which turns it off for the same reason).
+        record.frame.autoScaleContent = false;
         if (this.assets.defaultPanelPrefab) {
           this.assets.defaultPanelPrefab.instantiate(object);
         }
@@ -298,6 +312,13 @@ export class ViroSpecsSceneRuntime {
       record.scroll.windowSize = new vec2(width, height);
       // Scrolling is only reachable when the content exceeds the viewport.
       record.scroll.scrollDimensions = new vec2(width, height * 4);
+      return;
+    }
+
+    // RoundedRectangle is measured in cm by its own `size`; scaling its object
+    // like the 20 cm Image quad below would multiply its default size instead.
+    if (record.surface && !record.inUiContext) {
+      record.surface.size = new vec2(width, height);
       return;
     }
 
