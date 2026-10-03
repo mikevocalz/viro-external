@@ -9,7 +9,18 @@ import {
   RoundedRectangle,
 } from "SpectaclesUIKit.lspkg/Scripts/Visuals/RoundedRectangle/RoundedRectangle";
 import { ScrollWindow } from "SpectaclesUIKit.lspkg/Scripts/Components/ScrollWindow/ScrollWindow";
+import { Interactable } from "SpectaclesInteractionKit.lspkg/Components/Interaction/Interactable/Interactable";
 import { ViroSpecsAssetRegistry } from "./ViroSpecsAssetRegistry";
+
+type ScrollBarParts = {
+  root: SceneObject;
+  hit: BoxShape;
+  collider: ColliderComponent;
+  track: RoundedRectangle;
+  knob: RoundedRectangle;
+  up: SceneObject;
+  down: SceneObject;
+};
 
 type NodeRecord = {
   object: SceneObject;
@@ -18,7 +29,7 @@ type NodeRecord = {
   image?: Image;
   instantiatedModel?: SceneObject;
   scroll?: ScrollWindow;
-  scrollBar?: { track: RoundedRectangle; knob: RoundedRectangle };
+  scrollBar?: ScrollBarParts;
   /** True when this node sits inside a scroll or panel, i.e. a UI layout context. */
   /** Scroll content height in cm, once a content command has set it. */
   scrollContentHeight?: number;
@@ -168,9 +179,8 @@ export class ViroSpecsSceneRuntime {
         // runtime sizes the panel (as in specs-devs/samples Agent Manager
         // HorizontalFrame, which turns it off for the same reason).
         record.frame.autoScaleContent = false;
-        if (this.assets.defaultPanelPrefab) {
-          this.assets.defaultPanelPrefab.instantiate(object);
-        }
+        // No backplate prefab: Frame draws the panel chrome, and the old
+        // placeholder prefab showed as a second box inside it.
         break;
       }
 
@@ -231,13 +241,21 @@ export class ViroSpecsSceneRuntime {
 
     if (command.position) {
       // Viro spatial positions are meters; Lens Studio world units are cm.
-      transform.setLocalPosition(
-        new vec3(
-          command.position[0] * 100,
-          command.position[1] * 100,
-          command.position[2] * 100
-        )
+      const position = new vec3(
+        command.position[0] * 100,
+        command.position[1] * 100,
+        command.position[2] * 100
       );
+      transform.setLocalPosition(position);
+      // ScrollWindow copies the transform into its own ScreenTransform once,
+      // in initialize(), which runs before this command. Without this the
+      // window stays at its parent's centre and overlaps the panel header.
+      if (record.scroll) {
+        const screen = record.object.getComponent(
+          "Component.ScreenTransform"
+        ) as ScreenTransform | null;
+        if (screen) screen.position = position;
+      }
     }
 
     if (command.rotation) {
@@ -353,75 +371,155 @@ export class ViroSpecsSceneRuntime {
   }
 
   /**
-   * A side scrollbar: track and knob drawn inside the window's right edge, so
-   * the ScrollWindow mask keeps them in bounds. Built from RoundedRectangles
-   * the way specs-devs/samples Agent Manager `createVerticalScrollBar` does,
-   * because the installed UI Kit 0.18.0 ScrollBar can only be wired in the
-   * editor.
-   * ponytail: indicator only. Scrolling is by dragging the window; add a
-   * draggable knob if long lists need a fast jump.
+   * A side scrollbar inside the window's right edge, so the ScrollWindow mask
+   * keeps it in bounds: a track, a knob you can pinch and drag up or down,
+   * and up/down buttons at the ends that page by one window. Built from
+   * RoundedRectangles the way specs-devs/samples Agent Manager
+   * `createVerticalScrollBar` does, because the installed UI Kit 0.18.0
+   * ScrollBar can only be wired in the editor.
    */
   private updateScrollBar(record: NodeRecord): void {
     const scroll = record.scroll;
     if (!scroll) return;
+    const bar = record.scrollBar ?? (record.scrollBar = this.createScrollBar(record, scroll));
     const window = scroll.windowSize;
     const content = scroll.scrollDimensions.y;
     const thickness = 0.8;
+    const button = 2.4;
 
-    if (!record.scrollBar) {
-      const make = (name: string, color: vec4, order: number) => {
-        const object = global.scene.createSceneObject(name);
-        object.setParent(record.object);
-        object.layer = record.object.layer;
-        const bar = object.createComponent(
-          RoundedRectangle.getTypeName()
-        ) as RoundedRectangle;
-        bar.initialize();
-        bar.backgroundColor = color;
-        bar.setBackgroundGradient({
-          enabled: true,
-          type: "Linear",
-          start: new vec2(0, 1),
-          end: new vec2(0, -1),
-          stop0: { enabled: true, percent: 0, color },
-          stop1: { enabled: true, percent: 1, color },
-        });
-        bar.renderMeshVisual.setRenderOrder(order);
-        // Without this the track's 12% alpha draws opaque and hides the knob.
-        bar.renderMeshVisual.mainPass.blendMode = BlendMode.PremultipliedAlphaAuto;
-        bar.renderMeshVisual.mainPass.colorMask = new vec4b(true, true, true, true);
-        return bar;
-      };
-      record.scrollBar = {
-        track: make("viro:scroll-track", new vec4(1, 1, 1, 0.12), SURFACE_RENDER_ORDER),
-        knob: make("viro:scroll-knob", new vec4(1, 1, 1, 0.7), CONTENT_RENDER_ORDER),
-      };
-      scroll.onScrollPositionUpdated.add(() => this.updateScrollBar(record));
-    }
-
-    const { track, knob } = record.scrollBar;
     const visible = content > window.y + 0.01;
-    track.sceneObject.enabled = visible;
-    knob.sceneObject.enabled = visible;
+    bar.root.enabled = visible;
     if (!visible) return;
 
-    const x = window.x / 2 - thickness * 1.5;
-    const trackHeight = window.y - 2;
-    track.size = new vec2(thickness, trackHeight);
-    track.cornerRadius = thickness / 2;
-    track.sceneObject.getTransform().setLocalPosition(new vec3(x, 0, 1));
+    const x = window.x / 2 - button / 2 - 0.4;
+    bar.root.getTransform().setLocalPosition(new vec3(x, 0, 1));
+    const trackHeight = window.y - button * 2 - 1.6;
+    bar.track.size = new vec2(thickness, trackHeight);
+    bar.track.cornerRadius = thickness / 2;
+    bar.hit.size = new vec3(button, trackHeight, 1);
+    bar.collider.shape = bar.hit;
+    bar.up.getTransform().setLocalPosition(new vec3(0, window.y / 2 - button / 2 - 0.4, 0.2));
+    bar.down.getTransform().setLocalPosition(new vec3(0, -window.y / 2 + button / 2 + 0.4, 0.2));
 
+    // scrollPositionNormalized.y is position / topEdge: 1 at the top of the
+    // content, -1 at the bottom. t is 0 at the top.
     const knobHeight = Math.max(3, (trackHeight * window.y) / content);
-    const topEdge = -content / 2 + window.y / 2;
-    const travel = content - window.y;
-    const t = Math.min(1, Math.max(0, (scroll.scrollPosition.y - topEdge) / travel));
-    knob.size = new vec2(thickness, knobHeight);
-    knob.cornerRadius = thickness / 2;
-    knob.sceneObject
+    const t = (1 - scroll.scrollPositionNormalized.y) / 2;
+    bar.knob.size = new vec2(thickness, knobHeight);
+    bar.knob.cornerRadius = thickness / 2;
+    bar.knob.sceneObject
       .getTransform()
       .setLocalPosition(
-        new vec3(x, trackHeight / 2 - knobHeight / 2 - t * (trackHeight - knobHeight), 1.2)
+        new vec3(0, trackHeight / 2 - knobHeight / 2 - t * (trackHeight - knobHeight), 0.2)
       );
+  }
+
+  private createScrollBar(record: NodeRecord, scroll: ScrollWindow): ScrollBarParts {
+    const root = global.scene.createSceneObject("viro:scroll-bar");
+    root.setParent(record.object);
+    root.layer = record.object.layer;
+
+    const fill = (bar: RoundedRectangle, color: vec4) => {
+      bar.backgroundColor = color;
+      bar.setBackgroundGradient({
+        enabled: true,
+        type: "Linear",
+        start: new vec2(0, 1),
+        end: new vec2(0, -1),
+        stop0: { enabled: true, percent: 0, color },
+        stop1: { enabled: true, percent: 1, color },
+      });
+    };
+    const rect = (name: string, parent: SceneObject, color: vec4, order: number) => {
+      const object = global.scene.createSceneObject(name);
+      object.setParent(parent);
+      object.layer = parent.layer;
+      const bar = object.createComponent(RoundedRectangle.getTypeName()) as RoundedRectangle;
+      bar.initialize();
+      fill(bar, color);
+      bar.renderMeshVisual.setRenderOrder(order);
+      // Without this the track's low alpha draws opaque and hides the knob.
+      bar.renderMeshVisual.mainPass.blendMode = BlendMode.PremultipliedAlphaAuto;
+      bar.renderMeshVisual.mainPass.colorMask = new vec4b(true, true, true, true);
+      return bar;
+    };
+    const KNOB = new vec4(1, 1, 1, 0.7);
+    const KNOB_ACTIVE = new vec4(1, 1, 1, 0.95);
+    const track = rect("viro:scroll-track", root, new vec4(1, 1, 1, 0.12), SURFACE_RENDER_ORDER);
+    const knob = rect("viro:scroll-knob", root, KNOB, CONTENT_RENDER_ORDER);
+
+    // Knob drag: map the pinch point on the track to a scroll position.
+    const hit = Shape.createBoxShape();
+    const collider = root.createComponent("ColliderComponent") as ColliderComponent;
+    collider.fitVisual = false;
+    collider.shape = hit;
+    const drag = root.createComponent(Interactable.getTypeName()) as Interactable;
+    drag.enableInstantDrag = true;
+    drag.onTriggerStart.add(() => {
+      scroll.isControlledExternally = true;
+      fill(knob, KNOB_ACTIVE);
+    });
+    drag.onDragUpdate.add((event) => {
+      const point = event.interactor.planecastPoint;
+      if (!point) return;
+      const local = root.getTransform().getInvertedWorldTransform().multiplyPoint(point);
+      const half = track.size.y / 2;
+      const normalized = Math.min(1, Math.max(-1, local.y / half));
+      scroll.scrollPositionNormalized = new vec2(scroll.scrollPositionNormalized.x, normalized);
+    });
+    const endDrag = () => {
+      scroll.isControlledExternally = false;
+      fill(knob, KNOB);
+    };
+    drag.onDragEnd.add(endDrag);
+    drag.onTriggerCanceled.add(endDrag);
+
+    // Up/down page by one window, clamped to the ends.
+    const page = (direction: number) => {
+      const window = scroll.windowSize.y;
+      const travel = scroll.scrollDimensions.y - window;
+      if (travel <= 0) return;
+      const step = (2 * window) / travel;
+      const next = Math.min(1, Math.max(-1, scroll.scrollPositionNormalized.y + direction * step));
+      scroll.scrollPositionNormalized = new vec2(scroll.scrollPositionNormalized.x, next);
+    };
+    const arrow = (name: string, label: string, direction: number) => {
+      const object = global.scene.createSceneObject(name);
+      object.setParent(root);
+      object.layer = root.layer;
+      const face = object.createComponent(RoundedRectangle.getTypeName()) as RoundedRectangle;
+      face.initialize();
+      face.size = new vec2(2.4, 2.4);
+      face.cornerRadius = 1.2;
+      fill(face, new vec4(1, 1, 1, 0.18));
+      face.renderMeshVisual.setRenderOrder(SURFACE_RENDER_ORDER);
+      face.renderMeshVisual.mainPass.blendMode = BlendMode.PremultipliedAlphaAuto;
+      const glyph = global.scene.createSceneObject(name + "-label");
+      glyph.setParent(object);
+      glyph.layer = object.layer;
+      glyph.getTransform().setLocalPosition(new vec3(0, 0, 0.1));
+      const text = glyph.createComponent("Component.Text") as Text;
+      if (this.assets.defaultFont) text.font = this.assets.defaultFont;
+      text.text = label;
+      text.size = 60;
+      text.horizontalAlignment = HorizontalAlignment.Center;
+      text.verticalAlignment = VerticalAlignment.Center;
+      text.setRenderOrder(CONTENT_RENDER_ORDER);
+      const box = Shape.createBoxShape();
+      box.size = new vec3(2.4, 2.4, 1);
+      const hitArea = object.createComponent("ColliderComponent") as ColliderComponent;
+      hitArea.fitVisual = false;
+      hitArea.shape = box;
+      const press = object.createComponent(Interactable.getTypeName()) as Interactable;
+      press.onTriggerEnd.add(() => page(direction));
+      return object;
+    };
+    const up = arrow("viro:scroll-up", "▲", 1);
+    const down = arrow("viro:scroll-down", "▼", -1);
+
+    scroll.onScrollPositionUpdated.add(() => this.updateScrollBar(record));
+    scroll.onScrollDimensionsUpdated.add(() => this.updateScrollBar(record));
+    return { root, hit, collider, track, knob, up, down };
   }
 
   /**

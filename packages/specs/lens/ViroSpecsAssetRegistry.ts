@@ -34,6 +34,8 @@ export class ViroSpecsAssetRegistry extends BaseScriptComponent {
   @input
   videoTextures: Texture[] = [];
 
+  // ponytail: no longer read; UI Kit Frame draws panel chrome. Kept so scenes
+  // that still assign it keep loading. Delete with the next scene migration.
   @input
   @allowUndefined
   defaultPanelPrefab: ObjectPrefab | null = null;

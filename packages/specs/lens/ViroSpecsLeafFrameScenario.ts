@@ -52,7 +52,7 @@ export class ViroSpecsLeafFrameScenario extends Scenario {
     const grab = findInteractableByName("viro-interactable:platform-lab-panel");
     expect(grab).toBeTruthy();
     // Panel content has to ride along with a grab, not stay where it was laid out.
-    const header = findSceneObjectByName("viro:platform-lab-header");
+    const header = findSceneObjectByName("viro:platform-lab-header-title");
     expect(header).toBeTruthy();
     const before = panel.getTransform().getWorldPosition();
     const headerBefore = header.getTransform().getWorldPosition();
