@@ -38,7 +38,7 @@ import {
 } from "./PanelData";
 import { PanelImage, PanelText, type PanelImageProps, type PanelTextProps } from "./PanelContent";
 import { SpatialPanel, type SpatialPanelProps } from "./SpatialPanel";
-import { RivePanel, type RivePanelProps } from "./RivePanel";
+import { RivePanel, type RivePanelProps, type RiveSpecsProps } from "./RivePanel";
 import { IDENTITY, composeTransform, degreesToQuaternion, transformPoint, type Transform, type Vec3 } from "./transform";
 import {
   SpatialVideoPlayerPanel,
@@ -115,15 +115,12 @@ export type PortableAnimation = {
   };
 };
 
-/** A Rive panel the build must bake before the scene runs on Specs. */
-export type PortableRiveBake = {
-  /** The rive node to fill with the baked texture id and clip ranges. */
-  nodeId: string;
-  file: string;
-  artboard?: string;
-  clips: { name: string; animation: string; loop: boolean }[];
-  resolution?: number;
-};
+/**
+ * A Rive panel the build must bake before the scene runs on Specs. The build
+ * fills the rive node's clips, first clip, frame count and buttons from what
+ * the file contains plus these overrides.
+ */
+export type PortableRiveBake = { nodeId: string } & RiveSpecsProps;
 
 export type PortableSceneResult = {
   nodes: PortableXRNode[];
@@ -689,8 +686,8 @@ definePortable<RivePanelProps>(RivePanel, (props, place, ctx, element) => {
     sizeMeters: [width, height],
     ...(place.parentId ? { parentId: place.parentId } : {}),
   });
-  const [artW, artH] = specs.artboardSize;
   const riveId = id + "-rive";
+  // Clips, first clip and buttons are filled in when the file is baked.
   ctx.nodes.push({
     id: riveId,
     kind: "rive",
@@ -699,34 +696,9 @@ definePortable<RivePanelProps>(RivePanel, (props, place, ctx, element) => {
     position: [0, 0, Z.image],
     sizeMeters: [width, height],
     clips: {},
-    clip: specs.play,
+    clip: specs.play ?? "",
     ...(specs.next ? { next: specs.next } : {}),
     ...(specs.onSelect ? { onSelect: specs.onSelect } : {}),
-    ...(specs.buttons?.length
-      ? {
-          buttons: specs.buttons.map((b) => ({
-            id: b.id,
-            label: b.label,
-            rect: [b.rect[0] / artW, b.rect[1] / artH, b.rect[2] / artW, b.rect[3] / artH] as [number, number, number, number],
-            ...(b.play ? { play: b.play } : {}),
-          })),
-        }
-      : {}),
   });
-  for (const b of specs.buttons ?? []) {
-    if (b.play && !specs.clips[b.play]) {
-      ctx.diagnostics.push("Rive button " + b.id + " plays " + b.play + ", which is not one of the panel's clips.");
-    }
-  }
-  ctx.riveBakes.push({
-    nodeId: riveId,
-    file: specs.file,
-    artboard: specs.artboard,
-    resolution: specs.resolution,
-    clips: Object.entries(specs.clips).map(([name, clip]) =>
-      typeof clip === "string"
-        ? { name, animation: clip, loop: false }
-        : { name, animation: clip.animation, loop: clip.loop ?? false }
-    ),
-  });
+  ctx.riveBakes.push({ nodeId: riveId, ...specs });
 });

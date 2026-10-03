@@ -101,21 +101,35 @@ test("sync --clean keeps .meta files and everything outside lens/", async () => 
   await rm(project, { recursive: true, force: true });
 });
 
-test("a RivePanel maps to a chrome-less Frame, a bake request and button targets", () => {
+test("a RivePanel maps to a chrome-less Frame and a bake request", () => {
   const { nodes, riveBakes } = compileUiScene(example);
   const panel = nodes.find((n) => n.id === "platform-lab-lesson");
   assert.equal(panel.kind, "panel");
   assert.equal(panel.tint, undefined, "the Rive art is the panel's look");
   assert.ok(!nodes.some((n) => n.parentId === "platform-lab-lesson" && n.kind === "text"), "no header");
-
   const rive = nodes.find((n) => n.kind === "rive");
   assert.equal(rive.source, "rive/platform-lab-lesson-rive");
-  assert.equal(rive.clip, "Loading");
-  const submit = rive.buttons.find((b) => b.id === "submit");
+  assert.equal(riveBakes.length, 1);
+  assert.equal(riveBakes[0].inspect, "assets/moyo_learning_question.inspect.json");
+});
+
+test("Rive buttons and clips come from the file, with the panel's overrides", async () => {
+  const { resolveRivePanel } = await import("./compile-ui-scene.mjs");
+  const { riveBakes } = compileUiScene(example);
+  const diagnostics = [];
+  const panel = await resolveRivePanel(riveBakes[0], example, diagnostics);
+  assert.deepEqual(diagnostics, []);
+  // Buttons are the RML listener hit shapes, normalised to the artboard.
+  const submit = panel.buttons.find((b) => b.id === "submit");
   assert.deepEqual(submit.rect.map((v) => +v.toFixed(4)), [0.7328, 0.945, 0.1172, 0.0425]);
   assert.equal(submit.label, "Submit");
+  assert.equal(submit.play, "Submitting");
+  assert.equal(panel.buttons.find((b) => b.id === "next").play, undefined, "unmapped buttons still press");
+  assert.equal(panel.play, "Loading");
 
-  assert.equal(riveBakes.length, 1);
-  assert.equal(riveBakes[0].file, "assets/moyo_learning_question.riv");
-  assert.deepEqual(riveBakes[0].clips.find((c) => c.name === "Loading"), { name: "Loading", animation: "EntranceLoading", loop: true });
+  // With nothing listed, every animation is a clip, inside the frame budget.
+  const auto = await resolveRivePanel({ nodeId: "x", file: riveBakes[0].file }, example, diagnostics);
+  assert.equal(auto.clips[0].animation, "EntranceLoading");
+  assert.equal(auto.play, "EntranceLoading", "first looping clip plays first");
+  assert.deepEqual(auto.buttons, [], "no RML source, no discovered buttons");
 });

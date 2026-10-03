@@ -145,7 +145,9 @@ export default function HarlemCourts({
         rive={{ source: { rivBytes: lessonRiv, stateMachine: "QuestionFlow" } }}
         specs={{
           file: "assets/moyo_learning_question.riv",
-          artboardSize: [1280, 800],
+          // The Rive CLI's `rive inspect --json` for this file's RML project;
+          // its listener hit shapes become the panel's buttons.
+          inspect: "assets/moyo_learning_question.inspect.json",
           clips: {
             Loading: { animation: "EntranceLoading", loop: true },
             Entering: "Entering",
@@ -157,11 +159,7 @@ export default function HarlemCourts({
           next: { Entering: "Idle", Correct: "Idle" },
           // Pinch anywhere to start the lesson; then its own buttons drive it.
           onSelect: { Loading: "Entering", Submitting: "Correct" },
-          buttons: [
-            { id: "board", label: "Board", rect: [288, 756, 108, 34], play: "Loading" },
-            { id: "retry", label: "Retry", rect: [408, 756, 108, 34], play: "Entering" },
-            { id: "submit", label: "Submit", rect: [938, 756, 150, 34], play: "Submitting" },
-          ],
+          actions: { board: "Loading", retry: "Entering", submit: "Submitting" },
         }}
       />
     </ViroNode>

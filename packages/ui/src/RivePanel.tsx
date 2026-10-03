@@ -29,22 +29,39 @@ export type RiveButton = {
 
 /**
  * How the panel plays on Specs. Specs Lenses cannot run Rive, so the build
- * renders these clips from `file` and the Lens plays them as a small state
- * graph: `play` first, `next` when a clip ends, `onSelect` on pinch.
+ * renders clips from `file` and the Lens plays them as a small state graph.
+ *
+ * Rive files differ by repo and by how they were made, so the build reads
+ * what each file contains: its artboard size and animations from the Rive
+ * runtime, and its buttons (the shapes its listeners hit) from the RML
+ * project via `rive inspect`. Anything set here overrides what was read.
  */
 export type RiveSpecsProps = {
   /** The .riv file, relative to the scene file. */
   file: string;
   artboard?: string;
-  clips: Record<string, RiveSpecsClip>;
-  play: string;
+  /**
+   * Where to read buttons from: an RML project directory (runs `rive
+   * inspect`), or a saved `rive inspect --json` output. Relative to the
+   * scene file. Without either, the panel has no button targets unless
+   * `buttons` lists them.
+   */
+  project?: string;
+  inspect?: string;
+  /** Clips to bake. Defaults to every animation in the artboard, with its own loop mode. */
+  clips?: Record<string, RiveSpecsClip>;
+  /** First clip. Defaults to the first looping clip, else the first clip. */
+  play?: string;
   next?: Record<string, string>;
   onSelect?: Record<string, string>;
+  /** Buttons by hand, overriding discovery. */
   buttons?: RiveButton[];
-  /** Artboard size in pixels, which `buttons` rects are measured against. */
-  artboardSize: [number, number];
+  /** Which clip each button plays, by button id ("submit", "retry"). */
+  actions?: Record<string, string>;
   /** Baked frame width in pixels. */
   resolution?: number;
+  /** Cap on frames baked when clips are discovered. */
+  maxFrames?: number;
 };
 
 export type RivePanelProps = {

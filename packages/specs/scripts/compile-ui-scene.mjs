@@ -13,7 +13,7 @@
  * script's .meta and the scene's reference to it.
  */
 import { createRequire } from "node:module";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const require = createRequire(import.meta.url);
@@ -141,26 +141,102 @@ export class ViroGeneratedSceneHost extends BaseScriptComponent {
 `;
 
 /**
- * Render each Rive panel's clips into the Lens project and fill the rive
- * nodes with their frame ranges. Files resolve relative to the scene file.
+ * Fill each Rive panel from what its file contains, then bake it into the
+ * Lens project. Rive files differ by repo and toolchain, so nothing about a
+ * file is assumed: clips default to its animations (from the Rive runtime),
+ * buttons to the shapes its listeners hit (from `rive inspect` on the RML
+ * project, or a saved inspect JSON), and the panel's `specs` overrides both.
+ * Paths resolve relative to the scene file.
  */
+export async function resolveRivePanel(bake, entryPath, diagnostics = []) {
+  const { discoverRive, riveButtons, riveInspect } = await import("./bake-rive.mjs");
+  const from = (p) => path.resolve(path.dirname(entryPath), p);
+  const riv = from(bake.file);
+  const found = await discoverRive({ riv, artboard: bake.artboard });
+
+  const clips = bake.clips
+    ? Object.entries(bake.clips).map(([name, clip]) =>
+        typeof clip === "string"
+          ? { name, animation: clip, loop: false }
+          : { name, animation: clip.animation, loop: clip.loop ?? false })
+    : found.animations.map((a) => ({ name: a.name, animation: a.name, loop: a.loop }));
+  for (const clip of clips) {
+    if (!found.animations.some((a) => a.name === clip.animation)) {
+      throw new Error(bake.file + " has no animation named " + clip.animation + " (clip " + clip.name + ").");
+    }
+  }
+  if (!bake.clips) {
+    // A discovered set can be large; keep the bake inside a frame budget.
+    const fps = 25;
+    let total = 0;
+    const budget = bake.maxFrames ?? 240;
+    for (let i = 0; i < clips.length; i++) {
+      const a = found.animations.find((x) => x.name === clips[i].animation);
+      total += Math.max(1, Math.round((a.frames / a.fps) * fps));
+      if (total > budget) {
+        diagnostics.push(bake.file + ": baking the first " + i + " of " + clips.length + " animations to stay under " + budget + " frames; list `clips` to choose.");
+        clips.length = i;
+        break;
+      }
+    }
+  }
+
+  let buttons = bake.buttons ?? [];
+  let size = found.size;
+  if (!bake.buttons && (bake.project || bake.inspect)) {
+    const inspect = bake.project
+      ? riveInspect(from(bake.project))
+      : JSON.parse(readFileSync(from(bake.inspect), "utf8"));
+    const read = riveButtons(inspect, found.artboard);
+    buttons = read.buttons;
+    size = read.size;
+  }
+  const actions = bake.actions ?? {};
+  for (const id of Object.keys(actions)) {
+    if (!buttons.some((b) => b.id === id)) diagnostics.push(bake.file + " has no button " + id + " for its action.");
+  }
+  const names = new Set(clips.map((c) => c.name));
+  const play = bake.play ?? (clips.find((c) => c.loop) ?? clips[0])?.name;
+  return {
+    riv,
+    clips,
+    play,
+    buttons: buttons.map((b) => {
+      const target = actions[b.id] ?? b.play;
+      if (target && !names.has(target)) diagnostics.push("Button " + b.id + " plays " + target + ", which is not a baked clip.");
+      return {
+        id: b.id,
+        label: b.label,
+        rect: [b.rect[0] / size[0], b.rect[1] / size[1], b.rect[2] / size[0], b.rect[3] / size[1]],
+        ...(target ? { play: target } : {}),
+      };
+    }),
+  };
+}
+
 export async function bakeRivePanels(result, entryPath, project) {
   if (!result.riveBakes?.length) return;
   const { bakeRive } = await import("./bake-rive.mjs");
   const media = path.join(project, "Assets", "ViroSpecs", "Media", "rive");
   mkdirSync(media, { recursive: true });
   for (const bake of result.riveBakes) {
+    const panel = await resolveRivePanel(bake, entryPath, result.diagnostics);
     const manifest = await bakeRive({
-      riv: path.resolve(path.dirname(entryPath), bake.file),
+      riv: panel.riv,
       artboard: bake.artboard,
-      clips: bake.clips,
+      clips: panel.clips,
       width: bake.resolution,
       out: path.join(media, bake.nodeId + ".gif"),
     });
     const node = result.nodes.find((n) => n.id === bake.nodeId);
     node.clips = manifest.clips;
     node.frames = manifest.frames;
-    console.log("Baked " + bake.file + ": " + manifest.frames + " frames, clips " + Object.keys(manifest.clips).join(", "));
+    node.clip = panel.play;
+    if (panel.buttons.length) node.buttons = panel.buttons;
+    console.log(
+      "Baked " + bake.file + ": " + manifest.frames + " frames, " + Object.keys(manifest.clips).length +
+        " clips, " + panel.buttons.length + " buttons"
+    );
   }
 }
 
