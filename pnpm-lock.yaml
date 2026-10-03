@@ -30,6 +30,15 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
+  packages/meta-layout:
+    devDependencies:
+      '@viro-external/xr-contract':
+        specifier: workspace:*
+        version: link:../xr-platform-contract
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
   packages/meta-wearables:
     devDependencies:
       '@expo/config-plugins':
