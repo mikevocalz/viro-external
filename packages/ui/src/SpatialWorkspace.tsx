@@ -47,13 +47,15 @@ export function worldSlot(
   const sideAngleDeg = options.sideAngleDeg ?? DEFAULT_SIDE_ANGLE_DEG;
   const verticalOffsetM = options.verticalOffsetM ?? 0;
 
+  // Viro yaw is counter-clockwise about +Y and a head at yaw ψ looks along
+  // [-sin ψ, 0, -cos ψ], so the user's left is the positive offset.
   const slotOffsetDeg =
-    slot === "left" ? -sideAngleDeg : slot === "right" ? sideAngleDeg : 0;
+    slot === "left" ? sideAngleDeg : slot === "right" ? -sideAngleDeg : 0;
   const bearingDeg = headYawDeg + slotOffsetDeg;
   const bearingRad = degToRad(bearingDeg);
 
   const position: Vec3 = [
-    headPosition[0] + Math.sin(bearingRad) * distanceM,
+    headPosition[0] - Math.sin(bearingRad) * distanceM,
     headPosition[1] + verticalOffsetM,
     headPosition[2] - Math.cos(bearingRad) * distanceM,
   ];

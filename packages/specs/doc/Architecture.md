@@ -55,13 +55,13 @@ const scene = compileSpecsScene([
     id: "lesson",
     kind: "panel",
     position: left.position,
-    rotation: [0, left.yaw, 0, 1],
+    rotation: left.rotation,
   },
   {
     id: "board",
     kind: "panel",
     position: center.position,
-    rotation: [0, center.yaw, 0, 1],
+    rotation: center.rotation,
   },
   {
     id: "tutor",
