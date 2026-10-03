@@ -70,8 +70,12 @@ With the companion Viro web input work:
 
 - `SpatialPanel draggable` uses normal `ViroNode.onDrag`;
 - `pinchToScale` uses normal `ViroNode.onPinch`;
-- `SpatialScrollView` accepts mouse-wheel and trackpad scrolling through normal `ViroNode.onScroll`;
+- `SpatialScrollView` accepts mouse-wheel and trackpad scrolling through normal `ViroNode.onScroll`, advancing `step` rows per 24 px of accumulated vertical delta;
 - explicit up/down scroll buttons remain available for controller/gaze use;
-- flat/rounded/curved geometry, text, images, materials, hover/click and billboarding already render through Viro Web.
+- flat/rounded/curved geometry, text, images, materials, hover/click and billboarding are expected to render through Viro Web, but this package has no web render test for them.
 
-Runtime dependency: web drag/pinch/scroll requires the updated Viro web bridge and ViroCore WASM exports from the corresponding web-parity PRs. Older binaries continue rendering panels but do not emit the new interaction events.
+Wheel scrolling only fires while the pointer is over a hit-testable descendant of the scroll view, such as a row's geometry. The gaps between rows and the parent panel's background do not catch the wheel.
+
+Runtime dependency: web drag/pinch/scroll requires the updated Viro web bridge (mikevocalz/viro#40) and ViroCore WASM exports (mikevocalz/virocore#79). Both were still open when this section was written. Older binaries keep rendering panels but do not emit the new interaction events.
+
+Status: CI typechecks this package only. Wheel and trackpad scrolling have not been run in a browser against a build that contains both dependency PRs, and nothing here was tested on a headset.
