@@ -1,10 +1,16 @@
 {
   "name": "@viro-external/core",
   "version": "0.1.0",
-  "description": "Core spatial primitives for Viro: CylinderSurface, Slate, GaussianSplat. Binds textures through react-native-viro-mux.",
+  "description": "Premium core spatial primitives for Viro: geometry, movement, surfaces and splat composition.",
   "main": "src/index.ts",
   "types": "src/index.ts",
-  "files": ["src", "config", "doc", "AGENTS.md", "CLAUDE.md"],
+  "files": [
+    "src",
+    "config",
+    "doc",
+    "AGENTS.md",
+    "CLAUDE.md"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
@@ -12,11 +18,12 @@
     "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
     "@viro-external/splat-pass": "workspace:*",
     "react": ">=19.3.0 <20.0.0",
-    "react-native": ">=0.88.0-rc.0 <0.89.0",
-    "react-native-viro-mux": "workspace:*"
+    "react-native": ">=0.88.0-rc.0 <0.89.0"
   },
   "peerDependenciesMeta": {
-    "@viro-external/splat-pass": { "optional": true }
+    "@viro-external/splat-pass": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
@@ -24,7 +31,6 @@
     "@viro-external/splat-pass": "workspace:*",
     "react": "19.3.0",
     "react-native": "0.88.0-rc.3",
-    "react-native-viro-mux": "workspace:*",
     "typescript": "7.0.2"
   }
 }

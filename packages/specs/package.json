@@ -2,7 +2,7 @@
   "name": "@viro-external/specs",
   "version": "0.2.0",
   "description": "Portable Viro scene and interaction adapter foundation for Snap Specs / Spectacles Lens Studio runtimes.",
-  "main": "./dist/index.js",
+  "main": "./dist/cjs/index.js",
   "types": "./src/index.ts",
   "sideEffects": false,
   "files": [
@@ -22,8 +22,8 @@
     "specs:bootstrap": "node scripts/bootstrap-platform-lab.mjs",
     "specs:go": "node scripts/go-clad.mjs",
     "specs:test-runner": "node --test scripts/go-clad.test.mjs",
-    "build": "tsc -p tsconfig.build.json",
-    "prepack": "pnpm build && pnpm specs:validate-lens && pnpm specs:test-runner && node --test scripts/viro-bundle.test.mjs",
+    "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.build.cjs.json && node -e \"require('node:fs').writeFileSync('dist/cjs/package.json', JSON.stringify({ type: 'commonjs' }) + '\\n')\"",
+    "prepack": "pnpm --filter @viro-external/xr-contract build && pnpm build && node -e \"require('./dist/cjs/index.js')\" && node --input-type=module -e \"await import('./dist/index.js')\" && pnpm specs:validate-lens && pnpm specs:test-runner && node --test scripts/viro-bundle.test.mjs",
     "specs:test-bundle": "pnpm build && node --test scripts/viro-bundle.test.mjs"
   },
   "peerDependencies": {
@@ -41,7 +41,10 @@
   "exports": {
     ".": {
       "types": "./src/index.ts",
-      "import": "./dist/index.js"
+      "react-native": "./src/index.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/cjs/index.js",
+      "default": "./dist/index.js"
     },
     "./package.json": "./package.json"
   },

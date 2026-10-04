@@ -6,7 +6,9 @@ This document records the supported/validated combination for
 | Layer | Supported / validated |
 | --- | --- |
 | Viro SPECS package | `@viro-external/specs@0.2.x` |
-| XR contract | `@viro-external/xr-contract@0.2.x` |
+| XR contract | `@viro-external/xr-contract@0.2.x` (renderer-neutral TypeScript contract) |
+| Previous release candidate | `@viro-external/specs@0.2.0-rc.1` + `@viro-external/xr-contract@0.2.0-rc.1`, simulator validated |
+| Module formats | ESM (`import`), CommonJS (`require`), TypeScript source under the `react-native` condition for Metro |
 | Lens Studio minimum | 5.22.0+ |
 | Simulator validation | Lens Studio 5.24.0.26090816 |
 | Target | SPECS 27 |
@@ -40,6 +42,16 @@ The SPECS 27 simulator validation covers:
 
 The detailed evidence lives in
 `doc/CLADValidationReport.md` and `doc/validation/2026-10-02/`.
+
+## Renderer boundary
+
+SPECS uses Lens Studio. It does not embed or execute ViroCore.
+
+Applications can share Viro-facing scene semantics while each renderer owns its
+native implementation:
+
+- ViroCore for its native/OpenXR/Apple/Web targets;
+- Lens Studio + SIK/WorldQuery/Navigation Kit for SPECS.
 
 ## Not certified by simulator
 
