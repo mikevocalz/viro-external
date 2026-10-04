@@ -3,6 +3,7 @@
   "version": "0.2.0",
   "description": "Vendor-neutral spatial surface, capability, portable scene, and interaction contracts for Viro platform adapters.",
   "main": "./dist/cjs/index.js",
+  "react-native": "./src/index.ts",
   "types": "./src/index.ts",
   "sideEffects": false,
   "files": [

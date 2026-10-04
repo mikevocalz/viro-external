@@ -7,9 +7,13 @@
   },
   "scripts": {
     "typecheck": "pnpm -r --if-present typecheck",
-    "specs": "pnpm -r --if-present specs"
+    "specs": "pnpm -r --if-present specs",
+    "check:metro": "node scripts/check-metro-resolution.mjs"
   },
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "devDependencies": {
+    "metro-resolver": "0.87.1"
+  }
 }

@@ -22,6 +22,7 @@ on:
       - "packages/web-layout/**"
       - "packages/webspatial/**"
       - ".github/workflows/xr-platform-validation.yml"
+      - "scripts/check-metro-resolution.mjs"
   workflow_dispatch:
 
 permissions:
@@ -88,6 +89,13 @@ jobs:
       - name: Smoke-test built ESM entrypoints in Node
         run: |
           node -e "Promise.all([import('./packages/xr-platform-contract/dist/index.js'), import('./packages/specs/dist/index.js')]).then(() => console.log('ESM imports OK'))"
+
+      - name: Smoke-test built CommonJS entrypoints in Node
+        run: |
+          node -e "require('./packages/xr-platform-contract/dist/cjs/index.js'); require('./packages/specs/dist/cjs/index.js'); console.log('CJS requires OK')"
+
+      - name: Check Metro resolves workspace packages to src
+        run: pnpm check:metro
 
       - name: Pack SPECS package
         run: |
