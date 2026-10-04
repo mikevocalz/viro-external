@@ -1,9 +1,9 @@
 {
   "name": "@viro-external/xr-contract",
-  "version": "0.2.0-rc.1",
+  "version": "0.2.0",
   "description": "Vendor-neutral spatial surface, capability, portable scene, and interaction contracts for Viro platform adapters.",
-  "main": "dist/index.js",
-  "types": "src/index.ts",
+  "main": "./dist/cjs/index.js",
+  "types": "./src/index.ts",
   "sideEffects": false,
   "files": [
     "src",
@@ -13,19 +13,29 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc -p tsconfig.build.json",
-    "prepack": "pnpm build && node -e \"require('./dist/index.js')\""
+    "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.build.cjs.json && node -e \"require('node:fs').writeFileSync('dist/cjs/package.json', JSON.stringify({ type: 'commonjs' }) + '\\n')\"",
+    "prepack": "pnpm build && node -e \"require('./dist/cjs/index.js')\" && node --input-type=module -e \"await import('./dist/index.js')\""
   },
   "devDependencies": {
     "typescript": "7.0.2"
   },
+  "type": "module",
+  "module": "./dist/index.js",
   "exports": {
     ".": {
       "types": "./src/index.ts",
       "react-native": "./src/index.ts",
-      "require": "./dist/index.js",
+      "import": "./dist/index.js",
+      "require": "./dist/cjs/index.js",
       "default": "./dist/index.js"
     },
     "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "engines": {
+    "node": ">=22.13.0"
   }
 }

@@ -125,11 +125,13 @@ export class SpecsAdapter implements XRPlatformAdapter {
   }
 }
 
-export * from "./runtime";
-export * from "./upstream";
-export * from "./render";
-export * from "./animation";
-export * from "./interaction";
-export * from "./ar";
-export * from "./navigation";
-export * from "./testing";
+export * from "./runtime.js";
+export * from "./upstream.js";
+export * from "./render.js";
+export * from "./animation.js";
+export * from "./interaction.js";
+export * from "./ar.js";
+export * from "./navigation.js";
+export * from "./testing.js";
+export * from "./viro-runtime-provider.js";
+export * from "./viro-bundle.js";

@@ -80,6 +80,21 @@ jobs:
       - name: Validate Lens Studio runtime sources
         run: pnpm --filter @viro-external/specs specs:validate-lens
 
+      - name: Build publishable XR packages
+        run: |
+          pnpm --filter @viro-external/xr-contract build
+          pnpm --filter @viro-external/specs build
+
+      - name: Smoke-test built ESM entrypoints in Node
+        run: |
+          node -e "Promise.all([import('./packages/xr-platform-contract/dist/index.js'), import('./packages/specs/dist/index.js')]).then(() => console.log('ESM imports OK'))"
+
+      - name: Pack SPECS package
+        run: |
+          mkdir -p /tmp/viro-specs-pack
+          pnpm --filter @viro-external/specs pack --pack-destination /tmp/viro-specs-pack
+          test -n "$(find /tmp/viro-specs-pack -name '*.tgz' -print -quit)"
+
       - name: Validate Lens bootstrap scripts
         run: |
           node --check packages/specs/scripts/doctor-lens-project.mjs

@@ -101,7 +101,7 @@ From another package in the workspace:
 }
 ```
 
-`@viro-external/xr-contract` is a peer dependency (`>=0.2.0-rc.1 <0.3.0`). `pnpm --filter @viro-external/specs build` emits CommonJS to `dist/`. The package's `types` entry points at `src/index.ts`.
+`@viro-external/xr-contract` is a peer dependency (`^0.2.0`). `pnpm --filter @viro-external/specs build` emits ESM to `dist/` and CommonJS to `dist/cjs/`. The export map sends `import` to ESM, `require` to CommonJS, and the `react-native` condition (Metro) to `src/index.ts`. The package's `types` entry points at `src/index.ts`.
 
 ## Authoring a scene
 
@@ -208,14 +208,14 @@ Run every script from the repo root with `pnpm --filter @viro-external/specs <sc
 | Script | Runs | Flags | What it does |
 | --- | --- | --- | --- |
 | `typecheck` | `tsc --noEmit` | none | Type-checks `src/`. Does not cover `lens/` (that needs Lens Studio globals) |
-| `build` | `tsc -p tsconfig.build.json` | none | Emits CommonJS to `dist/` |
+| `build` | `tsc -p tsconfig.build.json && tsc -p tsconfig.build.cjs.json` | none | Emits ESM to `dist/` and CommonJS to `dist/cjs/` |
 | `specs:validate-lens` | `scripts/validate-lens-runtime.mjs` | none | Checks that 18 required `lens/*.ts` files exist, no Lens file imports `@viro-external/`, `react`, `react-native` or `../src/`, and every `./` import resolves |
 | `specs:sync` | `scripts/sync-lens-runtime.mjs` | `--project <path>` (required), `--clean` | Copies `lens/` to `<project>/Assets/ViroSpecs/lens/` and writes `viro-specs.dependencies.json`. `--clean` deletes `Assets/ViroSpecs` first, **including Lens `.meta` files**, which gives the scripts new asset identities and breaks scene references |
 | `specs:doctor` | `scripts/doctor-lens-project.mjs` | `--project <path>` (required) | Requires exactly one `.esproj`, `targetPlatform: Spectacles` and Lens Studio 5.22+ (errors, exit 1). Warns on missing packages and an unsynced runtime |
 | `specs:bootstrap` | `scripts/bootstrap-platform-lab.mjs` | `--project <path>` (required) | Runs `specs:doctor`, then `specs:sync` without `--clean`, then writes `VIRO_SPECS_CLAD_FINISH.md` into the project |
 | `specs:go` | `scripts/go-clad.mjs` | `--project <path>` (required), `--mcp-url <url>`, `--exec`, `--no-auto-review` (alias `--no-full-auto`) | Runs the doctor, probes the Lens Studio MCP server with an authenticated `initialize`, merges the endpoint into `<project>/.codex/config.toml`, installs the `ls-clad@ls-extensions` Codex plugin if absent, then runs `specs:bootstrap`. `--exec` also pipes the finish prompt into `codex exec` |
 | `specs:test-runner` | `node --test scripts/go-clad.test.mjs` | none | 13 tests for `specs:go` against a fixture MCP server and a mock Codex binary |
-| `prepack` | build + checks | none | Builds `xr-contract` and this package, `require`s `dist/index.js`, then runs `specs:validate-lens` and `specs:test-runner` |
+| `prepack` | build + checks | none | Builds `xr-contract` and this package, `require`s `dist/cjs/index.js`, `import`s `dist/index.js`, then runs `specs:validate-lens`, `specs:test-runner` and `scripts/viro-bundle.test.mjs` |
 
 `specs:go` picks the MCP endpoint in this order: `--mcp-url`, `VIRO_SPECS_MCP_URL`, the `lens-studio` server in project or user Codex config, then `http://localhost:50040/mcp`. It never prints credentials. [`doc/OneCommandCLAD.md`](./doc/OneCommandCLAD.md) is the full reference.
 
