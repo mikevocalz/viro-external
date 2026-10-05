@@ -78,5 +78,7 @@ export {
 
 export * from "./WearableUIKit";
 
+export { QuickDrawSpatialSurface, type QuickDrawSpatialSurfaceProps } from "./QuickDrawSpatialSurface";
+
 export { QuickdrawSpatialPanel } from "./QuickdrawSpatialPanel";
 export type { QuickdrawSpatialPanelProps, QuickdrawSpatialPointer } from "./QuickdrawSpatialPanel.types";
