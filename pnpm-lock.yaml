@@ -322,6 +322,9 @@ importers:
       '@viro-external/core':
         specifier: workspace:*
         version: link:../viro-external-core
+      '@viro-external/ui':
+        specifier: workspace:*
+        version: link:../ui
       lucide-static:
         specifier: 1.49.0
         version: 1.49.0
