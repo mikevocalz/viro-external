@@ -221,3 +221,5 @@ export * from "./interaction.js";
 export * from "./rive.js";
 
 export * from "./quickdraw.js";
+
+export * from "./muse.js";

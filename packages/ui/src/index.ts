@@ -80,5 +80,8 @@ export * from "./WearableUIKit";
 
 export { QuickDrawSpatialSurface, type QuickDrawSpatialSurfaceProps } from "./QuickDrawSpatialSurface";
 
+export { MusePenInput } from "./MusePenInput";
+export type { MusePenInputProps } from "@viro-external/xr-contract";
+
 export { QuickdrawSpatialPanel } from "./QuickdrawSpatialPanel";
 export type { QuickdrawSpatialPanelProps, QuickdrawSpatialPointer } from "./QuickdrawSpatialPanel.types";
