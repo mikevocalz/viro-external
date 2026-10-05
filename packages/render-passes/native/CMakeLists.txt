@@ -22,6 +22,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # 16KB-aligned ELF for Android 15+ Play Store policy.
 add_link_options("-Wl,-z,max-page-size=16384")
 
+option(VIRO_EXTERNAL_ENABLE_ESKIU
+    "Build and link the optional Eskiu spatial-media math backend"
+    OFF)
+
 if(NOT DEFINED VIROCORE_INCLUDE_DIR)
     message(FATAL_ERROR
         "render-passes: VIROCORE_INCLUDE_DIR not set. "
@@ -69,6 +73,51 @@ target_link_libraries(viro_external_render_passes
     ${android_lib}
     viro_renderer
 )
+
+if(VIRO_EXTERNAL_ENABLE_ESKIU)
+    find_program(ESKIUC_EXECUTABLE eskiuc)
+    if(NOT ESKIUC_EXECUTABLE)
+        message(FATAL_ERROR
+            "render-passes: VIRO_EXTERNAL_ENABLE_ESKIU=ON but eskiuc was not found.")
+    endif()
+
+    set(ESKIU_SOURCE
+        "${CMAKE_CURRENT_SOURCE_DIR}/eskiu/spatial_media_math.esk")
+    set(ESKIU_OBJECT
+        "${CMAKE_CURRENT_BINARY_DIR}/spatial_media_math.o")
+    set(ESKIU_ARCHIVE
+        "${CMAKE_CURRENT_BINARY_DIR}/libviro_external_eskiu_math.a")
+
+    add_custom_command(
+        OUTPUT "${ESKIU_OBJECT}"
+        COMMAND "${ESKIUC_EXECUTABLE}" "${ESKIU_SOURCE}" -O2 -o "${ESKIU_OBJECT}"
+        DEPENDS "${ESKIU_SOURCE}"
+        COMMENT "Compiling Eskiu spatial-media math"
+        VERBATIM)
+
+    add_custom_command(
+        OUTPUT "${ESKIU_ARCHIVE}"
+        COMMAND "${CMAKE_AR}" qc "${ESKIU_ARCHIVE}" "${ESKIU_OBJECT}"
+        COMMAND "${CMAKE_RANLIB}" "${ESKIU_ARCHIVE}"
+        DEPENDS "${ESKIU_OBJECT}"
+        COMMENT "Archiving Eskiu spatial-media math"
+        VERBATIM)
+
+    add_custom_target(viro_external_eskiu_math
+        DEPENDS "${ESKIU_ARCHIVE}")
+
+    add_library(viro_external_eskiu_math_archive STATIC IMPORTED)
+    set_target_properties(viro_external_eskiu_math_archive PROPERTIES
+        IMPORTED_LOCATION "${ESKIU_ARCHIVE}")
+    add_dependencies(
+        viro_external_eskiu_math_archive
+        viro_external_eskiu_math)
+
+    target_link_libraries(
+        viro_external_render_passes
+        PRIVATE
+        viro_external_eskiu_math_archive)
+endif()
 
 target_compile_options(viro_external_render_passes PRIVATE
     -Wall
