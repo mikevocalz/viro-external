@@ -54,4 +54,8 @@ export {
   type WorldSlotOptions,
   type WorldSlotPlacement,
 } from "./SpatialWorkspace";
-\nexport { XR_VISUAL_WEIGHT, resolveVisualDepth, type XRVisualDepth, type XRVisualWeight } from "./visual-depth";\n
+
+export {
+  createRiveSpatialSurface,
+  disposeRiveSpatialSurface,
+} from "./RiveSpatialSurface";
