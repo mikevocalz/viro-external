@@ -36,6 +36,8 @@ export type QuickDrawSpatialSurfaceConfig = {
  * document/editor semantics.
  */
 export type NativeQuickDrawSpatialAdapter = {
+  /** This surface is specifically backed by the ESIKU external-rendering path. */
+  readonly renderer: "esiku";
   mount(config: QuickDrawSpatialSurfaceConfig): QuickDrawSpatialSurfaceHandle;
   unmount(handle: QuickDrawSpatialSurfaceHandle): void;
 };
