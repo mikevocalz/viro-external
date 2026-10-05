@@ -98,6 +98,9 @@ importers:
       '@viro-external/media':
         specifier: workspace:*
         version: link:../media
+      '@viro-external/xr-contract':
+        specifier: workspace:*
+        version: link:../xr-platform-contract
       react:
         specifier: 19.3.0
         version: 19.3.0
