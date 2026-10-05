@@ -1,7 +1,7 @@
 import React from "react";
 import { ViroNode, ViroQuad, ViroText } from "@reactvision/react-viro";
 import type { Vec3 } from "@viro-external/core";
-import { PanelButton, SpatialPanel, SpatialScrollView } from "./index";
+import { PanelButton, PanelText, SpatialPanel, SpatialScrollView } from "./index";
 
 export type GlassesSurfaceProps = {
   width?: number;
@@ -223,7 +223,7 @@ export function GlassesTextInput({
 }
 
 export function GlassesText({ children, position, width = 0.8, height = 0.08 }: GlassesSurfaceProps) {
-  return <ViroNode position={position}>{typeof children === "string" ? <ViroText text={children} color="#F7F8FC" width={width} height={height} ignoreEventHandling /> : children}</ViroNode>;
+  return <ViroNode position={position}>{typeof children === "string" ? <PanelText text={children} width={width} height={height} /> : children}</ViroNode>;
 }
 
 export function GlassesDivider({ position }: { position?: Vec3 }) {
