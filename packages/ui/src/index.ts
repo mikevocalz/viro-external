@@ -77,3 +77,6 @@ export {
 } from "./RiveNativeHost";
 
 export * from "./WearableUIKit";
+
+export { MusePenInput } from "./MusePenInput";
+export type { MusePenInputProps } from "@viro-external/xr-contract";
