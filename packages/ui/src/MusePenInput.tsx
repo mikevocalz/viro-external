@@ -1,12 +1,28 @@
 import { useEffect, useRef } from "react";
-import {
-  subscribeSpatialStylus,
-  type ViroSpatialStylusSample,
-} from "@reactvision/react-viro";
+import * as Viro from "@reactvision/react-viro";
 import type { MusePenInputProps, MusePenSample } from "@viro-external/xr-contract";
 
+// Fork-only API (moyodev viro, visionOS spatial-stylus bridge); absent in
+// upstream v3.0.1, so probe instead of importing directly.
+type SpatialStylusSample = {
+  tracked: boolean;
+  position: readonly [number, number, number] | null;
+  headPosition: readonly [number, number, number] | null;
+  tipPressed: boolean;
+  primaryPressed: boolean;
+  secondaryPressed: boolean;
+  pressure: number;
+};
+const subscribeSpatialStylus = (
+  Viro as {
+    subscribeSpatialStylus?: (
+      listener: (sample: SpatialStylusSample) => void
+    ) => () => void;
+  }
+).subscribeSpatialStylus;
+
 function toMuseSample(
-  sample: ViroSpatialStylusSample,
+  sample: SpatialStylusSample,
   previousPressed: boolean
 ): MusePenSample {
   const pressed =
@@ -56,7 +72,7 @@ export function MusePenInput({
   callback.current = onSample;
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !subscribeSpatialStylus) return;
 
     pressed.current = false;
     const unsubscribe = subscribeSpatialStylus((sample) => {
