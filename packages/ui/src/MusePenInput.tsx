@@ -5,18 +5,29 @@ import {
 } from "@reactvision/react-viro";
 import type { MusePenInputProps, MusePenSample } from "@viro-external/xr-contract";
 
-function phaseFor(sample: ViroSpatialStylusSample): MusePenSample["phase"] {
-  if (!sample.tracked) return "cancel";
-  if (sample.tipPressed || sample.primaryPressed || sample.secondaryPressed) {
-    return "move";
-  }
-  return "hover";
-}
+function toMuseSample(
+  sample: ViroSpatialStylusSample,
+  previousPressed: boolean
+): MusePenSample {
+  const pressed =
+    sample.tipPressed || sample.primaryPressed || sample.secondaryPressed;
 
-function toMuseSample(sample: ViroSpatialStylusSample): MusePenSample {
+  let phase: MusePenSample["phase"];
+  if (!sample.tracked) {
+    phase = "cancel";
+  } else if (pressed && !previousPressed) {
+    phase = "down";
+  } else if (!pressed && previousPressed) {
+    phase = "up";
+  } else if (pressed) {
+    phase = "move";
+  } else {
+    phase = "hover";
+  }
+
   return {
     tracked: sample.tracked,
-    phase: phaseFor(sample),
+    phase,
     position: sample.position
       ? [sample.position[0], sample.position[1], sample.position[2]]
       : null,
@@ -33,21 +44,35 @@ function toMuseSample(sample: ViroSpatialStylusSample): MusePenSample {
 
 /**
  * Bridges Viro's native Logitech Muse stream to a renderer-independent
- * QuickDraw input callback. The native Muse SDK remains entirely below Viro.
+ * QuickDraw input callback. Viro owns the native GameController /
+ * AccessoryTrackingProvider integration.
  */
 export function MusePenInput({
   enabled = true,
   onSample,
 }: MusePenInputProps): null {
   const callback = useRef(onSample);
+  const pressed = useRef(false);
   callback.current = onSample;
 
   useEffect(() => {
     if (!enabled) return;
+
+    pressed.current = false;
     const unsubscribe = subscribeSpatialStylus((sample) => {
-      callback.current(toMuseSample(sample));
+      const nextPressed =
+        sample.tipPressed || sample.primaryPressed || sample.secondaryPressed;
+      const wasPressed = pressed.current;
+
+      callback.current(toMuseSample(sample, wasPressed));
+
+      pressed.current = sample.tracked && nextPressed;
     });
-    return unsubscribe;
+
+    return () => {
+      unsubscribe();
+      pressed.current = false;
+    };
   }, [enabled]);
 
   return null;
