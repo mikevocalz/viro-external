@@ -214,8 +214,8 @@ export interface XRPlatformAdapter {
   dispose(): Promise<void> | void;
 }
 
-export * from "./ui";
+export * from "./ui.js";
 
-export * from "./interaction";
+export * from "./interaction.js";
 
-export * from "./rive";
+export * from "./rive.js";
