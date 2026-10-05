@@ -135,3 +135,4 @@ export * from "./navigation.js";
 export * from "./testing.js";
 export * from "./viro-runtime-provider.js";
 export * from "./viro-bundle.js";
+export * from "./ui-interaction.js";
