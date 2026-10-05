@@ -21,6 +21,7 @@ import {
   PremiumMaterials,
   registerPremiumMaterials,
 } from "./materials";
+import { resolveVisualDepth } from "./visual-depth";
 
 export type SpatialPanelShape = "square" | "rounded" | "curved";
 export type SpatialPanelVariant = "solid" | "glass";
@@ -47,6 +48,7 @@ export type SpatialPanelProps = MovableProps & {
   rotation?: Vec3;
   scale?: Vec3;
   children?: React.ReactNode;
+  visualDepth?: import("./visual-depth").XRVisualDepth;
 };
 
 export function SpatialPanel({
@@ -71,6 +73,7 @@ export function SpatialPanel({
   rotation,
   scale,
   children,
+  visualDepth,
   movable,
   tag,
   dragType,
@@ -82,6 +85,7 @@ export function SpatialPanel({
   pinchToScale,
 }: SpatialPanelProps): React.ReactElement {
   registerPremiumMaterials();
+  const depth = resolveVisualDepth(visualDepth);
 
   const [pinned, setPinned] = useState(defaultPinned);
   const [closed, setClosed] = useState(false);
@@ -168,6 +172,20 @@ export function SpatialPanel({
         rotation={rotation}
         transformBehaviors={pinned ? undefined : ["billboardY"]}
       >
+        {depth.edge ? (
+          shape === "square" ? (
+            <ViroQuad width={width * depth.edgeScale} height={height * depth.edgeScale} position={[0, 0, depth.edgeOffset]} materials={[PremiumMaterials.panelEdge]} ignoreEventHandling />
+          ) : (
+            <ViroGeometry
+              vertices={(rounded ?? curved)!.vertices.map(([x,y,z]) => [x * depth.edgeScale, y * depth.edgeScale, z + depth.edgeOffset] as [number,number,number])}
+              normals={(rounded ?? curved)!.normals}
+              texcoords={(rounded ?? curved)!.texcoords}
+              triangleIndices={(rounded ?? curved)!.triangleIndices}
+              materials={[PremiumMaterials.panelEdge]}
+              ignoreEventHandling
+            />
+          )
+        ) : null}
         {shape === "square" ? (
           <ViroQuad
             width={width}

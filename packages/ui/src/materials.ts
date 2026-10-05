@@ -9,6 +9,10 @@ export const PremiumMaterials = {
   buttonDisabled: "vxp_ui_button_disabled",
   rail: "vxp_ui_scroll_rail",
   thumb: "vxp_ui_scroll_thumb",
+  panelEdge: "vxp_ui_panel_edge",
+  panelHighlight: "vxp_ui_panel_highlight",
+  buttonEdge: "vxp_ui_button_edge",
+  buttonHighlight: "vxp_ui_button_highlight",
 } as const;
 
 let registered = false;
@@ -44,6 +48,22 @@ export function registerPremiumMaterials(): void {
     },
     [PremiumMaterials.rail]: {
       diffuseColor: "#AA343B4A",
+      lightingModel: "Constant",
+    },
+    [PremiumMaterials.panelEdge]: {
+      diffuseColor: "#FF070A10",
+      lightingModel: "Blinn",
+    },
+    [PremiumMaterials.panelHighlight]: {
+      diffuseColor: "#4AFFFFFF",
+      lightingModel: "Constant",
+    },
+    [PremiumMaterials.buttonEdge]: {
+      diffuseColor: "#FF090C14",
+      lightingModel: "Blinn",
+    },
+    [PremiumMaterials.buttonHighlight]: {
+      diffuseColor: "#55FFFFFF",
       lightingModel: "Constant",
     },
     [PremiumMaterials.thumb]: {
