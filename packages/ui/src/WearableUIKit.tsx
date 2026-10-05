@@ -11,7 +11,7 @@ export type GlassesSurfaceProps = {
 };
 
 export function GlassesBackplate({ width = 1.6, height = 1, position, children }: GlassesSurfaceProps) {
-  return <SpatialPanel width={width} height={height} position={position} rounded>{children}</SpatialPanel>;
+  return <SpatialPanel width={width} height={height} position={position} shape="rounded">{children}</SpatialPanel>;
 }
 
 export function GlassesFrame(props: GlassesSurfaceProps) { return <GlassesBackplate {...props} />; }
