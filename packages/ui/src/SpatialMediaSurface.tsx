@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
-import { ViroGeometry, ViroSphere } from "@reactvision/react-viro";
+import { ViroGeometry, ViroQuad, ViroSphere } from "@reactvision/react-viro";
 import type { Vec3 } from "@viro-external/core";
-import { buildCurvedPanelGeometry, buildRoundedPanelGeometry } from "./geometry";
+import { buildCurvedPanelGeometry } from "./geometry";
 
 export type SpatialMediaPresentation = "flat" | "curved" | "immersive360";
 
@@ -12,6 +12,7 @@ export type SpatialMediaSurfaceProps = {
   curvature?: number;
   segments?: number;
   presentation?: SpatialMediaPresentation;
+  immersiveRadius?: number;
   position?: Vec3;
   rotation?: Vec3;
   opacity?: number;
@@ -32,6 +33,7 @@ export function SpatialMediaSurface({
   curvature = 0,
   segments = 48,
   presentation = curvature > 0 ? "curved" : "flat",
+  immersiveRadius = 9,
   position,
   rotation,
   opacity = 1,
@@ -42,17 +44,14 @@ export function SpatialMediaSurface({
     [curvature, height, segments, width]
   );
 
-  const rounded = useMemo(
-    () => buildRoundedPanelGeometry(width, height, Math.min(width, height) * 0.025, 8),
-    [height, width]
-  );
-
   if (presentation === "immersive360") {
     return (
       <ViroSphere
-        radius={Math.max(width, height) * 1.25}
+        radius={immersiveRadius}
         widthSegmentCount={segments}
         heightSegmentCount={Math.max(16, Math.floor(segments / 2))}
+        facesOutward={false}
+        scale={[1, -1, 1]}
         materials={[materialName]}
         position={position}
         rotation={rotation}
@@ -63,15 +62,27 @@ export function SpatialMediaSurface({
     );
   }
 
-  const geometry =
-    presentation === "curved" || curvature > 0 ? curved : rounded;
+  if (presentation === "flat" && curvature <= 0) {
+    return (
+      <ViroQuad
+        width={width}
+        height={height}
+        materials={[materialName]}
+        position={position}
+        rotation={rotation}
+        opacity={opacity}
+      >
+        {children}
+      </ViroQuad>
+    );
+  }
 
   return (
     <ViroGeometry
-      vertices={geometry.vertices}
-      normals={geometry.normals}
-      texcoords={geometry.texcoords}
-      triangleIndices={geometry.triangleIndices}
+      vertices={curved.vertices}
+      normals={curved.normals}
+      texcoords={curved.texcoords}
+      triangleIndices={curved.triangleIndices}
       materials={[materialName]}
       position={position}
       rotation={rotation}
