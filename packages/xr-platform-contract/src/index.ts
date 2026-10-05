@@ -213,3 +213,5 @@ export interface XRPlatformAdapter {
   updatePortableScene?(nodes: readonly PortableXRNode[]): Promise<void> | void;
   dispose(): Promise<void> | void;
 }
+
+export * from "./ui";
