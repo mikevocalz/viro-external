@@ -37,6 +37,13 @@ export type RiveSpatialSurfaceConfig = {
   source: RiveSource;
   artboard?: string;
   stateMachine?: string;
+  /**
+   * Preferred fit. Not every host supports every RiveFit — check
+   * RiveSpatialSurfaceCapabilities.supportedFits after mount. A host that
+   * cannot honor the requested fit must not silently render the wrong one;
+   * it should map to the closest supported fit and say so in supportedFits.
+   * The Viro/nitro pipeline currently implements contain | cover | fill.
+   */
   fit?: RiveFit;
   depthMode?: RiveSpatialDepthMode;
   width: number;
@@ -54,6 +61,11 @@ export type RiveSpatialSurfaceCapabilities = {
   pointerInput: boolean;
   externalRenderTarget: boolean;
   depthComposition: boolean;
+  /**
+   * Fit modes the host actually renders. Absent means the host accepts the
+   * full RiveFit set; hosts must populate this when they support a subset.
+   */
+  supportedFits?: readonly RiveFit[];
 };
 
 export const DEFAULT_RIVE_DRAG: RiveDragConfig = {
