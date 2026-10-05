@@ -17,6 +17,17 @@ export {
 } from "./PanelButton";
 
 export {
+  SpatialHitTarget,
+  type SpatialHitTargetProps,
+} from "./SpatialHitTarget";
+
+export {
+  SpatialMediaSurface,
+  type SpatialMediaPresentation,
+  type SpatialMediaSurfaceProps,
+} from "./SpatialMediaSurface";
+
+export {
   SpatialScrollView,
   type SpatialScrollViewProps,
 } from "./SpatialScrollView";
@@ -59,7 +70,6 @@ export {
   createRiveSpatialSurface,
   disposeRiveSpatialSurface,
 } from "./RiveSpatialSurface";
-
 
 export {
   ViroCoreRiveSpatialAdapter,
