@@ -77,3 +77,5 @@ export {
 } from "./RiveNativeHost";
 
 export * from "./WearableUIKit";
+
+export { QuickDrawSpatialSurface, type QuickDrawSpatialSurfaceProps } from "./QuickDrawSpatialSurface";
