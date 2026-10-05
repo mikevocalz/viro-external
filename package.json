@@ -8,7 +8,8 @@
   "scripts": {
     "typecheck": "pnpm -r --if-present typecheck",
     "specs": "pnpm -r --if-present specs",
-    "check:metro": "node scripts/check-metro-resolution.mjs"
+    "check:metro": "node scripts/check-metro-resolution.mjs",
+    "test:rive-contract": "node --test test/rive-contract.test.mjs"
   },
   "workspaces": [
     "packages/*"

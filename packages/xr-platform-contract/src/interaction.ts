@@ -2,7 +2,7 @@
 
 export type XRUIInputSource =
   | "touch" | "gaze" | "pinch" | "dpad" | "controller"
-  | "hand" | "voice" | "keyboard";
+  | "hand" | "voice" | "keyboard" | "neural-band";
 
 export type XRUIInteractionPhase =
   | "hover-enter" | "hover-move" | "hover-exit"

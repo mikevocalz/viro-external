@@ -19,7 +19,9 @@ export type RiveDragConfig = {
   /** If true, the panel follows the active ESIK pointer while pressed. */
   followPointer?: boolean;
 };
-export type RiveInputKind = "pointer" | "gaze" | "pinch" | "touch" | "controller" | "dpad" | "voice";
+export type RiveInputKind =
+  | "pointer" | "gaze" | "pinch" | "touch" | "controller"
+  | "dpad" | "hand" | "voice" | "keyboard" | "neural-band";
 export type RivePointerPhase = "enter" | "move" | "down" | "up" | "cancel" | "exit";
 
 export type RiveSpatialPointer = {

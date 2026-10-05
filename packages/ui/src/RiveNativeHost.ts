@@ -1,9 +1,37 @@
 import type {
   NativeRiveSpatialAdapter,
+  RiveDragAxis,
   RiveSpatialPointer,
   RiveSpatialSurfaceCapabilities,
   RiveSpatialSurfaceConfig,
+  RiveSpatialSurfaceHandle,
 } from "@viro-external/xr-contract";
+
+type Vec3 = readonly [number, number, number];
+
+const ZERO: Vec3 = [0, 0, 0];
+
+function subtract(a: Vec3, b: Vec3): Vec3 {
+  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+}
+
+function length(v: Vec3): number {
+  return Math.hypot(v[0], v[1], v[2]);
+}
+
+function axisFilter(delta: Vec3, axis: RiveDragAxis): Vec3 {
+  if (axis === "horizontal") return [delta[0], 0, 0];
+  if (axis === "vertical") return [0, delta[1], 0];
+  return delta;
+}
+
+function clampLength(delta: Vec3, max: number | undefined): Vec3 {
+  if (max === undefined) return delta;
+  const len = length(delta);
+  if (len <= max || len === 0) return delta;
+  const scale = max / len;
+  return [delta[0] * scale, delta[1] * scale, delta[2] * scale];
+}
 
 /**
  * Native seam required to put a Rive artboard in the Viro scene graph.
@@ -33,57 +61,38 @@ export type ViroCoreRiveNativeHost = {
 
 export class ViroCoreRiveSpatialAdapter implements NativeRiveSpatialAdapter {
   private readonly handles = new WeakMap<object, string>();
+  private readonly host: ViroCoreRiveNativeHost;
 
-  constructor(private readonly host: ViroCoreRiveNativeHost) {}
+  constructor(host: ViroCoreRiveNativeHost) {
+    this.host = host;
+  }
 
-  mount(config: RiveSpatialSurfaceConfig) {
+  mount(config: RiveSpatialSurfaceConfig): RiveSpatialSurfaceHandle {
     const native = this.host.mount(config);
-    let translation: readonly [number, number, number] = [0, 0, 0];
-    let dragStart: readonly [number, number, number] | null = null;
+    let translation: Vec3 = ZERO;
+    // Absolute-drag anchors: the pointer world position and the surface
+    // translation captured when the gesture began. Total displacement is
+    // recomputed per move so clamping and axis filtering cannot drift.
+    let gestureOrigin: Vec3 | null = null;
+    let anchorTranslation: Vec3 = ZERO;
     let dragging = false;
 
     const drag = {
       enabled: config.interactive === true && (config.drag?.enabled ?? true),
       activationDistance: config.drag?.activationDistance ?? 0.01,
-      axis: config.drag?.axis ?? "free",
+      axis: config.drag?.axis ?? ("free" as const),
       followPointer: config.drag?.followPointer ?? true,
       maxDistance: config.drag?.maxDistance,
     };
 
-    const distance = (a: readonly number[], b: readonly number[]) =>
-      Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
-
-    const project = (origin: readonly number[], point: readonly number[]) => {
-      let x = point[0] - origin[0];
-      let y = point[1] - origin[1];
-      let z = point[2] - origin[2];
-
-      if (drag.axis === "horizontal") {
-        y = 0;
-        z = 0;
-      } else if (drag.axis === "vertical") {
-        x = 0;
-        z = 0;
-      }
-
-      if (drag.maxDistance !== undefined) {
-        const length = Math.hypot(x, y, z);
-        if (length > drag.maxDistance && length > 0) {
-          const scale = drag.maxDistance / length;
-          x *= scale;
-          y *= scale;
-          z *= scale;
-        }
-      }
-
-      return [x, y, z] as const;
-    };
-
     const update = (pointer: RiveSpatialPointer) => {
-      if (!drag.enabled || !pointer.worldPosition || !dragStart) return;
+      if (!drag.enabled || !pointer.worldPosition || !gestureOrigin) return;
 
-      const delta = project(dragStart, pointer.worldPosition);
-      if (!dragging && distance([0, 0, 0], delta) < drag.activationDistance) {
+      const displacement = clampLength(
+        axisFilter(subtract(pointer.worldPosition, gestureOrigin), drag.axis),
+        drag.maxDistance,
+      );
+      if (!dragging && length(displacement) < drag.activationDistance) {
         return;
       }
 
@@ -91,15 +100,26 @@ export class ViroCoreRiveSpatialAdapter implements NativeRiveSpatialAdapter {
       if (!drag.followPointer) return;
 
       translation = [
-        translation[0] + delta[0],
-        translation[1] + delta[1],
-        translation[2] + delta[2],
+        anchorTranslation[0] + displacement[0],
+        anchorTranslation[1] + displacement[1],
+        anchorTranslation[2] + displacement[2],
       ];
-      dragStart = pointer.worldPosition;
       this.host.setSurfaceTranslation(native.surfaceId, translation);
     };
 
-    const handle = {
+    const begin = (pointer: RiveSpatialPointer) => {
+      if (!drag.enabled || !pointer.worldPosition) return;
+      gestureOrigin = pointer.worldPosition;
+      anchorTranslation = translation;
+      dragging = false;
+    };
+
+    const release = () => {
+      gestureOrigin = null;
+      dragging = false;
+    };
+
+    const handle: RiveSpatialSurfaceHandle = {
       play: () => this.host.play(native.surfaceId),
       pause: () => this.host.pause(native.surfaceId),
       reset: () => this.host.reset(native.surfaceId),
@@ -107,37 +127,27 @@ export class ViroCoreRiveSpatialAdapter implements NativeRiveSpatialAdapter {
         this.host.setStateMachineInput(native.surfaceId, name, value),
       dispatchPointer: (event) => {
         this.host.dispatchPointer(native.surfaceId, event);
-        if (!drag.enabled || !event.worldPosition) return;
+        if (!drag.enabled) return;
 
-        if (event.phase === "down") {
-          dragStart = event.worldPosition;
-          dragging = false;
-        } else if (event.phase === "move") {
-          update(event);
-        } else if (
+        if (
           event.phase === "up" ||
           event.phase === "cancel" ||
           event.phase === "exit"
         ) {
-          dragStart = null;
-          dragging = false;
+          release();
+        } else if (event.phase === "down") {
+          begin(event);
+        } else if (event.phase === "move") {
+          update(event);
         }
       },
-      beginDrag: (pointer) => {
-        if (!drag.enabled || !pointer.worldPosition) return;
-        dragStart = pointer.worldPosition;
-        dragging = false;
-      },
+      beginDrag: begin,
       updateDrag: update,
       endDrag: (pointer) => {
         update(pointer);
-        dragStart = null;
-        dragging = false;
+        release();
       },
-      cancelDrag: () => {
-        dragStart = null;
-        dragging = false;
-      },
+      cancelDrag: release,
       getCapabilities: () => native.capabilities,
     };
 
@@ -145,7 +155,7 @@ export class ViroCoreRiveSpatialAdapter implements NativeRiveSpatialAdapter {
     return handle;
   }
 
-  unmount(handle: ReturnType<ViroCoreRiveSpatialAdapter["mount"]>): void {
+  unmount(handle: RiveSpatialSurfaceHandle): void {
     const surfaceId = this.handles.get(handle);
     if (!surfaceId) return;
     this.host.unmount(surfaceId);

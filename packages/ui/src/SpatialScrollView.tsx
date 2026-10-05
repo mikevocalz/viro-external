@@ -11,6 +11,8 @@ export type SpatialScrollViewProps = {
   itemHeight: number;
   children: React.ReactNode;
   position?: Vec3;
+  /** Index of the first visible item on mount, clamped to the valid range. */
+  initialIndex?: number;
   step?: number;
   showRail?: boolean;
   onIndexChange?: (index: number) => void;
@@ -22,6 +24,7 @@ export function SpatialScrollView({
   itemHeight,
   children,
   position,
+  initialIndex = 0,
   step = 1,
   showRail = true,
   onIndexChange,
@@ -31,11 +34,13 @@ export function SpatialScrollView({
   const items = useMemo(() => React.Children.toArray(children), [children]);
   const visibleCount = Math.max(1, Math.floor(height / itemHeight));
   const maxStart = Math.max(0, items.length - visibleCount);
-  const [start, setStart] = useState(0);
+  const [start, setStart] = useState(() =>
+    Math.max(0, Math.min(maxStart, Math.floor(initialIndex))),
+  );
   // Mirrors `start` synchronously. Wheel events arrive from a native DOM
   // listener, so React may not re-render between two events of one fast
   // spin; reading `start` from the render closure would drop steps.
-  const startRef = useRef(0);
+  const startRef = useRef(start);
   const webScrollAccumulator = useRef(0);
 
   useEffect(() => {

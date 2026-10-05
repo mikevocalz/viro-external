@@ -1,7 +1,10 @@
 import React from "react";
 import { ViroNode, ViroQuad, ViroText } from "@reactvision/react-viro";
 import type { Vec3 } from "@viro-external/core";
-import { PanelButton, PanelText, SpatialPanel, SpatialScrollView } from "./index";
+import { PanelButton } from "./PanelButton";
+import { PanelText } from "./PanelContent";
+import { SpatialPanel } from "./SpatialPanel";
+import { SpatialScrollView } from "./SpatialScrollView";
 
 export type GlassesSurfaceProps = {
   width?: number;
@@ -149,8 +152,34 @@ export type GlassesScrollWindowProps = {
   position?: Vec3;
   onSelect?: (index: number) => void;
 };
-export function GlassesScrollWindow(props: GlassesScrollWindowProps) {
-  return <SpatialScrollView {...props} />;
+export function GlassesScrollWindow({
+  labels,
+  initialIndex = 0,
+  visibleCount = 5,
+  itemHeight = 0.07,
+  width = 0.7,
+  position,
+  onSelect,
+}: GlassesScrollWindowProps) {
+  return (
+    <SpatialScrollView
+      width={width}
+      height={Math.max(1, Math.floor(visibleCount)) * itemHeight}
+      itemHeight={itemHeight}
+      position={position}
+      initialIndex={initialIndex}
+    >
+      {labels.map((label, index) => (
+        <PanelButton
+          key={label + index}
+          label={label}
+          width={width}
+          height={itemHeight}
+          onPress={() => onSelect?.(index)}
+        />
+      ))}
+    </SpatialScrollView>
+  );
 }
 export const GlassesVerticalList = GlassesScrollWindow;
 export const GlassesScrollView = GlassesScrollWindow;

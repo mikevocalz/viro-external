@@ -65,3 +65,5 @@ export {
   ViroCoreRiveSpatialAdapter,
   type ViroCoreRiveNativeHost,
 } from "./RiveNativeHost";
+
+export * from "./WearableUIKit";
