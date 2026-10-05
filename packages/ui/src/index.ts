@@ -59,3 +59,9 @@ export {
   createRiveSpatialSurface,
   disposeRiveSpatialSurface,
 } from "./RiveSpatialSurface";
+
+
+export {
+  ViroCoreRiveSpatialAdapter,
+  type ViroCoreRiveNativeHost,
+} from "./RiveNativeHost";
