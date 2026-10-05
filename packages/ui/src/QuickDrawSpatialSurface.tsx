@@ -5,21 +5,15 @@ import {
   type QuickDrawSpatialSurfaceConfig,
 } from "@viro-external/xr-contract";
 import { MovableNode } from "@viro-external/core";
-import type { Vec3 } from "@viro-external/core";
+import type { MovableProps, Vec3 } from "@viro-external/core";
 
-export type QuickDrawSpatialSurfaceProps = {
+export type QuickDrawSpatialSurfaceProps = MovableProps & {
   adapter: NativeQuickDrawSpatialAdapter;
   width: number;
   height: number;
   pageWidth: number;
   pageHeight: number;
   position?: Vec3;
-  movable?: boolean;
-  dragType?: "FixedDistance" | "FixedToPlane" | "FixedDistanceOrigin";
-  dragPlane?: unknown;
-  onMoveStart?: () => void;
-  onMove?: (position: Vec3) => void;
-  onMoveEnd?: (position: Vec3) => void;
   interactive?: boolean;
   children?: React.ReactNode;
 };
@@ -40,7 +34,8 @@ export function QuickDrawSpatialSurface({
   interactive = true,
   children,
 }: QuickDrawSpatialSurfaceProps): React.ReactElement {
-  const handleRef = useRef<ReturnType<NativeQuickDrawSpatialAdapter["mount"]> | null>(null);\n  const [materialName, setMaterialName] = useState("quickdraw_spatial_placeholder");
+  const handleRef = useRef<ReturnType<NativeQuickDrawSpatialAdapter["mount"]> | null>(null);
+  const [materialName, setMaterialName] = useState("quickdraw_spatial_placeholder");
 
   const config = useMemo<QuickDrawSpatialSurfaceConfig>(
     () => ({
@@ -56,11 +51,13 @@ export function QuickDrawSpatialSurface({
 
   useEffect(() => {
     const handle = adapter.mount(config);
-    handleRef.current = handle;\n    setMaterialName(handle.materialName);
+    handleRef.current = handle;
+    setMaterialName(handle.materialName);
     return () => {
       handle.dispose();
       adapter.unmount(handle);
-      handleRef.current = null;\n      setMaterialName("quickdraw_spatial_placeholder");
+      handleRef.current = null;
+      setMaterialName("quickdraw_spatial_placeholder");
     };
   }, [adapter, config]);
 
