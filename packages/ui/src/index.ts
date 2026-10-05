@@ -77,3 +77,6 @@ export {
 } from "./RiveNativeHost";
 
 export * from "./WearableUIKit";
+
+export { QuickdrawSpatialPanel } from "./QuickdrawSpatialPanel";
+export type { QuickdrawSpatialPanelProps, QuickdrawSpatialPointer } from "./QuickdrawSpatialPanel.types";
