@@ -10,7 +10,7 @@ import {
   type VideoPresentation,
 } from "@viro-external/media";
 import type { Vec3 } from "@viro-external/core";
-import { PanelButton } from "./PanelButton";
+import { SpatialMediaControlBar } from "./SpatialMediaControlBar";
 import {
   SpatialPanel,
   type SpatialPanelShape,
@@ -100,40 +100,24 @@ export function SpatialVideoPlayerPanel({
         position={[0, height * 0.08, 0.02]}
       />
 
-      <ViroNode position={[0, controlsY, 0.03]}>
-        <PanelButton
-          label={snapshot.paused ? "Play" : "Pause"}
-          width={0.22}
-          onPress={() => player.togglePlay()}
-          position={[-0.39, 0, 0]}
-        />
-        <PanelButton
-          label={snapshot.muted ? "Unmute" : "Mute"}
-          width={0.22}
-          onPress={() =>
-            player.setMuted(!snapshot.muted)
-          }
-          position={[-0.14, 0, 0]}
-        />
-        <PanelButton
-          label="-10s"
-          width={0.18}
-          onPress={() => player.seekBy(-10)}
-          position={[0.09, 0, 0]}
-        />
-        <PanelButton
-          label="+10s"
-          width={0.18}
-          onPress={() => player.seekBy(10)}
-          position={[0.3, 0, 0]}
-        />
-        <PanelButton
-          label="Replay"
-          width={0.2}
-          onPress={() => player.replay()}
-          position={[0.52, 0, 0]}
-        />
-      </ViroNode>
+      <SpatialMediaControlBar
+        position={[0, controlsY, 0.03]}
+        controls={[
+          {
+            id: "play",
+            label: snapshot.paused ? "Play" : "Pause",
+            onPress: () => player.togglePlay(),
+          },
+          {
+            id: "mute",
+            label: snapshot.muted ? "Unmute" : "Mute",
+            onPress: () => player.setMuted(!snapshot.muted),
+          },
+          { id: "back", label: "-10s", width: 0.18, onPress: () => player.seekBy(-10) },
+          { id: "forward", label: "+10s", width: 0.18, onPress: () => player.seekBy(10) },
+          { id: "replay", label: "Replay", width: 0.2, onPress: () => player.replay() },
+        ]}
+      />
     </SpatialPanel>
   );
 }
