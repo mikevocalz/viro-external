@@ -10,8 +10,6 @@ function registerMaterial(): void {
   registered = true;
   ViroMaterials.createMaterials({
     [MATERIAL]: {
-      // Additive black is visually inert but remains hit-testable on Viro forks
-      // that cull fully transparent geometry from the interaction pass.
       diffuseColor: "#FF000000",
       lightingModel: "Constant",
       blendMode: "Add",
@@ -24,8 +22,8 @@ export type SpatialHitTargetProps = {
   width: number;
   height: number;
   position?: Vec3;
+  rotation?: Vec3;
   z?: number;
-  /** Extra invisible interaction area around the visual control, in meters. */
   padding?: number;
   disabled?: boolean;
   debug?: boolean;
@@ -35,13 +33,6 @@ export type SpatialHitTargetProps = {
   children?: React.ReactNode;
 };
 
-/**
- * A reusable XR interaction surface.
- *
- * The target owns the interaction geometry rather than making every media
- * control invent its own invisible quad. It deliberately does not write
- * depth, and it can be oversized without changing the visual layout.
- */
 export function SpatialHitTarget(props: SpatialHitTargetProps): React.ReactElement {
   registerMaterial();
   const [hovered, setHovered] = useState(false);
@@ -51,6 +42,7 @@ export function SpatialHitTarget(props: SpatialHitTargetProps): React.ReactEleme
   return (
     <ViroNode
       position={props.position}
+      rotation={props.rotation}
       dragType={"Gizmo" as never}
       onDrag={props.onDrag}
     >
