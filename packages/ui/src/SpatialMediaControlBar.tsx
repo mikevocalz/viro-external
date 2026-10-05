@@ -28,7 +28,7 @@ export function SpatialMediaControlBar({
   return (
     <ViroNode position={position}>
       {controls.map((control, index) => {
-        const width = widths[index];
+        const width = widths[index] ?? 0.22;
         const x = cursor + width / 2;
         cursor += width + gap;
         return (
