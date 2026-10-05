@@ -269,6 +269,9 @@ importers:
         specifier: link:../../../viro
         version: link:../../../viro
     devDependencies:
+      '@viro-external/xr-contract':
+        specifier: workspace:*
+        version: link:../xr-platform-contract
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
