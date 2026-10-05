@@ -28,6 +28,11 @@ The next native migrations should be deterministic render-path work such as:
 - radial layer/depth calculations
 - interpolation/smoothing used by animated spatial controls
 - bounded frame/presentation metrics
+- Rive spatial-surface math (`vx_rive_*`): drag length/clamp/axis filtering,
+  content-fit scaling and centering, and pointer-hit → surface UV. These are
+  the scalar equivalents of the TS helpers in `packages/ui/src/RiveNativeHost.ts`;
+  the native host calls them once it exists, while the TS adapter stays the
+  portable fallback.
 
 Do not move React state, Viro node ownership, native player lifecycle, or
 external-texture ownership into Eskiu. Those remain at their existing boundaries.

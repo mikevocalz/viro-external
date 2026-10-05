@@ -90,7 +90,7 @@ if(VIRO_EXTERNAL_ENABLE_ESKIU)
 
     add_custom_command(
         OUTPUT "${ESKIU_OBJECT}"
-        COMMAND "${ESKIUC_EXECUTABLE}" "${ESKIU_SOURCE}" -O2 -o "${ESKIU_OBJECT}"
+        COMMAND "${ESKIUC_EXECUTABLE}" -c "${ESKIU_SOURCE}" -O2 -o "${ESKIU_OBJECT}"
         DEPENDS "${ESKIU_SOURCE}"
         COMMENT "Compiling Eskiu spatial-media math"
         VERBATIM)

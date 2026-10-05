@@ -2,6 +2,10 @@
 // Keep this ABI deliberately C-shaped so the render backend can consume it
 // without exposing Eskiu layouts across the C++ boundary.
 
+extern double sin(double x);
+extern double cos(double x);
+extern double sqrt(double x);
+
 float vx_spatial_clamp01(float value) {
     if (value < 0.0) return 0.0;
     if (value > 1.0) return 1.0;
@@ -31,4 +35,58 @@ float vx_spatial_arc_sagitta(float width, float arc_radians) {
 
 float vx_spatial_radial_layer(float base_radius, float toward_viewer) {
     return base_radius - toward_viewer;
+}
+
+// ─── Rive spatial surface math ───────────────────────────────────────────────
+// Scalar equivalents of the TS helpers in
+// packages/ui/src/RiveNativeHost.ts (drag) and the panel fit math. The native
+// host implementation calls these so gesture math is deterministic and
+// allocation-free; the TS adapter remains the portable fallback.
+
+// Length of a pointer/world-space displacement vector.
+float vx_rive_delta_length(float dx, float dy, float dz) {
+    return sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+// Scale factor that clamps |delta| to maxLen. Returns 1.0 when the delta is
+// already inside the limit or clamping is disabled (maxLen <= 0). The caller
+// multiplies each component by the result — keeps the ABI scalar-only.
+float vx_rive_clamp_scale(float dx, float dy, float dz, float maxLen) {
+    float len = vx_rive_delta_length(dx, dy, dz);
+    if (maxLen <= 0.0 || len <= maxLen || len == 0.0) return 1.0;
+    return maxLen / len;
+}
+
+// Axis-constrained drag filtering, matching RiveDragAxis semantics:
+// axis 0 = free, 1 = horizontal (x only), 2 = vertical (y only).
+// component 0/1/2 selects x/y/z; filtered-out components return 0.
+float vx_rive_axis_component(float value, int axis, int component) {
+    if (axis == 1 && component != 0) return 0.0;
+    if (axis == 2 && component != 1) return 0.0;
+    return value;
+}
+
+// Content-fit scale for a cw x ch artboard on a w x h surface.
+// fit 0 = contain, 1 = cover. Caller applies the scale uniformly.
+float vx_rive_fit_scale(float w, float h, float cw, float ch, int fit) {
+    if (w <= 0.0 || h <= 0.0 || cw <= 0.0 || ch <= 0.0) return 1.0;
+    float sx = w / cw;
+    float sy = h / ch;
+    if (fit == 1) {
+        return sx > sy ? sx : sy;
+    }
+    return sx < sy ? sx : sy;
+}
+
+// Centering offset (in surface units) along one axis after scaling, where
+// surface is the surface extent and content is the scaled content extent.
+float vx_rive_center_offset(float surface, float content) {
+    return (surface - content) * 0.5;
+}
+
+// Pointer hit → surface UV. hit is the local hit coordinate and extent the
+// surface extent along that axis; returns a UV coordinate in [0, 1].
+float vx_rive_uv_from_hit(float hit, float extent) {
+    if (extent <= 0.0) return 0.0;
+    return vx_spatial_clamp01(hit / extent + 0.5);
 }
