@@ -215,3 +215,5 @@ export interface XRPlatformAdapter {
 }
 
 export * from "./ui";
+
+export * from "./interaction";

@@ -76,15 +76,7 @@ export type XRUIInteractionState =
   | "collapsed"
   | "indeterminate";
 
-export type XRUIInputSource =
-  | "touch"
-  | "gaze"
-  | "pinch"
-  | "dpad"
-  | "controller"
-  | "hand"
-  | "voice"
-  | "keyboard";
+import type { XRUIInputSource } from "./interaction.js";
 
 export type XRUIComponentParity = {
   kind: XRUIComponentKind;
