@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ViroQuad } from "@reactvision/react-viro";
 import {
   type NativeQuickDrawSpatialAdapter,
@@ -40,7 +40,7 @@ export function QuickDrawSpatialSurface({
   interactive = true,
   children,
 }: QuickDrawSpatialSurfaceProps): React.ReactElement {
-  const handleRef = useRef<ReturnType<NativeQuickDrawSpatialAdapter["mount"]> | null>(null);
+  const handleRef = useRef<ReturnType<NativeQuickDrawSpatialAdapter["mount"]> | null>(null);\n  const [materialName, setMaterialName] = useState("quickdraw_spatial_placeholder");
 
   const config = useMemo<QuickDrawSpatialSurfaceConfig>(
     () => ({
@@ -56,11 +56,11 @@ export function QuickDrawSpatialSurface({
 
   useEffect(() => {
     const handle = adapter.mount(config);
-    handleRef.current = handle;
+    handleRef.current = handle;\n    setMaterialName(handle.materialName);
     return () => {
       handle.dispose();
       adapter.unmount(handle);
-      handleRef.current = null;
+      handleRef.current = null;\n      setMaterialName("quickdraw_spatial_placeholder");
     };
   }, [adapter, config]);
 
@@ -77,7 +77,7 @@ export function QuickDrawSpatialSurface({
       <ViroQuad
         width={width}
         height={height}
-        materials={[handleRef.current?.materialName ?? "quickdraw_spatial_placeholder"]}
+        materials={[materialName]}
       >
         {children}
       </ViroQuad>
