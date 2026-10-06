@@ -3,6 +3,7 @@ export type EsikuBackendFamily =
   | "android-xr"
   | "viture-native"
   | "rayneo-native"
+  | "visionos"
   | "wearable";
 
 export type EsikuTarget =
@@ -97,6 +98,7 @@ export function selectEsikuBackend(
 ): EsikuBackendFamily {
   if (profile.target === "viture") return "viture-native";
   if (profile.target === "vive-eagle") return "wearable";
+  if (profile.target === "vision-pro") return "visionos";
 
   if (
     profile.target === "rayneo" &&
