@@ -22,9 +22,14 @@ const state = (value: boolean | undefined) =>
   value === false ? "unsupported" as const : "unverified" as const;
 
 export class EsikuVitureAdapter implements XRPlatformAdapter {
-  readonly family = "viro-openxr" as const;
+  readonly family = "viture-native" as const;
 
   constructor(private readonly transport: VitureNativeTransport) {}
+
+  /** Hardware family reported by the native transport, for diagnostics. */
+  deviceFamily(): Promise<VitureDeviceFamily> | VitureDeviceFamily {
+    return this.transport.getDeviceFamily();
+  }
 
   async getCapabilities(): Promise<XRCapabilityReport> {
     const caps = await this.transport.getCapabilities();

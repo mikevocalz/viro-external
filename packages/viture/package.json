@@ -7,6 +7,6 @@
   "sideEffects": false,
   "files": ["src", "README.md"],
   "scripts": {"typecheck": "tsc --noEmit"},
-  "dependencies": {"@viro-external/xr-contract": "workspace:*"},
-  "devDependencies": {"typescript": "7.0.2"}
+  "peerDependencies": {"@viro-external/xr-contract": "workspace:*"},
+  "devDependencies": {"@viro-external/xr-contract": "workspace:*", "typescript": "7.0.2"}
 }
