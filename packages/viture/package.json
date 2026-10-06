@@ -1,0 +1,12 @@
+{
+  "name": "@viro-external/viture",
+  "version": "0.1.0",
+  "description": "Native VITURE adapter boundary for Esiku.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "files": ["src", "README.md"],
+  "scripts": {"typecheck": "tsc --noEmit"},
+  "dependencies": {"@viro-external/xr-contract": "workspace:*"},
+  "devDependencies": {"typescript": "7.0.2"}
+}
