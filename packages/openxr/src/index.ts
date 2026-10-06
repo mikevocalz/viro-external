@@ -12,6 +12,14 @@ export interface OpenXRRuntimeProbe {
   runtimeVersion?: string;
   systemName?: string;
   extensions: OpenXRExtensionSet;
+  /**
+   * Capabilities whose required Android runtime permission is not granted.
+   * Extension presence alone only proves the runtime can expose the feature;
+   * Android XR gates eye tracking, hand tracking, scene understanding and
+   * camera access behind dangerous permissions, so these stay distinct from
+   * "unsupported".
+   */
+  ungrantedPermissions?: ReadonlySet<XRCapabilityName>;
 }
 
 export type OpenXRTargetHint =
@@ -38,7 +46,7 @@ const EXTENSIONS: Partial<Record<XRCapabilityName, readonly string[]>> = {
     "XR_ANDROID_spatial_anchor_space",
     "XR_FB_spatial_entity",
   ],
-  "world-query": ["XR_EXT_spatial_entity_query", "XR_FB_spatial_entity_query"],
+  "world-query": ["XR_EXT_spatial_entity", "XR_FB_spatial_entity_query"],
 };
 
 function state(
@@ -63,7 +71,12 @@ export function probeOpenXRCapabilities(
   };
 
   for (const capability of Object.keys(EXTENSIONS) as XRCapabilityName[]) {
-    report[capability] = state(probe.extensions, EXTENSIONS[capability]);
+    const extensionState = state(probe.extensions, EXTENSIONS[capability]);
+    report[capability] =
+      extensionState === "supported" &&
+      probe.ungrantedPermissions?.has(capability)
+        ? "permission-required"
+        : extensionState;
   }
 
   return report;
