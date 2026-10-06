@@ -65,10 +65,11 @@ module.exports = function withMetaWearables(config, props = {}) {
     if (!app) return cfg;
     if (!props.applicationId) {
       throw new Error(
-        '@viro-external/meta-wearables: applicationId is required (Wearables Developer Center application ID)'
+        '@viro-external/meta-wearables: applicationId is required (Wearables Developer Center application ID; use "0" in Developer Mode)'
       );
     }
     setMetaData(app, 'com.meta.wearable.mwdat.APPLICATION_ID', props.applicationId);
+    setMetaData(app, 'com.meta.wearable.mwdat.CLIENT_TOKEN', props.clientToken || '0');
     if (typeof props.analyticsOptOut === 'boolean') {
       setMetaData(app, 'com.meta.wearable.mwdat.ANALYTICS_OPT_OUT', props.analyticsOptOut);
     }
