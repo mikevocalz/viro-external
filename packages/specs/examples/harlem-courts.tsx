@@ -149,17 +149,17 @@ export default function HarlemCourts({
           // its listener hit shapes become the panel's buttons.
           inspect: "assets/moyo_learning_question.inspect.json",
           clips: {
-            Loading: { animation: "EntranceLoading", loop: true },
             Entering: "Entering",
             Idle: "Idle",
             Submitting: { animation: "Submitting", loop: true },
             Correct: "FeedbackCorrect",
           },
-          play: "Loading",
+          // No baked loading clip: each host shows its own spinner (Lens UI
+          // Kit on Specs, ViroSpinner natively) until the panel is ready.
+          play: "Entering",
           next: { Entering: "Idle", Correct: "Idle" },
-          // Pinch anywhere to start the lesson; then its own buttons drive it.
-          onSelect: { Loading: "Entering", Submitting: "Correct" },
-          actions: { board: "Loading", retry: "Entering", submit: "Submitting" },
+          onSelect: { Submitting: "Correct" },
+          actions: { retry: "Entering", submit: "Submitting" },
         }}
       />
     </ViroNode>

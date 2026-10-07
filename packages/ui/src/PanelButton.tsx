@@ -47,7 +47,9 @@ export function PanelButton({
         text={label}
         color="#F7F8FC"
         width={width * 0.9}
-        height={height * 0.8}
+        // One line tall and centred on the quad: in a taller box Viro sits the
+        // line toward the top even with textAlignVertical "center".
+        height={Math.min(height, (fontSize / 1000) * 1.25)}
         position={[0, 0, 0.002]}
         style={{
           fontSize,

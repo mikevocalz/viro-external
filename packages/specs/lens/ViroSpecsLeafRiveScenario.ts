@@ -6,9 +6,9 @@ import { expect } from "Leaf.lspkg/Utils/common/Expect";
 import { ViroSpecsRuntimeHost } from "./ViroSpecsRuntimeHost";
 
 /**
- * The baked Rive lesson panel: it starts on its first clip, the animated
- * texture advances inside that clip's frame range, and a pinch moves the
- * state graph on (Loading → Entering, which then falls through to Idle).
+ * The baked Rive lesson panel: it opens on Entering, the animated texture
+ * advances, the clip falls through to Idle, and the Rive file's own buttons
+ * switch clips.
  */
 @component
 export class ViroSpecsLeafRiveScenario extends Scenario {
@@ -22,25 +22,18 @@ export class ViroSpecsLeafRiveScenario extends Scenario {
     const control = image.mainPass.baseTex.control as AnimatedTextureFileProvider;
     expect(control.getFramesCount()).toBeGreaterThan(1);
 
-    expect(runtime.getRiveClip(id)).toBe("Loading");
+    // No baked loading clip: the panel opens on Entering, which falls
+    // through to Idle (the host shows its own spinner before that).
+    expect(runtime.getRiveClip(id)).toBe("Entering");
     const first = control.getCurrentPlayingFrame();
-    await sleep(400);
+    await sleep(300);
     const later = control.getCurrentPlayingFrame();
     print("VIRO_VALIDATION rive:play measured " + JSON.stringify({ frames: control.getFramesCount(), first, later }));
     expect(later).not.toBe(first);
-    // Loading is baked frames 0-49; check against the frames Lens kept.
-    expect(later).toBeLessThan(Math.ceil(control.getFramesCount() * 50 / 107) + 1);
-    print("VIRO_VALIDATION rive:play PASS Loading advances inside its range");
-
-    const tap = findInteractableByName(object.name);
-    expect(tap).toBeTruthy();
-    await new DefaultLeafInteractor().trigger(tap);
-    await sleep(50);
-    expect(runtime.getRiveClip(id)).toBe("Entering");
-    // Entering is 18 frames at 25 fps; it then falls through to Idle.
+    print("VIRO_VALIDATION rive:play PASS Entering advances");
     await sleep(1200);
     expect(runtime.getRiveClip(id)).toBe("Idle");
-    print("VIRO_VALIDATION rive:select PASS Loading -> Entering -> Idle");
+    print("VIRO_VALIDATION rive:next PASS Entering -> Idle");
 
     // The Rive art's own buttons are labelled press targets.
     const submit = findInteractableByName("viro-button:Submit");
