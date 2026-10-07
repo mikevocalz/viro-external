@@ -1,0 +1,50 @@
+{
+  "name": "@viro-external/premium",
+  "version": "0.1.0",
+  "description": "Premium Viro spatial toolkit: core primitives, spatial UI and provider-neutral media.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "files": ["src", "README.md"],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./core": {
+      "types": "./src/core.ts",
+      "default": "./src/core.ts"
+    },
+    "./media": {
+      "types": "./src/media.ts",
+      "default": "./src/media.ts"
+    },
+    "./ui": {
+      "types": "./src/ui.ts",
+      "default": "./src/ui.ts"
+    }
+  },
+  "dependencies": {
+    "@viro-external/core": "workspace:*",
+    "@viro-external/media": "workspace:*",
+    "@viro-external/ui": "workspace:*"
+  },
+  "peerDependencies": {
+    "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
+    "react": ">=19.3.0 <20.0.0",
+    "react-native": ">=0.88.0-rc.0 <0.89.0"
+  },
+  "devDependencies": {
+    "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
+    "@types/react": "19.3.0",
+    "@viro-external/core": "workspace:*",
+    "@viro-external/media": "workspace:*",
+    "@viro-external/ui": "workspace:*",
+    "react": "19.3.0",
+    "react-native": "0.88.0-rc.3",
+    "typescript": "7.0.2"
+  }
+}

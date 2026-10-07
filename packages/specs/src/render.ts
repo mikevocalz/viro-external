@@ -1,5 +1,5 @@
 import type { PortableXRNode } from "@viro-external/xr-contract";
-import type { SpecsUpstreamPackageName } from "./upstream";
+import type { SpecsUpstreamPackageName } from "./upstream.js";
 
 export type SpecsRenderPrimitive =
   | "scene-object"

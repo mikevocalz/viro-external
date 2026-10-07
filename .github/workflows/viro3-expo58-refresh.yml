@@ -3,6 +3,7 @@ name: Viro 3 / Expo 58 dependency refresh
 on:
   push:
     branches:
+      - main
       - chore/viro3-expo58-latest-deps
   workflow_dispatch:
 

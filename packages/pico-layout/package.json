@@ -1,0 +1,19 @@
+{
+  "name": "@viro-external/pico-layout",
+  "version": "0.1.0",
+  "description": "PICO Spatial SDK adapter for the shared Viro spatial workspace contract.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "files": ["src", "README.md", "doc"],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@viro-external/xr-contract": "workspace:*"
+  },
+  "devDependencies": {
+    "@viro-external/xr-contract": "workspace:*",
+    "typescript": "7.0.2"
+  }
+}

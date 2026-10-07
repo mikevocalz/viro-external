@@ -1,0 +1,66 @@
+name: Publish SPECS packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build and pack without publishing"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@12.8.1 --activate
+
+      - name: Install
+        run: pnpm install --frozen-lockfile --strict-peer-dependencies=false
+
+      - name: Validate release packages
+        run: |
+          pnpm --filter @viro-external/xr-contract typecheck
+          pnpm --filter @viro-external/specs typecheck
+          pnpm --filter @viro-external/specs specs:validate-lens
+          pnpm --filter @viro-external/specs specs:test-runner
+
+      - name: Build publishable packages
+        run: |
+          pnpm --filter @viro-external/xr-contract build
+          pnpm --filter @viro-external/specs build
+
+      - name: Pack
+        run: |
+          mkdir -p artifacts
+          pnpm --filter @viro-external/xr-contract pack --pack-destination ../../artifacts
+          pnpm --filter @viro-external/specs pack --pack-destination ../../artifacts
+          ls -lh artifacts
+
+      - name: Publish XR contract
+        if: ${{ !inputs.dry_run }}
+        working-directory: packages/xr-platform-contract
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+
+      - name: Publish SPECS backend
+        if: ${{ !inputs.dry_run }}
+        working-directory: packages/specs
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public

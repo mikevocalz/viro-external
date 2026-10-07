@@ -7,11 +7,22 @@ on:
       - feat/webspatial-adapter
       - feat/meta-wearables-dat
       - feat/snap-specs-adapter
+      - feat/spatial-workspace-contract
+      - feat/meta-horizon-layout
+      - feat/pico-spatial-layout
+      - feat/spatial-runtime-compute
+      - feat/web-layout-adapters
   pull_request:
     paths:
       - "packages/specs/**"
       - "packages/xr-platform-contract/**"
+      - "packages/meta-layout/**"
+      - "packages/pico-layout/**"
+      - "packages/spatial-runtime/**"
+      - "packages/web-layout/**"
+      - "packages/webspatial/**"
       - ".github/workflows/xr-platform-validation.yml"
+      - "scripts/check-metro-resolution.mjs"
   workflow_dispatch:
 
 permissions:
@@ -57,11 +68,40 @@ jobs:
           ln -sfn "$GITHUB_WORKSPACE/packages/react-native-viro-mux/node_modules/react-native" ../viro/node_modules/react-native
           ln -sfn "$GITHUB_WORKSPACE/packages/react-native-viro-mux/node_modules/@types/react" ../viro/node_modules/@types/react
 
-      - name: Typecheck workspace
-        run: pnpm typecheck
+      - name: Typecheck XR packages
+        run: |
+          pnpm --filter @viro-external/xr-contract typecheck
+          pnpm --filter @viro-external/specs typecheck
+          if [ -d packages/meta-layout ]; then pnpm --filter @viro-external/meta-layout typecheck; fi
+          if [ -d packages/pico-layout ]; then pnpm --filter @viro-external/pico-layout typecheck; fi
+          if [ -d packages/spatial-runtime ]; then pnpm --filter @viro-external/spatial-runtime typecheck; fi
+          if [ -d packages/web-layout ]; then pnpm --filter @viro-external/web-layout typecheck; fi
+          if [ -d packages/webspatial ]; then pnpm --filter @viro-external/webspatial typecheck; fi
 
       - name: Validate Lens Studio runtime sources
         run: pnpm --filter @viro-external/specs specs:validate-lens
+
+      - name: Build publishable XR packages
+        run: |
+          pnpm --filter @viro-external/xr-contract build
+          pnpm --filter @viro-external/specs build
+
+      - name: Smoke-test built ESM entrypoints in Node
+        run: |
+          node -e "Promise.all([import('./packages/xr-platform-contract/dist/index.js'), import('./packages/specs/dist/index.js')]).then(() => console.log('ESM imports OK'))"
+
+      - name: Smoke-test built CommonJS entrypoints in Node
+        run: |
+          node -e "require('./packages/xr-platform-contract/dist/cjs/index.js'); require('./packages/specs/dist/cjs/index.js'); console.log('CJS requires OK')"
+
+      - name: Check Metro resolves workspace packages to src
+        run: pnpm check:metro
+
+      - name: Pack SPECS package
+        run: |
+          mkdir -p /tmp/viro-specs-pack
+          pnpm --filter @viro-external/specs pack --pack-destination /tmp/viro-specs-pack
+          test -n "$(find /tmp/viro-specs-pack -name '*.tgz' -print -quit)"
 
       - name: Validate Lens bootstrap scripts
         run: |
@@ -80,6 +120,10 @@ jobs:
             'packages/webspatial/package.json': '@viro-external/webspatial',
             'packages/meta-wearables/package.json': '@viro-external/meta-wearables',
             'packages/specs/package.json': '@viro-external/specs',
+            'packages/meta-layout/package.json': '@viro-external/meta-layout',
+            'packages/pico-layout/package.json': '@viro-external/pico-layout',
+            'packages/spatial-runtime/package.json': '@viro-external/spatial-runtime',
+            'packages/web-layout/package.json': '@viro-external/web-layout',
           };
 
           for (const [file, name] of Object.entries(expectations)) {

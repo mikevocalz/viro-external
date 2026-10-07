@@ -7,9 +7,16 @@
   },
   "scripts": {
     "typecheck": "pnpm -r --if-present typecheck",
-    "specs": "pnpm -r --if-present specs"
+    "specs": "pnpm -r --if-present specs",
+    "check:metro": "node scripts/check-metro-resolution.mjs",
+    "test:rive-contract": "node --test test/rive-contract.test.mjs",
+    "perf:tracesift:init": "npx --yes @callstack/tracesift@0.3.1 init",
+    "perf:tracesift": "npx --yes @callstack/tracesift@0.3.1 start"
   },
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "devDependencies": {
+    "metro-resolver": "0.87.1"
+  }
 }

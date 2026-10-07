@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo } from "react";
 import { ViroGeometry, ViroMaterials, ViroNode, ViroQuad, ViroText } from "@reactvision/react-viro";
-import {
-  MovableNode,
-  type ExternalTextureHandle,
-  type MovableProps,
-  type Vec3,
-} from "react-native-viro-mux";
+import { MovableNode } from "./MovableNode";
+import type {
+  ExternalTextureHandle,
+  MovableProps,
+  Vec3,
+} from "./spatialTypes";
 import defaults from "../config/defaults.json";
 import { buildCylinderGeometry } from "./buildCylinderGeometry";
 

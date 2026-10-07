@@ -1,4 +1,4 @@
-import type { SpecsUpstreamPackageName } from "./upstream";
+import type { SpecsUpstreamPackageName } from "./upstream.js";
 
 export type SpecsAnimationEasing =
   | "linear"

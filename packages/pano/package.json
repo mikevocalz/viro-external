@@ -1,36 +1,26 @@
 {
   "name": "@viro-external/pano",
-  "version": "0.1.0",
-  "description": "360 pano background for Viro OpenXR: native pano-pass, dual-sampler transitions, preload pipeline (Nitro control plane).",
+  "version": "0.2.0",
+  "description": "Compatibility package for Nitro-free 360 imagery via @viro-external/media.",
   "main": "src/index.ts",
   "types": "src/index.ts",
-  "files": [
-    "src",
-    "android",
-    "cpp",
-    "nitrogen",
-    "nitro.json",
-    "react-native.config.js",
-    "DECISIONS.md"
-  ],
+  "sideEffects": false,
+  "files": ["src", "README.md"],
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "specs": "nitrogen"
+    "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
     "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
+    "@viro-external/media": "workspace:*",
     "react": ">=19.3.0 <20.0.0",
-    "react-native": ">=0.88.0-rc.0 <0.89.0",
-    "react-native-nitro-modules": "^0.37.1",
-    "react-native-viro-mux": "workspace:*"
+    "react-native": ">=0.88.0-rc.0 <0.89.0"
   },
   "devDependencies": {
     "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
     "@types/react": "19.3.0",
-    "nitrogen": "0.37.1",
+    "@viro-external/media": "workspace:*",
     "react": "19.3.0",
     "react-native": "0.88.0-rc.3",
-    "react-native-nitro-modules": "0.37.1",
     "typescript": "7.0.2"
   }
 }
