@@ -8,6 +8,7 @@ export type XRPlatformFamily =
   | "pico-spatial"
   | "meta-wearables"
   | "snap-specs"
+  | "viture-native"
   | "unknown";
 
 export type XRCapabilityState =
