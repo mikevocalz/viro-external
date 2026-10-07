@@ -27,6 +27,7 @@ import { arcPlateBuffers, makeArcFrame, polarPose, type ArcFrame } from "./arc";
 import { LucideIcon, type LucideIconName } from "./LucideIcon";
 import { Text3D } from "./Text3D";
 import { PanelHeader3D, TitleBarButton, registerHeaderAnims } from "./PanelHeader3D";
+import { SpatialHitTarget } from "@viro-external/ui";
 
 /**
  * The Mux video dock, gui-side: ViroMuxBridgeSurface + the SAME PanelHeader3D
@@ -738,24 +739,24 @@ export function MuxPlayerPanel(props: MuxPlayerPanelProps): React.ReactElement {
   const seekStrips = Array.from({ length: SEEK_SEGMENTS }, (_, i) => {
     const stripPose = pose(trackLeft + (trackW / SEEK_SEGMENTS) * (i + 0.5), DZ.strip);
     return (
-      <ViroNode key={i} position={stripPose.position} rotation={stripPose.rotation}>
-        <ViroQuad
-          width={trackW / SEEK_SEGMENTS}
-          height={ctrlH * 0.5}
-          materials={[M.hitStrip]}
-          opacity={0.15}
-          dragType={GIZMO}
-          onDrag={noopDrag}
-          onClick={() => {
-            const frac = (i + 0.5) / SEEK_SEGMENTS;
-            console.log(`[VXMUX] panel ${panelId}: track click → ${(frac * 100).toFixed(0)}%`);
-            commitSeek(frac, true);
-            patchPanel(panelId, {
-              positionSec: frac * getMuxPanelState(panelId).durationSec,
-            });
-          }}
-        />
-      </ViroNode>
+      <SpatialHitTarget
+        key={i}
+        width={trackW / SEEK_SEGMENTS}
+        height={ctrlH * 0.5}
+        position={stripPose.position}
+        rotation={stripPose.rotation}
+        z={DZ.strip}
+        padding={0.006}
+        onDrag={noopDrag}
+        onClick={() => {
+          const frac = (i + 0.5) / SEEK_SEGMENTS;
+          console.log(`[VXMUX] panel ${panelId}: track click → ${(frac * 100).toFixed(0)}%`);
+          commitSeek(frac, true);
+          patchPanel(panelId, {
+            positionSec: frac * getMuxPanelState(panelId).durationSec,
+          });
+        }}
+      />
     );
   });
 

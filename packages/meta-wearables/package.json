@@ -1,0 +1,35 @@
+{
+  "name": "@viro-external/meta-wearables",
+  "version": "0.1.0",
+  "description": "Meta Wearables Device Access Toolkit 1.0 native transport for React Native/Viro apps.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "files": [
+    "src",
+    "plugin",
+    "android",
+    "expo-module.config.json",
+    "app.plugin.js",
+    "README.md",
+    "doc"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@expo/config-plugins": ">=58.0.0 <59.0.0",
+    "@viro-external/xr-contract": "workspace:*",
+    "expo": ">=58.0.0 <59.0.0",
+    "expo-modules-core": ">=58.0.0 <59.0.0",
+    "react-native": ">=0.88.0-rc.0 <0.89.0"
+  },
+  "devDependencies": {
+    "@expo/config-plugins": "^58.0.4",
+    "@viro-external/xr-contract": "workspace:*",
+    "expo": "58.0.0",
+    "expo-modules-core": "^58.0.0",
+    "react-native": "0.88.0-rc.3",
+    "typescript": "7.0.2"
+  }
+}

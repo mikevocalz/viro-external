@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "repository": "specs-devs/packages",
+    "commit": "df8820c0c4970f052e545b8da1dd288c2516d912",
+    "target": "SPECS 27",
+    "lensStudio": ">=5.22.0",
+    "legacySpectacles2024Branch": "5.15.4",
+    "license": "MIT",
+    "licensePath": "LICENSE.md"
+  },
+  "packages": {
+    "AccessComponents": { "required": true, "role": "utility" },
+    "Instantiation": { "required": true, "role": "rendering" },
+    "AnimationExamples": { "required": true, "role": "rendering" },
+    "SpecsInteractionKitExamples": { "required": true, "role": "interaction" },
+    "InteractableHelper": { "required": true, "role": "interaction" },
+    "WorldQueryHit": { "required": true, "role": "world" },
+    "SurfacePlacement": { "required": true, "role": "world" },
+    "Solvers": { "required": false, "role": "world" },
+    "SpecsNavigationKit": { "required": false, "role": "navigation" },
+    "VolumetricLine": { "required": false, "role": "rendering" },
+    "SpecsShaderLibrary": { "required": false, "role": "rendering" },
+    "RuntimeGizmos": { "required": false, "role": "utility" },
+    "CompositeCameraTexture": { "required": false, "role": "camera" },
+    "CropCameraTexture": { "required": false, "role": "camera" },
+    "HandAttacher": { "required": false, "role": "interaction" },
+    "Specs3DHandHints": { "required": false, "role": "interaction" },
+    "WebSocketExamples": { "required": false, "role": "network" },
+    "AiPreviewAgentInspect": { "required": false, "role": "testing" },
+    "AiPreviewAgentInteract": { "required": false, "role": "testing" }
+  }
+}

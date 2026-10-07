@@ -1,7 +1,7 @@
 {
   "name": "@viro-external/gui",
   "version": "0.1.0",
-  "description": "Babylon GUI3D control tree ported to ViroReact — pure TS composition on @viro-external/core + react-native-viro-mux.",
+  "description": "Legacy GUI compatibility package. New premium spatial UI lives in @viro-external/ui.",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "files": [
@@ -15,23 +15,25 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@reactvision/react-viro": "2.56.0",
+    "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
     "@viro-external/core": "workspace:*",
-    "react": "*",
-    "react-native": "0.86.0",
+    "react": ">=19.3.0 <20.0.0",
+    "react-native": ">=0.88.0-rc.0 <0.89.0",
     "react-native-viro-mux": "workspace:*",
-    "zustand": "^5.0.0"
+    "zustand": "^5.0.15",
+    "@viro-external/ui": "workspace:*"
   },
   "devDependencies": {
-    "@reactvision/react-viro": "2.56.0",
-    "@types/react": "*",
+    "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
+    "@types/react": "19.3.0",
     "@viro-external/core": "workspace:*",
-    "lucide-static": "1.23.0",
-    "react": "*",
-    "react-native": "0.86.0",
+    "lucide-static": "1.49.0",
+    "react": "19.3.0",
+    "react-native": "0.88.0-rc.3",
     "react-native-viro-mux": "workspace:*",
-    "sharp": "0.35.3",
-    "typescript": "5.6.3",
-    "zustand": "^5.0.0"
+    "sharp": "0.35.4",
+    "typescript": "7.0.2",
+    "zustand": "5.0.15",
+    "@viro-external/ui": "workspace:*"
   }
 }

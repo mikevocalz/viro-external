@@ -1,13 +1,22 @@
 {
   "name": "viro-external-workspace",
   "private": true,
-  "packageManager": "pnpm@9.0.0",
+  "packageManager": "pnpm@12.8.1",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r --if-present typecheck",
+    "specs": "pnpm -r --if-present specs",
+    "check:metro": "node scripts/check-metro-resolution.mjs",
+    "test:rive-contract": "node --test test/rive-contract.test.mjs",
+    "perf:tracesift:init": "npx --yes @callstack/tracesift@0.3.1 init",
+    "perf:tracesift": "npx --yes @callstack/tracesift@0.3.1 start"
+  },
   "workspaces": [
     "packages/*"
   ],
-  "pnpm": {
-    "overrides": {
-      "@reactvision/react-viro": "link:../viro"
-    }
+  "devDependencies": {
+    "metro-resolver": "0.87.1"
   }
 }

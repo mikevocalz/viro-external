@@ -1,11 +1,8 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { ViroQuad } from "@reactvision/react-viro";
-import {
-  MovableNode,
-  createPlaceholderMaterial,
-  type MovableProps,
-  type Vec3,
-} from "react-native-viro-mux";
+import { MovableNode } from "../MovableNode";
+import { createPlaceholderMaterial } from "../createPlaceholderMaterial";
+import type { MovableProps, Vec3 } from "../spatialTypes";
 import defaults from "../../config/defaults.json";
 import {
   fallbackDeviceProfile,
@@ -257,7 +254,13 @@ export function ViroGaussianSplat(props: ViroGaussianSplatProps): React.ReactEle
 }
 
 // Self-check: device profile resolution always returns the unknown profile for an unrecognized id.
-if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") {
+const nodeEnv = (
+  globalThis as typeof globalThis & {
+    process?: { env?: { NODE_ENV?: string } };
+  }
+).process?.env?.NODE_ENV;
+
+if (nodeEnv === "test") {
   console.assert(resolveProfile("not-a-real-profile").maxSplats > 0, "fallback to unknown profile");
   console.assert(resolveProfile("quest3").tempAllowed === true, "quest3 allows 4D");
   console.assert(resolveProfile("quest2").tempAllowed === false, "quest2 does not allow 4D");

@@ -26,3 +26,14 @@ export {
   fallbackDeviceProfile,
   type NativeSplatRendererModule,
 } from "./splat/NativeSplatRenderer";
+
+export { MovableNode, type MovableNodeProps } from "./MovableNode";
+export { createPlaceholderMaterial } from "./createPlaceholderMaterial";
+export type {
+  AxisLock,
+  ExternalTextureHandle,
+  MovableProps,
+  Vec3,
+  ViroDragPlane,
+  ViroDragType,
+} from "./spatialTypes";

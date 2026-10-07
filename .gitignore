@@ -1,4 +1,8 @@
 node_modules
 build
+dist
 .DS_Store
 *.log
+
+# Gradle build cache inside Android library modules
+**/android/.gradle/

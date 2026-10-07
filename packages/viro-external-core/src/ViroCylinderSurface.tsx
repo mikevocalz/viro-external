@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { ViroGeometry } from "@reactvision/react-viro";
-import { MovableNode, type MovableProps, type Vec3 } from "react-native-viro-mux";
+import { MovableNode } from "./MovableNode";
+import type { MovableProps, Vec3 } from "./spatialTypes";
 import defaults from "../config/defaults.json";
 import { buildCylinderGeometry, type CylinderGeometryBuffers } from "./buildCylinderGeometry";
 

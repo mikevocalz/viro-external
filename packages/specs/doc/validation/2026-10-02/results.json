@@ -1,0 +1,70 @@
+{
+  "capturedOn": "2026-10-02",
+  "timezone": "America/New_York",
+  "lensStudio": "5.24.0.26090816",
+  "preview": {
+    "name": "Preview 1",
+    "device": "SPECS 27",
+    "source": "Sunlit Room"
+  },
+  "metadataPreservation": {
+    "existing": 30,
+    "changed": 0
+  },
+  "runtimeSourceSha256": {
+    "ViroSpecsAgentValidation.ts": "2092012b2747590eec0c63ea308a7e34608950aaec9452ab247330c7a7e4cb67",
+    "ViroSpecsAnimationHost.ts": "7393a7f0a411acabad1327944dc47ef9d6538b70704838671f28058a537af813",
+    "ViroSpecsAnimationRuntime.ts": "bda08fbf4d4206296c8cf3177e634ad102a6d7d905973f5fe7b5c96e0eb5f09c",
+    "ViroSpecsAssetRegistry.ts": "486cf6bd5df998b1f32083b31a02661c81808c99bd8219c317b2653e1251af84",
+    "ViroSpecsCapabilities.ts": "adce4c896c27d665adbcd0b593240d5aa941bb7b5ee20ed2acd6284f19234072",
+    "ViroSpecsInteractionHost.ts": "da2299f108192112dbb411545bb42ca92500eb7a0c38511207341d09aeab4790",
+    "ViroSpecsInteractionRuntime.ts": "6115365a36c0addb292726960758ac549e5e9adbda1aac0ca2f9a629454475d0",
+    "ViroSpecsLeafIndex.ts": "6f669a0e8bfbd26490d71966c69df622122251fe4c382cdc71b1c9f379585608",
+    "ViroSpecsLeafInteractionScenario.ts": "75c8d2301ad96b9bc460c1cdd13f9e45c873d5438eee80ab0bb184bdaa3fa31d",
+    "ViroSpecsLeafSceneSmokeScenario.ts": "caf4af2dd85cc9838fba53f69c081999f6502295f6ac68906649288def82dae0",
+    "ViroSpecsLensTransport.ts": "23933d5fda8b2dbbf1f8454da2ae14c62f0a100a45bb2b2116e445bc65a02e67",
+    "ViroSpecsNavigationHost.ts": "8a5201f7f9d5d2faa6c7e690596cf8a8151cdd5bcba6ed088f7ead8872b5156c",
+    "ViroSpecsNavigationRuntime.ts": "1edae6fdccfe552a4a088d084e9c309c30c16eb54f099972655d081764ed1f85",
+    "ViroSpecsPlatformLab.ts": "b6b6ffa1286fe55438306d6a0a8ad2a8732a5d72fb42b54aef2ccba17a8e02f0",
+    "ViroSpecsProtocol.ts": "60193b82eae7a5b13ac848ff5722a8b3c794fd92d4f83c5c70bbf543056ccc21",
+    "ViroSpecsRuntimeHost.ts": "909f7d4922d4d4daa1a5c4b0004bf9800253317093fa64895e05f5f6ee7817d0",
+    "ViroSpecsRuntimeValidation.ts": "7501f2d90ebae53245f1d3496519f2b5e2c3c1cc98500df0583133821832498c",
+    "ViroSpecsSceneRuntime.ts": "142f53da0cd755fa23f56e5ed76c2a4c6feda69b15ae60a8103bc8ff34f9c0c2",
+    "ViroSpecsWorldRuntime.ts": "8c523c57de17803319f860e878e5824ab9ed6cb17d4ae012650121434b240513"
+  },
+  "postSyncValidationLog": [
+    "I 08:48:24.813 [Preview 1] [Assets/ViroSpecs/lens/ViroSpecsLeafInteractionScenario.ts:30] VIRO_VALIDATION interaction:hover PASS portable-hover-enter=true",
+    "I 08:48:25.086 [Preview 1] [Assets/ViroSpecs/lens/ViroSpecsLeafInteractionScenario.ts:41] VIRO_VALIDATION interaction:select PASS status=button:selected",
+    "I 08:48:25.704 [Preview 1] [Assets/ViroSpecs/lens/ViroSpecsLeafInteractionScenario.ts:62] VIRO_VALIDATION interaction:drag PASS {\"beforeCm\":[-22,-4,-150],\"afterCm\":[-8.12235164642334,-4.026245594024658,-150.9842071533203],\"distanceCm\":13.912528991699219,\"status\":\"model:drag\"}",
+    "I 08:48:25.704 [Preview 1] [Packages/Leaf.lspkg/Utils/common/Logger.ts:89] I [DefaultLeafScenarioManager] [  1.092s]PASSED: viro_specs_interaction",
+    "I 08:48:27.214 [Preview 1] [Assets/ViroSpecs/lens/ViroSpecsRuntimeValidation.ts:43] VIRO_VALIDATION animation:active {\"middleCm\":0.5510343313217163,\"alpha\":0.9701523184776306,\"activeClips\":[\"viro-platform-lab-title-1\"]}",
+    "I 08:48:28.074 [Preview 1] [Assets/ViroSpecs/lens/ViroSpecsRuntimeValidation.ts:60] VIRO_VALIDATION animation:passed position=12cm scale=1.2 opacity=0.35 completion=1 immediate=1 restored=true",
+    "I 08:48:28.235 [Preview 1] [Assets/ViroSpecs/lens/ViroSpecsRuntimeValidation.ts:84] VIRO_VALIDATION polyline:rendered {\"pointsCm\":[[-30,-18,-138],[0,4,-138],[30,-2,-138]],\"radiusCm\":0.4}",
+    "I 08:48:28.316 [Preview 1] [Assets/ViroSpecs/lens/ViroSpecsRuntimeValidation.ts:90] VIRO_VALIDATION navigation:geo {\"presented\":false,\"missingGpsGraceful\":true}",
+    "I 08:48:28.399 [Preview 1] [Assets/ViroSpecs/lens/ViroSpecsRuntimeValidation.ts:106] VIRO_VALIDATION navigation:controlled-missing-gps PASS returned=false previous-line-destroyed=true",
+    "I 08:48:28.511 [Preview 1] [Assets/ViroSpecs/lens/ViroSpecsRuntimeValidation.ts:110] VIRO_VALIDATION polyline:passed three-points=cm radius=0.4cm cleanup=all-children",
+    "I 08:48:28.717 [Preview 1] [Assets/ViroSpecs/lens/ViroSpecsRuntimeValidation.ts:137] VIRO_VALIDATION world:live-hit {\"rawCm\":[0,-2.8421709430404007e-12,-503.2981872558594],\"normalizedMeters\":{\"position\":[0,-2.842170943040401e-14,-5.032981872558594],\"normal\":[-3.0063358735787915e-7,-1.1920928955078125e-7,1],\"distance\":5.032981872558594,\"surface\":\"unknown\"},\"direction\":[0,0,-1],\"callbacks\":2}",
+    "I 08:48:28.828 [Preview 1] [Assets/ViroSpecs/lens/ViroSpecsRuntimeValidation.ts:153] VIRO_VALIDATION placement:cancelled {\"started\":true,\"active\":false,\"latePoses\":0,\"unavailable\":null}",
+    "I 08:48:29.029 [Preview 1] [Assets/ViroSpecs/lens/ViroSpecsRuntimeValidation.ts:181] VIRO_VALIDATION world:controlled-conversion PASS cm=[100,200,100] meters=[1,2,1] distance=2 Ground=floor filter-independent=true cold-null-retry=true",
+    "I 08:48:30.542 [Preview 1] [Assets/ViroSpecs/lens/ViroSpecsRuntimeValidation.ts:224] VIRO_VALIDATION world:controlled-unavailable PASS allocation/start/hit/stop/timeout settle+cleanup; placement allocation/start/stop/cancel/supersession late-callback guarded",
+    "I 08:48:30.543 [Preview 1] [Packages/Leaf.lspkg/Utils/common/Logger.ts:89] I [DefaultLeafScenarioManager] [  3.394s]PASSED: viro_specs_scene_smoke"
+  ],
+  "intentionalFailureLog": [
+    "I 08:40:12.341 StudioPlugins/GUI/Preview/Impl/Src/Worker/PreviewWorker.cpp:835 (@Es::Preview::PreviewWorker #9) Es::Preview::PreviewWorker::onSceneCreated(const std::shared_ptr &)::(anonymous class)::operator()] [Preview 1] [Packages/Leaf.lspkg/Utils/common/Logger.ts:89] E [DefaultLeafScenarioManager] [  0.024s]FAILED: viro_specs_scene_smoke - AssertionError: Expected: \"INTENTIONAL_HARNESS_FAILURE\" - Received: \"Viro Specs Platform Lab\"",
+    "I 08:40:12.342 StudioPlugins/GUI/Preview/Impl/Src/Worker/PreviewWorker.cpp:835 (@Es::Preview::PreviewWorker #9) Es::Preview::PreviewWorker::onSceneCreated(const std::shared_ptr &)::(anonymous class)::operator()] [Preview 1] [Packages/Leaf.lspkg/Utils/common/Logger.ts:89] E [DefaultLeafScenarioManager] [  0.025s][viro_specs_scene_smoke] FAILED - AssertionError: Expected: \"INTENTIONAL_HARNESS_FAILURE\" - Received: \"Viro Specs Platform Lab\"",
+    "I 08:40:12.440 StudioPlugins/GUI/Preview/Impl/Src/Worker/PreviewWorker.cpp:835 (@Es::Preview::PreviewWorker #9) Es::Preview::PreviewWorker::onSceneCreated(const std::shared_ptr &)::(anonymous class)::operator()] [Preview 1] [Packages/Leaf.lspkg/Utils/common/Logger.ts:89] D [MessageScenarioHandler] [  0.123s]Scenario \"viro_specs_scene_smoke\" completed with failure: Error: FAILED: viro_specs_scene_smoke - AssertionError: Expected: \"INTENTIONAL_HARNESS_FAILURE\" - Received: \"Viro Specs Platform Lab\""
+  ],
+  "independentSikDrag": {
+    "beforeCm": [
+      -22,
+      -4,
+      -150
+    ],
+    "afterCm": {
+      "x": -5.128274440765381,
+      "y": -4.031598091125488,
+      "z": -149.9834747314453
+    },
+    "status": "model:drag"
+  }
+}

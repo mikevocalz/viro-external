@@ -1,0 +1,34 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.viroexternal'
+version = '0.1.0'
+
+android {
+  namespace "com.viroexternal.metawearables"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+}
+
+dependencies {
+  implementation 'com.facebook.react:react-android'
+
+  // DAT artifacts are compileOnly here: the Expo config plugin
+  // (this package's app.plugin) adds the `implementation` lines to the
+  // consuming app's build.gradle with the requested module set
+  // and version. Keeping them off the module's runtime classpath means the
+  // app — not this library — owns the DAT version and which sub-artifacts
+  // ship. Versions below only need to satisfy compilation.
+  def mwdatCompileVersion = '1.0.0'
+  compileOnly "com.meta.wearable:mwdat-core:${mwdatCompileVersion}"
+  compileOnly "com.meta.wearable:mwdat-camera:${mwdatCompileVersion}"
+  compileOnly "com.meta.wearable:mwdat-display:${mwdatCompileVersion}"
+  compileOnly "com.meta.wearable:mwdat-inputs:${mwdatCompileVersion}"
+  compileOnly "com.meta.wearable:mwdat-motion:${mwdatCompileVersion}"
+  compileOnly "com.meta.wearable:mwdat-speech:${mwdatCompileVersion}"
+  compileOnly "com.meta.wearable:mwdat-mockdevice:${mwdatCompileVersion}"
+}

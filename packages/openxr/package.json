@@ -1,0 +1,12 @@
+{
+  "name": "@viro-external/openxr",
+  "version": "0.1.0",
+  "description": "Capability-first OpenXR adapter for Esiku-backed Viro runtimes.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "files": ["src", "README.md"],
+  "scripts": {"typecheck": "tsc --noEmit"},
+  "peerDependencies": {"@viro-external/xr-contract": "workspace:*"},
+  "devDependencies": {"@viro-external/xr-contract": "workspace:*", "typescript": "7.0.2"}
+}
