@@ -3,7 +3,7 @@
 // lands outside src/. dist/ is not committed, so a Metro app that resolved to
 // it would break on a fresh clone.
 import { createRequire } from "node:module";
-import { existsSync, statSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync } from "node:fs";
+import { existsSync, readdirSync, statSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -79,21 +79,38 @@ const modes = [
   ["exports off", { unstable_enablePackageExports: false }],
 ];
 
+// Every relative specifier inside these packages' src/ must resolve too.
+// Metro has no ".js" -> ".ts" substitution, so "./ui.js" in a .ts file breaks
+// the bundle even when the package entry resolves.
+const relativeSpecifier = /(?:\bfrom\s+|\bimport\s*\(\s*|\bimport\s+)["'](\.{1,2}\/[^"']+)["']/g;
+for (const pkg of ["packages/xr-platform-contract/src", "packages/meta-layout/src"]) {
+  const dir = path.join(root, pkg);
+  for (const name of readdirSync(dir)) {
+    if (!/\.tsx?$/.test(name)) continue;
+    const file = path.join(dir, name);
+    for (const m of readFileSync(file, "utf8").matchAll(relativeSpecifier)) {
+      checks.push([file, m[1]]);
+    }
+  }
+}
+
 let failed = false;
 for (const [label, overrides] of modes) {
-  for (const [origin, name] of checks) {
-    let line;
-    try {
-      const res = resolve({ ...context, ...overrides, originModulePath: origin }, name, "android");
-      const file = res.type === "sourceFile" ? realpathSync(res.filePath) : null;
-      const ok = file !== null && /\/src\//.test(file);
-      line = `${ok ? "ok  " : "FAIL"} [${label}] ${name} from ${path.basename(path.dirname(path.dirname(origin)))} -> ${file ? path.relative(root, file) : JSON.stringify(res)}`;
-      if (!ok) failed = true;
-    } catch (e) {
-      line = `FAIL [${label}] ${name}: ${e.message.split("\n")[0]}`;
-      failed = true;
+  for (const platform of ["android", "web"]) {
+    for (const [origin, name] of checks) {
+      let line;
+      try {
+        const res = resolve({ ...context, ...overrides, originModulePath: origin }, name, platform);
+        const file = res.type === "sourceFile" ? realpathSync(res.filePath) : null;
+        const ok = file !== null && /\/src\//.test(file);
+        line = `${ok ? "ok  " : "FAIL"} [${label} ${platform}] ${name} from ${path.basename(path.dirname(path.dirname(origin)))} -> ${file ? path.relative(root, file) : JSON.stringify(res)}`;
+        if (!ok) failed = true;
+      } catch (e) {
+        line = `FAIL [${label} ${platform}] ${name} from ${path.relative(root, origin)}: ${e.message.split("\n")[0]}`;
+        failed = true;
+      }
+      console.log(line);
     }
-    console.log(line);
   }
 }
 rmSync(tmp, { recursive: true, force: true });

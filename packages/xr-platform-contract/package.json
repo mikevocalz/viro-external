@@ -2,7 +2,7 @@
   "name": "@viro-external/xr-contract",
   "version": "0.3.0",
   "description": "Vendor-neutral spatial surface, capability, portable scene, and interaction contracts for Viro platform adapters.",
-  "main": "./dist/cjs/index.js",
+  "main": "./src/index.ts",
   "react-native": "./src/index.ts",
   "types": "./src/index.ts",
   "sideEffects": false,
@@ -14,27 +14,37 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.build.cjs.json && node -e \"require('node:fs').writeFileSync('dist/cjs/package.json', JSON.stringify({ type: 'commonjs' }) + '\\n')\"",
+    "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.build.cjs.json && node scripts/add-esm-extensions.mjs && node -e \"require('node:fs').writeFileSync('dist/cjs/package.json', JSON.stringify({ type: 'commonjs' }) + '\\n')\"",
     "prepack": "pnpm build && node -e \"require('./dist/cjs/index.js')\" && node --input-type=module -e \"await import('./dist/index.js')\""
   },
   "devDependencies": {
     "typescript": "7.0.2"
   },
   "type": "module",
-  "module": "./dist/index.js",
   "exports": {
     ".": {
       "types": "./src/index.ts",
       "react-native": "./src/index.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/cjs/index.js",
-      "default": "./dist/index.js"
+      "default": "./src/index.ts"
     },
     "./package.json": "./package.json"
   },
   "publishConfig": {
     "access": "public",
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://registry.npmjs.org/",
+    "main": "./dist/cjs/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "react-native": "./src/index.ts",
+        "import": "./dist/index.js",
+        "require": "./dist/cjs/index.js",
+        "default": "./dist/index.js"
+      },
+      "./package.json": "./package.json"
+    }
   },
   "engines": {
     "node": ">=22.13.0"
