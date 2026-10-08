@@ -1,0 +1,31 @@
+{
+  "name": "react-native-viro-webrtc",
+  "version": "0.1.0",
+  "description": "Zero-copy external video adapter from Fishjam/react-native-webrtc tracks into ViroExternalVideo.",
+  "main": "src/index.tsx",
+  "types": "src/index.tsx",
+  "files": [
+    "src",
+    "android",
+    "ios",
+    "react-native.config.js",
+    "react-native-viro-webrtc.podspec",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@fishjam-cloud/react-native-webrtc": ">=0.31.0",
+    "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
+    "react": ">=19.3.0 <20.0.0",
+    "react-native": ">=0.88.0-rc.0 <0.89.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "react": "19.3.0",
+    "react-native": "0.88.0-rc.3",
+    "typescript": "7.0.2"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "license": "MIT"
+}

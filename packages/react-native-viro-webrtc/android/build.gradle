@@ -1,0 +1,26 @@
+apply plugin: 'com.android.library'
+
+android {
+  namespace 'com.reactvision.viroexternal.webrtc'
+  compileSdkVersion 36
+
+  defaultConfig {
+    minSdkVersion 26
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+}
+
+repositories {
+  google()
+  mavenCentral()
+}
+
+dependencies {
+  implementation 'com.facebook.react:react-android'
+  // WebRTC classes are supplied by the app's Fishjam dependency.
+  compileOnly project(':fishjam-cloud_react-native-webrtc')
+}
