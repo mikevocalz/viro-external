@@ -55,11 +55,62 @@ Your bundler must compile TypeScript from `node_modules`, which Metro does by de
 | `MetaHorizonLayoutAdapter` | class | `XRPlatformAdapter` with `family: "meta-horizon-layout"`. Provides `getCapabilities()`, `setRuntime()`, `dispose()`. |
 | `MetaSpatialWindowProps` | type | `{ label, windowWidth, windowHeight, priority, promotable, anchor, fallback }` |
 | `MetaAnchor` | type | `"center" \| "start" \| "end" \| "left" \| "right" \| "top" \| "bottom"` |
-| `MetaHorizonLayoutRuntime` | type | `{ isSpatialAvailable: boolean; maxPromotedWindows?: number }` |
+| `MetaHorizonLayoutRuntime` | type | `{ isSpatialAvailable: boolean; maxPromotedWindows?: number; capabilities?: XRCapabilityReport }` |
+| `resolveMetaWorkspace(intent, runtime)` | function | Resolves a `WorkspaceIntent` into main, window, inline and omitted surfaces. See [Resolving a workspace](#resolving-a-workspace). |
+| `toMetaAnchorPair`, `toMetaOffset`, `toMetaPriority` | functions | The anchor, depth and priority mappings the resolver uses. |
+| `MetaWindowProps`, `MetaWindowAnchor`, `MetaAnchorPair`, `MetaOffset`, ... | types | Mirrors of the `@metavr/layout-window-compat` 1.0.0 types (`src/metaWindowTypes.ts`). |
 | `META_HORIZON_LAYOUT_MIN_OS` | const | `207` |
 | `META_HORIZON_RN_DEFAULT_SLOT_BUDGET` | const | `2` |
 
 `MetaAnchor` includes `left` and `right`, but `toMetaSpatialWindowProps` never produces them. Slot continuity uses `start` and `end`.
+
+## Resolving a workspace
+
+`resolveMetaWorkspace(intent, runtime)` takes the workspace contract from `@viro-external/xr-contract` (`WorkspaceDefinition` plus the current `WorkspaceActivity`) and returns what to render:
+
+| Entry | Render as |
+| --- | --- |
+| `{ kind: "main" }` | The main window's content. Always first. Never wrapped in `SpatialWindow`. |
+| `{ kind: "window", window }` | `<SpatialWindow {...window}>`. `window.anchor` is an explicit `AnchorPair`; `window.offset` is a neutral `{ z }` step, absent when flush. |
+| `{ kind: "inline", region, reason }` | Plain content in that region of the main window. `reason` is `layer`, `no-spatial-runtime`, `capability-unmet` or `over-capacity`. |
+
+`omitted` lists surfaces that render nothing: `not-mounted` (a selection-owned surface with no selection, a closed user surface) or a `drop` fallback that could not get a window.
+
+Rules:
+
+- The main surface is never promoted.
+- The window budget is `runtime.maxPromotedWindows` (default 2), capped by the definition's `maxPromotedSurfaces`.
+- Window surfaces compete by priority, rounded the way Meta's native module rounds it; ties go to declaration order. Window entries come out in that order, so Meta's mount-order tie-break agrees.
+- With `isSpatialAvailable: false` no window entry is produced, so the result is safe to render on PICO, phones and web, where Meta's view manager does not exist.
+- Labels are the surface ids. The function is pure: the same input gives the same output.
+
+```ts
+import type { WorkspaceDefinition } from "@viro-external/xr-contract";
+import { resolveMetaWorkspace } from "@viro-external/meta-layout";
+
+const explore: WorkspaceDefinition = {
+  id: "explore",
+  surfaces: [
+    { id: "map", role: "main", presentation: { kind: "main" }, fallback: { kind: "inline", region: "overlay" },
+      requires: { kind: "none" }, focus: { focus: "primary", back: "exit" }, lifecycle: { owner: "workspace" } },
+    { id: "discover", role: "discover",
+      presentation: { kind: "window", size: { unit: "dp", width: 360, height: 640 }, anchor: { side: "start", depth: "near" }, priority: 20 },
+      fallback: { kind: "inline", region: "leading" }, requires: { kind: "none" },
+      focus: { focus: "passive", back: "return-to-main" }, lifecycle: { owner: "workspace" } },
+    { id: "place-detail", role: "detail",
+      presentation: { kind: "window", size: { unit: "dp", width: 440, height: 640 }, anchor: { side: "end" }, priority: 10 },
+      fallback: { kind: "inline", region: "trailing" }, requires: { kind: "none" },
+      focus: { focus: "take-on-open", back: "close" }, lifecycle: { owner: "selection", selectionKey: "place" } },
+  ],
+};
+
+const plan = resolveMetaWorkspace(
+  { definition: explore, activity: { selections: selectedPlaceId ? ["place"] : [], openSurfaceIds: [] } },
+  { isSpatialAvailable } // from useSpatialScene()
+);
+```
+
+With a place selected on Horizon OS 207+, `plan.entries` is `main:map`, `window:discover` (`anchor { parent: "start", child: "end" }`, `offset { z: 1 }`), `window:place-detail` (`anchor { parent: "end", child: "start" }`). With nothing selected, `place-detail` is in `omitted` as `not-mounted`.
 
 ## Layout configuration reference
 
@@ -92,14 +143,15 @@ Your bundler must compile TypeScript from `node_modules`, which Metro does by de
 
 `preferredPresentation`, `movable`, `resizable`, `opaqueRoot` and `preferredSize.depth` are part of the contract but are not read. In particular, the mapper does not check `preferredPresentation` or `role: "immersive"`. Filter those surfaces out yourself and send them to Viro (see the worked example).
 
-`SpatialWorkspaceIntent.maxPromotedSurfaces` is also not read by anything in this package.
+`SpatialWorkspaceIntent.maxPromotedSurfaces` is not read by `toMetaSpatialWindowProps`. `resolveMetaWorkspace` reads the `maxPromotedSurfaces` of the newer `WorkspaceDefinition`.
 
 ### `MetaHorizonLayoutRuntime`
 
 | Field | Read by | Effect |
 | --- | --- | --- |
 | `isSpatialAvailable` | `getCapabilities()` | `true`: window capabilities report `"unverified"`. `false`: they report `"unsupported"`. |
-| `maxPromotedWindows` | nothing | Stored only. See [Not implemented](#not-implemented). |
+| `maxPromotedWindows` | `resolveMetaWorkspace` | Window budget. Default `2`. |
+| `capabilities` | `resolveMetaWorkspace` | Evidence for surface `requires`. Only `"supported"` counts. |
 
 The constructor default is `{ isSpatialAvailable: false, maxPromotedWindows: META_HORIZON_RN_DEFAULT_SLOT_BUDGET }`. `setRuntime()` replaces the whole object, so pass `maxPromotedWindows` again if you want it kept.
 
@@ -307,11 +359,11 @@ Wrap the tree in `SpatialSceneProvider` once. Render `plan.inline` surfaces at t
 
 - **No `SpatialWindow` is created.** The package returns props. Your app renders the window.
 - **No `@metavr` dependency.** The package neither imports nor declares Meta's Layout packages, so it cannot detect version drift in their props.
-- **`maxPromotedWindows` is not enforced.** It is stored on the runtime and never read. Enforce the budget in your own code, as the worked example does.
+- **The budget is a plan, not a guarantee.** `resolveMetaWorkspace` emits at most `windowBudget` windows, but Meta's native slot planner decides promotion. A window entry can still sit at `pending` or `inline`; read `useSpatialWindowState(label)` for the real placement.
 - **The OS version is not read.** `META_HORIZON_LAYOUT_MIN_OS` is a constant. Your app sets `isSpatialAvailable`.
 - **No config plugin.** Native Meta artifacts need an app-owned Expo config plugin.
 - **`presentSurface()` and `updatePortableScene()` are not implemented**, and `dispose()` is empty.
-- **Nothing is device-validated.** No part of this package has run on a Quest or any other Horizon OS device. The mapping is checked by `tsc` only, and the package has no unit tests.
+- **Nothing is device-validated.** No part of this package has run on a Quest or any other Horizon OS device. `resolveMetaWorkspace` is covered by host tests (`pnpm test:workspace-surface`); none of them prove promotion on a headset.
 
 ## References
 

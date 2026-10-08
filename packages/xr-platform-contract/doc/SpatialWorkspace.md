@@ -62,3 +62,25 @@ This avoids expensive relayout/process-boundary churn and keeps the same rule va
 - Runtime/compute layer: worklets, GPU compute, native memory ownership.
 
 A platform adapter may expose native extensions, but applications should stay on the shared contract whenever the feature is portable.
+
+## Workspace surface contract
+
+`WorkspaceDefinition` (in `src/workspaceSurface.ts`) is the newer, stricter form of the workspace. `SpatialWorkspaceIntent` stays exported and unchanged for existing adapters.
+
+Each `WorkspaceSurface` carries:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `id` | `string` | Stable identity; adapters use it as the platform label. Unique per workspace. |
+| `role` | `"main" \| "discover" \| "detail" \| "assistant" \| "tools"` | What the surface is for. `WORKSPACE_ROLE_TO_SPATIAL_ROLE` maps it to the older roles. |
+| `presentation` | `main` \| `window` \| `layer` | `window` carries `size`, `anchor` and `priority`; the other two carry none of them. |
+| `fallback` | `{ kind: "inline", region }` \| `{ kind: "drop" }` | What a window surface does without a window. |
+| `requires` | `none` \| `all-of` \| `any-of` | Capabilities beyond a window slot. Only `"supported"` counts. |
+| `focus` | `{ focus, back }` | Who takes focus and what back does. |
+| `lifecycle` | `workspace` \| `selection` (with `selectionKey`) \| `user` | Who decides whether the surface is mounted. A `selection` surface never shows empty. |
+
+`validateWorkspaceDefinition` enforces one `main` surface, workspace-owned, plus unique non-empty ids. Store state reaches adapters as `WorkspaceActivity` (`selections`, `openSurfaceIds`); adapters read it and never write it. `@viro-external/meta-layout` `resolveMetaWorkspace` is the first adapter that resolves this contract.
+
+## AR coordinate input
+
+`ArCoordinateInput` (in `src/arCoordinates.ts`) is the one input every AR surface consumes: `origin`, optional `selectedPlace`, the resolved `mode`, and either `routing: "idle"` or `routing: "active"` with `route` and `landmarks`. Coordinates are WGS84 `[lng, lat]`; height is explicit (`surface` or `ellipsoidal`). AR reports back through `ArStoreEvent` and never calls Directions. Types only; no runtime code.
