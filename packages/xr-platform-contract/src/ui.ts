@@ -76,7 +76,7 @@ export type XRUIInteractionState =
   | "collapsed"
   | "indeterminate";
 
-import type { XRUIInputSource } from "./interaction.js";
+import type { XRUIInputSource } from "./interaction";
 
 export type XRUIComponentParity = {
   kind: XRUIComponentKind;

@@ -51,12 +51,14 @@ jobs:
           pnpm --filter @viro-external/specs pack --pack-destination ../../artifacts
           ls -lh artifacts
 
+      # Publish the pnpm-packed tarball, not the package directory: pnpm pack
+      # applies publishConfig (dist entry points), npm publish of the folder
+      # would ship the workspace manifest that points at src/.
       - name: Publish XR contract
         if: ${{ !inputs.dry_run }}
-        working-directory: packages/xr-platform-contract
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --provenance --access public
+        run: npm publish ./artifacts/viro-external-xr-contract-*.tgz --provenance --access public
 
       - name: Publish SPECS backend
         if: ${{ !inputs.dry_run }}
