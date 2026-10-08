@@ -23,6 +23,8 @@ on:
       - "packages/webspatial/**"
       - ".github/workflows/xr-platform-validation.yml"
       - "scripts/check-metro-resolution.mjs"
+      - "test/support/**"
+      - "package.json"
   workflow_dispatch:
 
 permissions:
@@ -77,6 +79,9 @@ jobs:
           if [ -d packages/spatial-runtime ]; then pnpm --filter @viro-external/spatial-runtime typecheck; fi
           if [ -d packages/web-layout ]; then pnpm --filter @viro-external/web-layout typecheck; fi
           if [ -d packages/webspatial ]; then pnpm --filter @viro-external/webspatial typecheck; fi
+
+      - name: Workspace surface contract tests
+        run: pnpm test:workspace-surface
 
       - name: Validate Lens Studio runtime sources
         run: pnpm --filter @viro-external/specs specs:validate-lens
