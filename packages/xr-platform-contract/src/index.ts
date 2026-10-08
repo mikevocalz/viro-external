@@ -228,3 +228,5 @@ export * from "./muse";
 export * from "./esiku";
 
 export * from "./workspaceSurface";
+
+export * from "./arCoordinates";
