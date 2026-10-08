@@ -226,3 +226,5 @@ export * from "./quickdraw";
 export * from "./muse";
 
 export * from "./esiku";
+
+export * from "./workspaceSurface";
