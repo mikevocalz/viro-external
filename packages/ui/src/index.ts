@@ -89,3 +89,5 @@ export type { MusePenInputProps } from "@viro-external/xr-contract";
 
 export { QuickdrawSpatialPanel } from "./QuickdrawSpatialPanel";
 export type { QuickdrawSpatialPanelProps, QuickdrawSpatialPointer } from "./QuickdrawSpatialPanel.types";
+
+export { MetaWorkspaceHost, type MetaWorkspaceHostProps } from "./MetaWorkspaceHost";
