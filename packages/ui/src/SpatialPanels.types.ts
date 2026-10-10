@@ -85,8 +85,9 @@ export interface CompositorPanelHandle {
   resize(size: PanelSize): Promise<void>;
   /** Idempotently close native content and destroy its swapchain. */
   dispose(): void;
-  addListener(name: "evicted", callback: (event: PanelEvictedEvent) => void): PanelSubscription;
-  addListener(name: "pointer", callback: (event: PanelPointerEvent) => void): PanelSubscription;
+  /** Fires when the host demotes this panel; the handle is unusable afterwards. */
+  addOnEvictedListener(callback: (event: PanelEvictedEvent) => void): PanelSubscription;
+  addOnPointerListener(callback: (event: PanelPointerEvent) => void): PanelSubscription;
 }
 
 /**

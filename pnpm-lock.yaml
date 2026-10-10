@@ -299,6 +299,9 @@ importers:
       '@reactvision/react-viro':
         specifier: link:../../../viro
         version: link:../../../viro
+      '@viro-external/meta-layout':
+        specifier: workspace:*
+        version: link:../meta-layout
     devDependencies:
       '@types/react':
         specifier: 19.3.0

@@ -24,7 +24,7 @@ const panel = await host.createCompositorPanel({
   curved: true,
   pose: { position: [-1.0, 1.4, -2.0], orientation: [0, 0, 0, 1] },
 });
-const eviction = panel.addListener("evicted", (event) => {
+const eviction = panel.addOnEvictedListener((event) => {
   // Future resolver moves this panel to a real Viro scene mesh.
   onPanelEvicted(event.reason);
 });
@@ -75,7 +75,7 @@ Source sketch: `packages/ui/src/SpatialPanels.types.ts`. The type file is **not 
 | Capabilities | `SpatialPanelsHost.capabilities` | Facts from native OpenXR/OS, never optimistic JS feature flags |
 | Factory | `createCompositorPanel(options): Promise<CompositorPanelHandle>` | Resolves only after a usable native backing swapchain exists |
 | Lifetime | `setPose`, `setVisible`, `resize`, `dispose` | Renderer thread owns XR calls, one native handle owns teardown |
-| Events | `addListener('evicted' \| 'pointer', cb)` | Subscription owns `remove()`; loss of capture emits cancel |
+| Events | `addOnEvictedListener(cb)`, `addOnPointerListener(cb)` | Subscription owns `remove()`; loss of capture emits cancel |
 | Errors | `COMPOSITOR_UNAVAILABLE`, `PANEL_INVALID_ARGUMENT`, `PANEL_DUPLICATE_ID` | Specific, observable failures; messages name missing capability or invalid value |
 
 ## Design and implementation rules

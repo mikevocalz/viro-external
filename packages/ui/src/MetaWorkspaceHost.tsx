@@ -1,6 +1,5 @@
 import React from "react";
-import type { MetaWorkspaceResolution } from "../../meta-layout/src/resolveMetaWorkspace";
-import type { MetaWindowProps } from "../../meta-layout/src/metaWindowTypes";
+import type { MetaWindowProps, MetaWorkspaceResolution } from "@viro-external/meta-layout";
 
 /**
  * Presentation components are supplied by the application so it can install

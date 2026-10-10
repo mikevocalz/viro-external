@@ -14,7 +14,7 @@ Companion: [ViroCore #111](https://github.com/mikevocalz/virocore/pull/111).
 
 ## Implementation stages, not success claims
 
-- [x] Existing scene panel world slots, curved appearance, release and host adapter code exists in the draft.
+- [x] Scene-panel world slots, curved panels, drag release, and the Meta and PICO host adapters. Typecheck and unit tests pass; not run on a headset.
 - [x] Native compositor API designed as a TypeScript sketch without a fake implementation.
 - [ ] SDK 58 / RN compatibility and Modules 2.0 Android autolinking + *release device* probe.
 - [ ] Android Surface swapchain bridge and Expo 2.0 SharedObject native host.
