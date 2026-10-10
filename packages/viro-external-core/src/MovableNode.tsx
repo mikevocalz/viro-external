@@ -62,6 +62,19 @@ export function MovableNode(props: MovableNodeProps): React.ReactElement {
     [axisLock, onMove, onMoveStart]
   );
 
+  const finishDrag = useCallback(() => {
+    if (dragStartWorld.current === null || lastDragWorld.current === null) return;
+    const released = lastDragWorld.current;
+    dragStartWorld.current = null;
+    lastDragWorld.current = null;
+    onMoveEnd?.(released);
+  }, [onMoveEnd]);
+
+  const handleClickState = useCallback((clickState: number) => {
+    // onDrag has no end-state flag. Viro CLICK_UP=2 is the controller release.
+    if (clickState === 2) finishDrag();
+  }, [finishDrag]);
+
   const handlePinch = useCallback(
     (pinchState: number, scaleFactor: number) => {
       if (!pinchToScale) return;
@@ -76,14 +89,10 @@ export function MovableNode(props: MovableNodeProps): React.ReactElement {
           start[2] * scaleFactor,
         ]);
 
-        if (lastDragWorld.current && dragStartWorld.current) {
-          onMoveEnd?.(lastDragWorld.current);
-          dragStartWorld.current = null;
-          lastDragWorld.current = null;
-        }
+        finishDrag();
       }
     },
-    [currentScale, onMoveEnd, pinchToScale]
+    [currentScale, finishDrag, pinchToScale]
   );
 
   const tagProps = (
@@ -106,6 +115,7 @@ export function MovableNode(props: MovableNodeProps): React.ReactElement {
       dragType={dragType}
       dragPlane={dragPlane}
       onDrag={handleDrag}
+      onClickState={handleClickState}
       onPinch={pinchToScale ? handlePinch : undefined}
     >
       {children}
