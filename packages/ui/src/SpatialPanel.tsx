@@ -125,7 +125,7 @@ export function SpatialPanel({
     ? worldSlot(snapTo, origin.headPosition, origin.headYawDeg, snapOptions)
     : null;
   const storeRef = useRef<ReturnType<typeof createPanelStore> | null>(null);
-  if (storeRef.current === null) storeRef.current = createPanelStore(defaultPinned);
+  if (storeRef.current === null) storeRef.current = createPanelStore({ defaultPinned, position, rotation });
   const store = storeRef.current;
   const releasedPlacement = useStore(store, (state) => state.releasedPlacement);
   const pinned = useStore(store, (state) => state.pinned);
@@ -137,7 +137,11 @@ export function SpatialPanel({
     setReleasedPlacement, snapTo, origin?.headPosition[0], origin?.headPosition[1], origin?.headPosition[2],
     origin?.headYawDeg, snapOptions?.distanceM, snapOptions?.sideAngleDeg,
     snapOptions?.verticalOffsetM,
-    position?.[0], position?.[1], position?.[2],
+  ]);
+  useEffect(() => {
+    store.getState().syncAuthoredPose({ position, rotation, initialPlacement });
+  }, [
+    store, position?.[0], position?.[1], position?.[2],
     rotation?.[0], rotation?.[1], rotation?.[2],
   ]);
   const resolvedPlacement = releasedPlacement ?? initialPlacement;
@@ -154,7 +158,7 @@ export function SpatialPanel({
         setReleasedPlacement({
           position: nearest.placement.position,
           rotation: nearest.placement.rotation,
-        });
+        }, worldPos);
         onSnap?.(nearest.slot);
         return;
       }
@@ -164,7 +168,7 @@ export function SpatialPanel({
     setReleasedPlacement({
       position: [...worldPos] as Vec3,
       rotation: resolvedPlacement?.rotation ?? rotation ?? [0, 0, 0],
-    });
+    }, worldPos);
   }, [
     onMoveEnd, origin, snapOnRelease, snapTo, snapOptions, snapDistanceM,
     onSnap, resolvedPlacement, rotation, setReleasedPlacement,
