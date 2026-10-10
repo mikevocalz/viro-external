@@ -114,3 +114,40 @@ Drag finish uses Viro `onDrag` plus `CLICK_UP` on the same node. Verify
 controller/hand/browser release (especially release outside the hit target)
 on real devices. This remains Viro geometry in the projection swapchain:
 no independent per-panel OpenXR composition layer or Meta/PICO OS window.
+
+## Native Meta windows and PICO containers (integration gate)
+
+`MetaWorkspaceHost` renders an actual `SpatialWindow` for every promoted
+entry. Provide the verified Viro fork's optional Meta wrapper components;
+the app must install Meta's runtime peers and enable
+`android.metaSpatialLayout` in its Expo config. This is **not** an
+OpenXR compositor swapchain.
+
+```tsx
+import { ViroSpatialSceneProvider, ViroSpatialWindow } from "@reactvision/react-viro";
+import { resolveMetaWorkspace } from "@viro-external/meta-layout";
+import { MetaWorkspaceHost } from "@viro-external/ui";
+
+const plan = resolveMetaWorkspace(intent, runtime);
+return (
+  <MetaWorkspaceHost
+    plan={plan}
+    SpatialSceneProvider={ViroSpatialSceneProvider}
+    SpatialWindow={ViroSpatialWindow}
+    renderSurface={(id) => <SurfaceContent id={id} />}
+  />
+);
+```
+
+Do not set `runtime.isSpatialAvailable` just because the JS packages
+exist. Check Horizon OS requirements and the actual native SDK window path.
+`MetaWorkspaceHost` renders fallback entries inline on unsupported devices.
+
+For PICO OS 6, `PicoWindowContainerHost` (in
+`@viro-external/pico-layout`) takes the actual `@expo-pico/spatial`
+bridge functions: `getLayoutBridgeStatus`, `openWindowContainer`,
+`closeWindowContainer`. It opens one **activity-backed** container only
+when the SDK and platform probe are ready. A successful request does not
+confirm presentation completion. Per-surface Subwindows/AttachmentPanels
+are not yet implemented by the native bridge; Viro scene panels remain
+their fallback. Never represent an activity container as multiple windows.
