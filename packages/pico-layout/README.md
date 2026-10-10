@@ -2,7 +2,7 @@
 
 Maps the shared `@viro-external/xr-contract` surface intents onto PICO Spatial SDK 6 presentation primitives (`WindowContainer`, `Subwindow`, `Augment`, `Toolbar`, `SpatialPopup`, `Stage`, `AttachmentPanelComponent`).
 
-The package is pure TypeScript. It links no PICO native artifact and makes no native call. It answers one question: given a surface's role and placement, plus what the runtime reports it can host, which PICO primitive should present it? Opening that primitive on a headset is the job of `@expo-pico/spatial`, and that binding does not exist yet. See [Status](#status-what-is-not-implemented).
+The package is pure TypeScript. It links no PICO native artifact and makes no native call. It answers one question: given a surface's role and placement, plus what the runtime reports it can host, which PICO primitive should present it? Opening the activity-backed `WindowContainer` is supported by `@expo-pico/spatial` on a properly linked PICO OS 6 runtime; independent `Subwindow`/`Augment`/`AttachmentPanel` mounting still requires native SDK work. See [Status](#status-what-is-not-implemented).
 
 ## Where it sits
 
@@ -10,7 +10,7 @@ The package is pure TypeScript. It links no PICO native artifact and makes no na
 app layout (React Native / Viro)
   -> @viro-external/xr-contract      SpatialSurfaceIntent: role, placement, priority, fallback, size
   -> @viro-external/pico-layout      resolvePicoSurface(): intent + PicoSpatialRuntime -> PicoResolvedSurface
-  -> @expo-pico/spatial (future)     opens WindowContainer / Subwindow / Augment / ... on the device
+  -> @expo-pico/spatial              currently opens activity-backed WindowContainer on PICO OS 6
   -> PICO Spatial SDK 6
 ```
 
