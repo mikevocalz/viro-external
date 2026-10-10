@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - chore/viro3-expo58-latest-deps
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -23,7 +24,6 @@ jobs:
       - name: Checkout viro-external
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.ref_name }}
           fetch-depth: 0
 
       - name: Setup Node
@@ -37,14 +37,18 @@ jobs:
           corepack prepare pnpm@12.8.1 --activate
           pnpm --version
 
-      - name: Checkout Viro 3 sibling
-        run: |
-          rm -rf ../viro
-          git clone --depth 1 --branch v3.0.1 https://github.com/ReactVision/viro.git ../viro
-          node -p "require('../viro/package.json').version"
+      - name: Checkout compatible Viro sibling
+        uses: ./.github/actions/checkout-viro
+        with:
+          token: ${{ secrets.SPATIAL_DEPENDENCIES_TOKEN }}
 
       - name: Install SDK 58 dependency graph
+        if: github.event_name != 'pull_request'
         run: pnpm install --no-frozen-lockfile --strict-peer-dependencies=false
+
+      - name: Install reviewed dependency graph
+        if: github.event_name == 'pull_request'
+        run: pnpm install --frozen-lockfile --strict-peer-dependencies=false
 
       - name: Verify GitHub-readable pnpm lockfile
         run: |
@@ -75,6 +79,7 @@ jobs:
           fi
 
       - name: Commit refreshed lockfile and generated bindings
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"

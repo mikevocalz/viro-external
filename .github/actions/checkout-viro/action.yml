@@ -1,0 +1,31 @@
+name: Checkout compatible Viro fork
+description: Resolve the linked Viro package to the tested SDK 58 spatial fork.
+inputs:
+  token:
+    description: Token with read-only Contents access to mikevocalz/viro.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Verify private dependency access is configured
+      shell: bash
+      env:
+        DEPENDENCY_TOKEN: ${{ inputs.token }}
+      run: |
+        if [ -z "$DEPENDENCY_TOKEN" ]; then
+          echo "::error::Configure SPATIAL_DEPENDENCIES_TOKEN with read-only Contents access to mikevocalz/viro. Upstream Viro does not provide this workspace's external-video API."
+          exit 1
+        fi
+    - name: Checkout pinned Viro source
+      uses: actions/checkout@v7
+      with:
+        repository: mikevocalz/viro
+        ref: 99b1d87c55ca9f43a6452144183a0b32a2bfb3c9
+        token: ${{ inputs.token }}
+        path: .spatial-deps/viro
+        persist-credentials: false
+    - name: Place Viro at the workspace link target
+      shell: bash
+      run: |
+        mv .spatial-deps/viro ../viro
+        node -p "require('../viro/package.json').version"

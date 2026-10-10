@@ -3,6 +3,7 @@ name: XR platform adapters
 on:
   push:
     branches:
+      - main
       - feat/xr-platform-contract
       - feat/webspatial-adapter
       - feat/meta-wearables-dat
@@ -25,6 +26,8 @@ on:
       - "scripts/check-metro-resolution.mjs"
       - "test/support/**"
       - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/actions/checkout-viro/**"
   workflow_dispatch:
 
 permissions:
@@ -54,14 +57,13 @@ jobs:
           corepack prepare pnpm@12.8.1 --activate
           pnpm --version
 
-      - name: Checkout Viro 3 sibling
-        run: |
-          rm -rf ../viro
-          git clone --depth 1 --branch v3.0.1 https://github.com/ReactVision/viro.git ../viro
-          node -p "require('../viro/package.json').version"
+      - name: Checkout compatible Viro sibling
+        uses: ./.github/actions/checkout-viro
+        with:
+          token: ${{ secrets.SPATIAL_DEPENDENCIES_TOKEN }}
 
       - name: Install workspace
-        run: pnpm install --no-frozen-lockfile --strict-peer-dependencies=false
+        run: pnpm install --frozen-lockfile --strict-peer-dependencies=false
 
       - name: Hydrate linked Viro type resolution
         run: |
