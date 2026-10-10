@@ -79,3 +79,38 @@ Wheel scrolling only fires while the pointer is over a hit-testable descendant o
 Runtime dependency: web drag/pinch/scroll requires the updated Viro web bridge (mikevocalz/viro#40) and ViroCore WASM exports (mikevocalz/virocore#79). Both were still open when this section was written. Older binaries keep rendering panels but do not emit the new interaction events.
 
 Status: CI typechecks this package only. Wheel and trackpad scrolling have not been run in a browser against a build that contains both dependency PRs, and nothing here was tested on a headset.
+
+## Curved panels and world-space snapping
+
+The `curved` boolean is shorthand for `shape="curved"`. When both are
+supplied, explicit `shape` wins. `curvature` (default 0.32) tunes the arc.
+
+```tsx
+// Capture a SETTLED pose when entering the workspace, not every head frame.
+<SpatialWorkspaceFrame
+  headPosition={settledHead.position}
+  headYawDeg={settledHead.yawDeg}
+>
+  <SpatialPanel curved snapTo="left" title="Navigation" />
+  <SpatialPanel snapTo="center" title="Workspace" />
+  <SpatialPanel curved curvature={0.24} snapTo="right" title="Inspector"
+    onSnap={(slot) => console.log(slot)} />
+</SpatialWorkspaceFrame>
+```
+
+`snapTo` sets the initial slot. By default, controller release near any
+LEFT / CENTER / RIGHT slot snaps to that slot; release farther away than
+`snapDistanceM` (default 0.8 m) leaves the panel fixed where dropped.
+Use `snapOnRelease` alone for a free-positioned panel that also snaps.
+`snapOptions` controls distance (2.6 m), side angle (28°), and height.
+
+The origin is frozen on mount. To recenter, remount the `SpatialWorkspaceFrame`
+with a changed React `key` and a new settled pose. Outside a frame, pass
+`worldOrigin={{ headPosition, headYawDeg }}` explicitly.
+Do **not** nest a snapping panel inside `SpatialWorkspaceSlotNode`:
+both own world transforms.
+
+Drag finish uses Viro `onDrag` plus `CLICK_UP` on the same node. Verify
+controller/hand/browser release (especially release outside the hit target)
+on real devices. This remains Viro geometry in the projection swapchain:
+no independent per-panel OpenXR composition layer or Meta/PICO OS window.
