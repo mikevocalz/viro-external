@@ -26,7 +26,11 @@ export type PicoWindowContainerPresentation =
 export class PicoWindowContainerHost {
   private requestedId: string | undefined;
 
-  constructor(private readonly bridge: PicoWindowContainerBridge) {}
+  private readonly bridge: PicoWindowContainerBridge;
+
+  constructor(bridge: PicoWindowContainerBridge) {
+    this.bridge = bridge;
+  }
 
   /** Only one activity-backed WindowContainer may be owned by this host. */
   open(id: string): PicoWindowContainerPresentation {
