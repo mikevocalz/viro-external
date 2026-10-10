@@ -58,8 +58,12 @@ export {
 } from "./MuxSpatialPlayerPanel";
 
 export {
+  SpatialWorkspaceFrame,
   SpatialWorkspaceSlotNode,
   worldSlot,
+  nearestWorldSlot,
+  type SpatialWorkspaceOrigin,
+  type NearestWorldSlot,
   type SpatialWorkspaceSlot,
   type SpatialWorkspaceSlotNodeProps,
   type WorldSlotOptions,
