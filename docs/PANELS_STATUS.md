@@ -10,7 +10,8 @@ Companion: [ViroCore #111](https://github.com/mikevocalz/virocore/pull/111).
 - `packages/ui/src/MetaWorkspaceHost.tsx`: optional Meta OS window facade integration; native promotion unverified.
 - `packages/pico-layout/src/windowContainerHost.ts`: activity-backed PICO bridge; Subwindow/Augment not implemented.
 - `packages/ui/src/SpatialPanels.types.ts`, `docs/SPATIAL_PANELS_API.md`: **type-only** next-stage design, not a runtime Expo Modules host.
-- CI files and world-slot/PICO host contract test files exist on the branch; whether newest commits pass CI must be checked.
+- Local validation: UI/core TypeScript checks, five world-slot/panel-state tests, two PICO host tests, and 37 workspace-surface tests pass. CI validates the pushed commit separately.
+- Panel placement, pin/close state, workspace origin and movable-node scale use per-instance Zustand stores; imperative gesture handles remain in refs.
 
 ## Implementation stages, not success claims
 

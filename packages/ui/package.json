@@ -5,10 +5,13 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "sideEffects": false,
-  "files": ["src", "README.md"],
+  "files": [
+    "src",
+    "README.md"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test:world-slot": "node --experimental-strip-types --test test/world-slot.test.mjs"
+    "test:world-slot": "node --experimental-strip-types --test test/*.test.mjs"
   },
   "peerDependencies": {
     "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
@@ -28,5 +31,8 @@
     "react": "19.3.0",
     "react-native": "0.88.0-rc.3",
     "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "zustand": "^5.0.15"
   }
 }

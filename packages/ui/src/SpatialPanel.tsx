@@ -1,4 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { useStore } from "zustand";
+import { createPanelStore } from "./panel-store";
 import {
   ViroGeometry,
   ViroNode,
@@ -24,7 +26,7 @@ import {
 import { resolveVisualDepth } from "./visual-depth";
 import {
   nearestWorldSlot, worldSlot,
-  type SpatialWorkspaceSlot, type WorldSlotOptions, type WorldSlotPlacement,
+  type SpatialWorkspaceSlot, type WorldSlotOptions,
 } from "./world-slot";
 import { useSpatialWorkspaceOrigin, type SpatialWorkspaceOrigin } from "./SpatialWorkspace";
 
@@ -122,13 +124,17 @@ export function SpatialPanel({
   const initialPlacement = origin && snapTo
     ? worldSlot(snapTo, origin.headPosition, origin.headYawDeg, snapOptions)
     : null;
-  const [releasedPlacement, setReleasedPlacement] = useState<
-    Pick<WorldSlotPlacement, "position" | "rotation"> | null
-  >(null);
+  const storeRef = useRef<ReturnType<typeof createPanelStore> | null>(null);
+  if (storeRef.current === null) storeRef.current = createPanelStore(defaultPinned);
+  const store = storeRef.current;
+  const releasedPlacement = useStore(store, (state) => state.releasedPlacement);
+  const pinned = useStore(store, (state) => state.pinned);
+  const closed = useStore(store, (state) => state.closed);
+  const setReleasedPlacement = store.getState().setReleasedPlacement;
   useEffect(() => {
     setReleasedPlacement(null);
   }, [
-    snapTo, origin?.headPosition[0], origin?.headPosition[1], origin?.headPosition[2],
+    setReleasedPlacement, snapTo, origin?.headPosition[0], origin?.headPosition[1], origin?.headPosition[2],
     origin?.headYawDeg, snapOptions?.distanceM, snapOptions?.sideAngleDeg,
     snapOptions?.verticalOffsetM,
   ]);
@@ -159,11 +165,9 @@ export function SpatialPanel({
     });
   }, [
     onMoveEnd, origin, snapOnRelease, snapTo, snapOptions, snapDistanceM,
-    onSnap, resolvedPlacement, rotation,
+    onSnap, resolvedPlacement, rotation, setReleasedPlacement,
   ]);
 
-  const [pinned, setPinned] = useState(defaultPinned);
-  const [closed, setClosed] = useState(false);
   const headerHeight = Math.max(0.1, height * 0.11);
   const headerY = height / 2 + headerHeight / 2 + 0.015;
 
@@ -203,8 +207,8 @@ export function SpatialPanel({
             id: "pin",
             label: pinned ? "Follow" : "Pin",
             onPress: () => {
-              const next = !pinned;
-              setPinned(next);
+              const next = !store.getState().pinned;
+              store.setState({ pinned: next });
               onPinnedChange?.(next);
             },
           },
@@ -216,7 +220,7 @@ export function SpatialPanel({
             id: "close",
             label: "×",
             onPress: () => {
-              setClosed(true);
+              store.setState({ closed: true });
               onClose?.();
             },
           },

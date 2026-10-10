@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useRef } from "react";
+import { createStore, type StoreApi } from "zustand/vanilla";
+import { useStore } from "zustand";
 import { ViroNode } from "@reactvision/react-viro";
 import type { Vec3 } from "@viro-external/core";
 import { worldSlot } from "./world-slot";
@@ -24,15 +26,16 @@ const OriginContext = createContext<SpatialWorkspaceOrigin | null>(null);
 export function SpatialWorkspaceFrame({
   headPosition, headYawDeg, children,
 }: SpatialWorkspaceOrigin & { children?: React.ReactNode }): React.ReactElement {
-  const originRef = useRef<SpatialWorkspaceOrigin | null>(null);
+  const originRef = useRef<StoreApi<SpatialWorkspaceOrigin> | null>(null);
   if (originRef.current === null) {
-    originRef.current = {
+    originRef.current = createStore(() => ({
       headPosition: [...headPosition] as Vec3,
       headYawDeg,
-    };
+    }));
   }
+  const origin = useStore(originRef.current, (state) => state);
   return (
-    <OriginContext.Provider value={originRef.current}>
+    <OriginContext.Provider value={origin}>
       {children}
     </OriginContext.Provider>
   );
