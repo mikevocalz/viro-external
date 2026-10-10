@@ -91,7 +91,8 @@ export function buildCurvedPanelGeometry(
         y,
         -(radius * Math.cos(theta) - radius * Math.cos(arc / 2)),
       ]);
-      normals.push([Math.sin(theta), 0, -Math.cos(theta)]);
+      // Face the viewer (+Z at center), consistent with winding and ViroQuad.
+      normals.push([-Math.sin(theta), 0, Math.cos(theta)]);
       texcoords.push([t, 1 - v]);
     }
   }

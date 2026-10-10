@@ -2,8 +2,9 @@ import React, {
   useCallback,
   useEffect,
   useRef,
-  useState,
 } from "react";
+import { createStore, type StoreApi } from "zustand/vanilla";
+import { useStore } from "zustand";
 import { ViroNode } from "@reactvision/react-viro";
 import type { MovableProps, Vec3 } from "./spatialTypes";
 
@@ -36,11 +37,16 @@ export function MovableNode(props: MovableNodeProps): React.ReactElement {
   const dragStartWorld = useRef<Vec3 | null>(null);
   const lastDragWorld = useRef<Vec3 | null>(null);
   const pinchStartScale = useRef<Vec3>([sx, sy, sz]);
-  const [currentScale, setCurrentScale] = useState<Vec3>([sx, sy, sz]);
+  const storeRef = useRef<StoreApi<{ scale: Vec3 }> | null>(null);
+  if (storeRef.current === null) {
+    storeRef.current = createStore(() => ({ scale: [sx, sy, sz] as Vec3 }));
+  }
+  const store = storeRef.current;
+  const currentScale = useStore(store, (state) => state.scale);
 
   useEffect(() => {
-    setCurrentScale([sx, sy, sz]);
-  }, [sx, sy, sz]);
+    store.setState({ scale: [sx, sy, sz] });
+  }, [store, sx, sy, sz]);
 
   const handleDrag = useCallback(
     (dragToPos: Vec3) => {
@@ -62,6 +68,19 @@ export function MovableNode(props: MovableNodeProps): React.ReactElement {
     [axisLock, onMove, onMoveStart]
   );
 
+  const finishDrag = useCallback(() => {
+    if (dragStartWorld.current === null || lastDragWorld.current === null) return;
+    const released = lastDragWorld.current;
+    dragStartWorld.current = null;
+    lastDragWorld.current = null;
+    onMoveEnd?.(released);
+  }, [onMoveEnd]);
+
+  const handleClickState = useCallback((clickState: number) => {
+    // onDrag has no end-state flag. Viro CLICK_UP=2 is the controller release.
+    if (clickState === 2) finishDrag();
+  }, [finishDrag]);
+
   const handlePinch = useCallback(
     (pinchState: number, scaleFactor: number) => {
       if (!pinchToScale) return;
@@ -70,20 +89,16 @@ export function MovableNode(props: MovableNodeProps): React.ReactElement {
         pinchStartScale.current = currentScale;
       } else if (pinchState === 3) {
         const start = pinchStartScale.current;
-        setCurrentScale([
+        store.setState({ scale: [
           start[0] * scaleFactor,
           start[1] * scaleFactor,
           start[2] * scaleFactor,
-        ]);
+        ] });
 
-        if (lastDragWorld.current && dragStartWorld.current) {
-          onMoveEnd?.(lastDragWorld.current);
-          dragStartWorld.current = null;
-          lastDragWorld.current = null;
-        }
+        finishDrag();
       }
     },
-    [currentScale, onMoveEnd, pinchToScale]
+    [currentScale, finishDrag, pinchToScale, store]
   );
 
   const tagProps = (
@@ -106,6 +121,7 @@ export function MovableNode(props: MovableNodeProps): React.ReactElement {
       dragType={dragType}
       dragPlane={dragPlane}
       onDrag={handleDrag}
+      onClickState={handleClickState}
       onPinch={pinchToScale ? handlePinch : undefined}
     >
       {children}

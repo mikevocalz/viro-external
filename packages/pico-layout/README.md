@@ -2,7 +2,7 @@
 
 Maps the shared `@viro-external/xr-contract` surface intents onto PICO Spatial SDK 6 presentation primitives (`WindowContainer`, `Subwindow`, `Augment`, `Toolbar`, `SpatialPopup`, `Stage`, `AttachmentPanelComponent`).
 
-The package is pure TypeScript. It links no PICO native artifact and makes no native call. It answers one question: given a surface's role and placement, plus what the runtime reports it can host, which PICO primitive should present it? Opening that primitive on a headset is the job of `@expo-pico/spatial`, and that binding does not exist yet. See [Status](#status-what-is-not-implemented).
+The package is pure TypeScript. It links no PICO native artifact and makes no native call. It answers one question: given a surface's role and placement, plus what the runtime reports it can host, which PICO primitive should present it? Opening the activity-backed `WindowContainer` is supported by `@expo-pico/spatial` on a properly linked PICO OS 6 runtime; independent `Subwindow`/`Augment`/`AttachmentPanel` mounting still requires native SDK work. See [Status](#status-what-is-not-implemented).
 
 ## Where it sits
 
@@ -10,7 +10,7 @@ The package is pure TypeScript. It links no PICO native artifact and makes no na
 app layout (React Native / Viro)
   -> @viro-external/xr-contract      SpatialSurfaceIntent: role, placement, priority, fallback, size
   -> @viro-external/pico-layout      resolvePicoSurface(): intent + PicoSpatialRuntime -> PicoResolvedSurface
-  -> @expo-pico/spatial (future)     opens WindowContainer / Subwindow / Augment / ... on the device
+  -> @expo-pico/spatial              currently opens activity-backed WindowContainer on PICO OS 6
   -> PICO Spatial SDK 6
 ```
 
@@ -353,3 +353,27 @@ The planned native follow-up in expo-pico: link the public Spatial SDK 6.x artif
 - expo-pico PR #16, Spatial SDK 6 layout contract and readiness probe: https://github.com/mikevocalz/expo-pico/pull/16
 - Shared workspace contract: [`../xr-platform-contract/doc/SpatialWorkspace.md`](../xr-platform-contract/doc/SpatialWorkspace.md)
 - Native bridge ownership: [`doc/Architecture.md`](doc/Architecture.md)
+
+## Verified native WindowContainer bridge
+
+`PicoWindowContainerHost` delegates to the working OS 6 bridge inside
+`@expo-pico/spatial`. Only the activity-backed WindowContainer is
+implemented; `Subwindow`, `Augment`, `Toolbar`, and `AttachmentPanel`
+are not independently opened by this API.
+
+```ts
+import * as PicoSpatial from "@expo-pico/spatial";
+import { PicoWindowContainerHost } from "@viro-external/pico-layout";
+
+const host = new PicoWindowContainerHost(PicoSpatial);
+const presentation = host.open("app-main");
+if (presentation.kind === "fallback") {
+  // Render your existing adaptive RN/Viro UI inline.
+}
+// On teardown, call host.dispose(). It reports false if native close failed.
+```
+
+Enable `@expo-pico/spatial`'s Spatial SDK integration in CNG and validate
+`getLayoutBridgeStatus()` on PICO OS 6. SDK linkage on OS 5 does not
+establish support, and the PICO 4 Ultra entitlement/app-ID gate must be
+resolved before actual headset testing.

@@ -145,3 +145,5 @@ export class PicoSpatialLayoutAdapter implements XRPlatformAdapter {
 
   dispose(): void {}
 }
+
+export { PicoWindowContainerHost, type PicoWindowContainerBridge, type PicoWindowContainerPresentation } from "./windowContainerHost";

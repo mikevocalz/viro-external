@@ -58,8 +58,12 @@ export {
 } from "./MuxSpatialPlayerPanel";
 
 export {
+  SpatialWorkspaceFrame,
   SpatialWorkspaceSlotNode,
   worldSlot,
+  nearestWorldSlot,
+  type SpatialWorkspaceOrigin,
+  type NearestWorldSlot,
   type SpatialWorkspaceSlot,
   type SpatialWorkspaceSlotNodeProps,
   type WorldSlotOptions,
@@ -85,3 +89,5 @@ export type { MusePenInputProps } from "@viro-external/xr-contract";
 
 export { QuickdrawSpatialPanel } from "./QuickdrawSpatialPanel";
 export type { QuickdrawSpatialPanelProps, QuickdrawSpatialPointer } from "./QuickdrawSpatialPanel.types";
+
+export { MetaWorkspaceHost, type MetaWorkspaceHostProps } from "./MetaWorkspaceHost";

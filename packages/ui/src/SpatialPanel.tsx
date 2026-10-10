@@ -1,4 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { useStore } from "zustand";
+import { createPanelStore } from "./panel-store";
 import {
   ViroGeometry,
   ViroNode,
@@ -22,6 +24,11 @@ import {
   registerPremiumMaterials,
 } from "./materials";
 import { resolveVisualDepth } from "./visual-depth";
+import {
+  nearestWorldSlot, worldSlot,
+  type SpatialWorkspaceSlot, type WorldSlotOptions,
+} from "./world-slot";
+import { useSpatialWorkspaceOrigin, type SpatialWorkspaceOrigin } from "./SpatialWorkspace";
 
 export type SpatialPanelShape = "square" | "rounded" | "curved";
 export type SpatialPanelVariant = "solid" | "glass";
@@ -30,6 +37,18 @@ export type SpatialPanelProps = MovableProps & {
   title?: string;
   subtitle?: string;
   shape?: SpatialPanelShape;
+  /** Shortcut for shape="curved" when shape is omitted. */
+  curved?: boolean;
+  /** Initial left/center/right world slot. */
+  snapTo?: SpatialWorkspaceSlot;
+  /** Auto-snap on drag release (defaults to true when snapTo is provided). */
+  snapOnRelease?: boolean;
+  /** Maximum snap radius in meters (default 0.8). */
+  snapDistanceM?: number;
+  snapOptions?: WorldSlotOptions;
+  /** Explicit alternative to the SpatialWorkspaceFrame origin. */
+  worldOrigin?: SpatialWorkspaceOrigin;
+  onSnap?: (slot: SpatialWorkspaceSlot) => void;
   variant?: SpatialPanelVariant;
   width?: number;
   height?: number;
@@ -54,7 +73,14 @@ export type SpatialPanelProps = MovableProps & {
 export function SpatialPanel({
   title,
   subtitle,
-  shape = "rounded",
+  shape,
+  curved: curvedProp = false,
+  snapTo,
+  snapOnRelease,
+  snapDistanceM = 0.8,
+  snapOptions,
+  worldOrigin,
+  onSnap,
   variant = "solid",
   width = 1.6,
   height = 1,
@@ -86,15 +112,68 @@ export function SpatialPanel({
 }: SpatialPanelProps): React.ReactElement {
   registerPremiumMaterials();
   const depth = resolveVisualDepth(visualDepth);
+  const resolvedShape: SpatialPanelShape = shape ?? (curvedProp ? "curved" : "rounded");
+  const frameOrigin = useSpatialWorkspaceOrigin();
+  const origin = worldOrigin ?? frameOrigin;
+  if ((snapTo !== undefined || snapOnRelease === true) && origin === null) {
+    throw new Error("SpatialPanel: snapTo/snapOnRelease requires SpatialWorkspaceFrame or worldOrigin");
+  }
 
-  const [pinned, setPinned] = useState(defaultPinned);
-  const [closed, setClosed] = useState(false);
+  // Drag-released placement overrides initial slot without fighting live head
+  // tracking. Changing the authored slot / captured pose resets the override.
+  const initialPlacement = origin && snapTo
+    ? worldSlot(snapTo, origin.headPosition, origin.headYawDeg, snapOptions)
+    : null;
+  const storeRef = useRef<ReturnType<typeof createPanelStore> | null>(null);
+  if (storeRef.current === null) storeRef.current = createPanelStore(defaultPinned);
+  const store = storeRef.current;
+  const releasedPlacement = useStore(store, (state) => state.releasedPlacement);
+  const pinned = useStore(store, (state) => state.pinned);
+  const closed = useStore(store, (state) => state.closed);
+  const setReleasedPlacement = store.getState().setReleasedPlacement;
+  useEffect(() => {
+    setReleasedPlacement(null);
+  }, [
+    setReleasedPlacement, snapTo, origin?.headPosition[0], origin?.headPosition[1], origin?.headPosition[2],
+    origin?.headYawDeg, snapOptions?.distanceM, snapOptions?.sideAngleDeg,
+    snapOptions?.verticalOffsetM,
+  ]);
+  const resolvedPlacement = releasedPlacement ?? initialPlacement;
+
+  const handleMoveEnd = useCallback((worldPos: Vec3) => {
+    onMoveEnd?.(worldPos);
+    if (!origin) return;
+
+    if (snapOnRelease ?? snapTo !== undefined) {
+      const nearest = nearestWorldSlot(
+        worldPos, origin.headPosition, origin.headYawDeg, snapOptions, snapDistanceM
+      );
+      if (nearest) {
+        setReleasedPlacement({
+          position: nearest.placement.position,
+          rotation: nearest.placement.rotation,
+        });
+        onSnap?.(nearest.slot);
+        return;
+      }
+    }
+
+    // Outside the snap radius: leave it world-fixed where it was released.
+    setReleasedPlacement({
+      position: [...worldPos] as Vec3,
+      rotation: resolvedPlacement?.rotation ?? rotation ?? [0, 0, 0],
+    });
+  }, [
+    onMoveEnd, origin, snapOnRelease, snapTo, snapOptions, snapDistanceM,
+    onSnap, resolvedPlacement, rotation, setReleasedPlacement,
+  ]);
+
   const headerHeight = Math.max(0.1, height * 0.11);
   const headerY = height / 2 + headerHeight / 2 + 0.015;
 
   const rounded = useMemo(
     () =>
-      shape === "rounded"
+      resolvedShape === "rounded"
         ? buildRoundedPanelGeometry(
             width,
             height,
@@ -102,12 +181,12 @@ export function SpatialPanel({
             14
           )
         : null,
-    [cornerRadius, height, shape, width]
+    [cornerRadius, height, resolvedShape, width]
   );
 
   const curved = useMemo(
     () =>
-      shape === "curved"
+      resolvedShape === "curved"
         ? buildCurvedPanelGeometry(
             width,
             height,
@@ -115,7 +194,7 @@ export function SpatialPanel({
             segments
           )
         : null,
-    [curvature, height, segments, shape, width]
+    [curvature, height, segments, resolvedShape, width]
   );
 
   if (closed) return <ViroNode />;
@@ -128,8 +207,8 @@ export function SpatialPanel({
             id: "pin",
             label: pinned ? "Follow" : "Pin",
             onPress: () => {
-              const next = !pinned;
-              setPinned(next);
+              const next = !store.getState().pinned;
+              store.setState({ pinned: next });
               onPinnedChange?.(next);
             },
           },
@@ -141,7 +220,7 @@ export function SpatialPanel({
             id: "close",
             label: "×",
             onPress: () => {
-              setClosed(true);
+              store.setState({ closed: true });
               onClose?.();
             },
           },
@@ -163,17 +242,17 @@ export function SpatialPanel({
       axisLock={axisLock}
       onMoveStart={onMoveStart}
       onMove={onMove}
-      onMoveEnd={onMoveEnd}
+      onMoveEnd={origin ? handleMoveEnd : onMoveEnd}
       pinchToScale={pinchToScale ?? resizable}
-      position={position}
+      position={resolvedPlacement?.position ?? position}
       scale={scale}
     >
       <ViroNode
-        rotation={rotation}
+        rotation={resolvedPlacement?.rotation ?? rotation}
         transformBehaviors={pinned ? undefined : ["billboardY"]}
       >
         {depth.edge ? (
-          shape === "square" ? (
+          resolvedShape === "square" ? (
             <ViroQuad width={width * depth.edgeScale} height={height * depth.edgeScale} position={[0, 0, depth.edgeOffset]} materials={[PremiumMaterials.panelEdge]} ignoreEventHandling />
           ) : (
             <ViroGeometry
@@ -186,7 +265,7 @@ export function SpatialPanel({
             />
           )
         ) : null}
-        {shape === "square" ? (
+        {resolvedShape === "square" ? (
           <ViroQuad
             width={width}
             height={height}
