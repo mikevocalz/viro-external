@@ -83,6 +83,9 @@ jobs:
       - name: Workspace surface contract tests
         run: pnpm test:workspace-surface
 
+      - name: PICO WindowContainer host tests
+        run: node --experimental-strip-types --test packages/pico-layout/test/windowContainerHost.test.mjs
+
       - name: Validate Lens Studio runtime sources
         run: pnpm --filter @viro-external/specs specs:validate-lens
 
