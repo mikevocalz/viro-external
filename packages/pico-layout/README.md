@@ -2,7 +2,7 @@
 
 Maps the shared `@viro-external/xr-contract` surface intents onto PICO Spatial SDK 6 presentation primitives (`WindowContainer`, `Subwindow`, `Augment`, `Toolbar`, `SpatialPopup`, `Stage`, `AttachmentPanelComponent`).
 
-The package is pure TypeScript. It links no PICO native artifact and makes no native call. It answers one question: given a surface's role and placement, plus what the runtime reports it can host, which PICO primitive should present it? Opening the activity-backed `WindowContainer` is supported by `@expo-pico/spatial` on a properly linked PICO OS 6 runtime; independent `Subwindow`/`Augment`/`AttachmentPanel` mounting still requires native SDK work. See [Status](#status-what-is-not-implemented).
+The package is pure TypeScript and links no PICO native artifact itself. Its resolver computes a layout plan; the optional WindowContainer host delegates native calls to the app-supplied bridge. It answers one question: given a surface's role and placement, plus what the runtime reports it can host, which PICO primitive should present it? Opening the activity-backed `WindowContainer` is supported by `@expo-pico/spatial` on a properly linked PICO OS 6 runtime; independent `Subwindow`/`Augment`/`AttachmentPanel` mounting still requires native SDK work. See [Status](#status-what-is-not-implemented).
 
 ## Where it sits
 
@@ -330,12 +330,17 @@ Rules from `doc/Architecture.md` and the expo-pico layout doc:
 - If the PICO Spatial SDK is not linked, not supported by the OS or device, or cannot host the requested primitive, return inline or drop behaviour rather than claiming spatial support.
 - The OS 5 OpenXR path must stay available for PICO 4-class devices after the OS 6 bridge lands.
 
-The `@expo-pico/spatial` readiness probe (`layoutReadinessFromProbe`, branch `feat/spatial-layout-contract-v2`) reports `modernSpatialUiRuntimePresent`, `legacySpatialRuntimePresent`, `attachmentPanelRuntimePresent`, `spatialNavigatorRuntimePresent`, and `nativeLayoutBridgeBound` (hard-coded `false`). It does not produce a `PicoSpatialRuntime`. Any translation between the two is the caller's code today.
+The `@expo-pico/spatial` readiness probe combines SDK class discovery with
+`getLayoutBridgeStatus()`. `nativeLayoutBridgeBound` requires both the modern
+spatial platform and `sdkLinked === true`; it is no longer hard-coded false.
+This status covers the activity-backed WindowContainer bridge and does not
+establish support for independent subwindows. Translation to the resolver's
+`PicoSpatialRuntime` remains the caller's responsibility.
 
 ## Status: what is NOT implemented
 
-- **No PICO container call is bound.** Nothing here or in `@expo-pico/spatial` opens, updates, or closes a `WindowContainer`, `Subwindow`, `Augment`, `Toolbar`, `SpatialPopup`, `Stage`, or `AttachmentPanelComponent`. This package returns strings.
-- **`nativeLayoutBridgeBound` is `false`.** expo-pico sets it to `true` only after the Kotlin / Expo Module implementation owns those calls and passes device or emulator validation.
+- **Independent surface hosting is not implemented.** `PicoWindowContainerHost` delegates activity-backed container open/close to `@expo-pico/spatial`. The resolver still returns plans; it does not mount independent `Subwindow`, `Augment`, `Toolbar`, `SpatialPopup`, `Stage`, or `AttachmentPanelComponent` content.
+- **Bridge readiness is runtime-reported.** `getLayoutBridgeStatus()` checks SDK linkage and platform availability. It is not proof of successful device rendering.
 - **Nothing is device-validated.** No mapping in this README has run on PICO hardware or an emulator. The mapping follows the PICO Spatial SDK 6.1.9 documentation as read on 2026-10-03.
 - `PicoSpatialLayoutAdapter` does not implement `presentSurface` or `updatePortableScene`.
 - `maxPromotedSurfaces` and platform capacity are not enforced. `priority` only orders surfaces through `resolveSpatialWorkspace`.
@@ -344,7 +349,7 @@ The `@expo-pico/spatial` readiness probe (`layoutReadinessFromProbe`, branch `fe
 - No helper builds a `PicoSpatialRuntime` from a native probe.
 - `master` with `placement: "center"` resolves to the end Subwindow here and to the start Subwindow in `@expo-pico/spatial`. See [slot continuity](#left--center--right-slot-continuity).
 
-The planned native follow-up in expo-pico: link the public Spatial SDK 6.x artifact through the Expo config plugin, bind container open/close/update, expose Subwindow/Augment/Toolbar/SpatialPopup presentation, create a Fabric / Android View host through `AttachmentPanelComponent`, map `Stage` lifecycle to the existing Viro/OpenXR launcher, then flip `nativeLayoutBridgeBound`.
+Remaining native work includes container updates, independent Subwindow/Augment/Toolbar/SpatialPopup presentation, Fabric / Android View hosting through `AttachmentPanelComponent`, and mapping `Stage` lifecycle to the existing Viro/OpenXR launcher. Validate each capability on the target device before advertising it.
 
 ## References
 
@@ -354,9 +359,9 @@ The planned native follow-up in expo-pico: link the public Spatial SDK 6.x artif
 - Shared workspace contract: [`../xr-platform-contract/doc/SpatialWorkspace.md`](../xr-platform-contract/doc/SpatialWorkspace.md)
 - Native bridge ownership: [`doc/Architecture.md`](doc/Architecture.md)
 
-## Verified native WindowContainer bridge
+## Activity-backed WindowContainer bridge
 
-`PicoWindowContainerHost` delegates to the working OS 6 bridge inside
+`PicoWindowContainerHost` delegates to the OS 6 bridge API inside
 `@expo-pico/spatial`. Only the activity-backed WindowContainer is
 implemented; `Subwindow`, `Augment`, `Toolbar`, and `AttachmentPanel`
 are not independently opened by this API.

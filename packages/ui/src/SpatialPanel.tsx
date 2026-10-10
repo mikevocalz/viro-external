@@ -137,6 +137,8 @@ export function SpatialPanel({
     setReleasedPlacement, snapTo, origin?.headPosition[0], origin?.headPosition[1], origin?.headPosition[2],
     origin?.headYawDeg, snapOptions?.distanceM, snapOptions?.sideAngleDeg,
     snapOptions?.verticalOffsetM,
+    position?.[0], position?.[1], position?.[2],
+    rotation?.[0], rotation?.[1], rotation?.[2],
   ]);
   const resolvedPlacement = releasedPlacement ?? initialPlacement;
 
