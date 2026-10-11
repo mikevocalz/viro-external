@@ -1,5 +1,9 @@
 import { readFileSync, readdirSync } from 'node:fs';
 
+/** Read one package manifest; invalid JSON is a validation failure.
+ * @param {string} path Repository-relative manifest path.
+ * @returns {object} Parsed manifest.
+ */
 const read = (path) => JSON.parse(readFileSync(path, 'utf8'));
 const premium = new Set(['premium', 'media', 'ui', 'viro-external-core', 'pano']);
 const forbidden = new Set(['react-native-nitro-modules', 'nitrogen', 'react-native-viro-mux']);

@@ -7,6 +7,12 @@ import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 
 const script = fileURLToPath(new URL('../scripts/ci/check-generated-clean.mjs', import.meta.url));
+/**
+ * Create a disposable Git repository with committed bindings and a lockfile.
+ * Each regression mutates this fixture, then runs the production drift guard.
+ * @param {import('node:test').TestContext} t Test context owning cleanup.
+ * @returns {{cwd: string, output: string, git: (...args: string[]) => void, check: () => import('node:child_process').SpawnSyncReturns<string>}}
+ */
 function fixture(t) {
   const cwd = mkdtempSync(join(tmpdir(), 'viro-generated-'));
   t.after(() => rmSync(cwd, { recursive: true, force: true }));
