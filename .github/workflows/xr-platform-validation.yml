@@ -18,4 +18,7 @@ jobs:
     uses: ./.github/workflows/spatial-validation.yml
     with:
       suite: xr
-    # Deliberately no secrets: inherit. Private credentials are environment-only.
+    # Environment-scoped secrets resolve empty inside called workflows unless the
+    # caller opts in (actions/runner#4453). inherit passes no repo/org secrets —
+    # there are none; the spatial-dependencies environment stays main-only.
+    secrets: inherit
