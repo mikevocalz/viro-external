@@ -24,6 +24,11 @@ runs:
           echo "::error::Configure SPATIAL_DEPENDENCIES_TOKEN only in the spatial-dependencies environment, restricted to main. Full private-dependency validation has NOT run. See docs/CI_SECURITY.md."
           exit 1
         fi
+    - name: Verify saved credential can read the pinned Viro revision
+      shell: bash
+      env:
+        DEPENDENCY_TOKEN: ${{ inputs.token }}
+      run: node scripts/ci/check-viro-access.mjs
     - name: Checkout pinned Viro source
       uses: actions/checkout@v7
       with:
