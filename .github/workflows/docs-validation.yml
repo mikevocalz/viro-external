@@ -1,0 +1,37 @@
+name: Documentation integrity
+on:
+  pull_request:
+    paths:
+      - "README.md"
+      - "docs/**"
+      - "packages/**"
+      - "scripts/check-docs.mjs"
+      - ".github/workflows/docs-validation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "README.md"
+      - "docs/**"
+      - "packages/**"
+      - "scripts/check-docs.mjs"
+      - ".github/workflows/docs-validation.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  docs:
+    name: Handbook links and executable contract example
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - run: git diff --check HEAD^ HEAD
+      - run: node scripts/check-docs.mjs
+      - run: node --experimental-strip-types --test docs/examples/workspace-contract.test.mjs
