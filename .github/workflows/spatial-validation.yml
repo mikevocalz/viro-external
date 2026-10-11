@@ -1,0 +1,146 @@
+name: Spatial validation boundary
+
+on:
+  workflow_call:
+    inputs:
+      suite:
+        description: premium, xr, or all
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  portable:
+    name: Portable checks (no private Viro)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Validate suite
+        env:
+          SUITE: ${{ inputs.suite }}
+        run: |
+          case "$SUITE" in premium|xr|all) ;; *) echo "::error::Unknown validation suite"; exit 1 ;; esac
+      - name: Check committed whitespace and package manifests
+        run: |
+          git diff --check HEAD^ HEAD
+          node scripts/ci/check-manifests.mjs
+      - name: Dependency-free contract and CI regression tests
+        run: |
+          node --experimental-strip-types --test test/rive-contract.test.mjs packages/ui/test/world-slot.test.mjs packages/pico-layout/test/windowContainerHost.test.mjs test/generated-clean.test.mjs test/ci-boundary.test.mjs
+      - name: Install registry-only binding generator
+        if: inputs.suite == 'all'
+        run: |
+          node scripts/ci/prepare-binding-tools.mjs "$RUNNER_TEMP/viro-binding-tools"
+          npm install --prefix "$RUNNER_TEMP/viro-binding-tools" --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+          test ! -e packages/react-native-viro-mux/node_modules
+          ln -s "$RUNNER_TEMP/viro-binding-tools/node_modules" packages/react-native-viro-mux/node_modules
+      - name: Regenerate committed legacy bindings without private Viro
+        if: inputs.suite == 'all'
+        working-directory: packages/react-native-viro-mux
+        run: '"$RUNNER_TEMP/viro-binding-tools/node_modules/.bin/nitrogen"'
+      - name: Reject changed or untracked generated bindings
+        if: inputs.suite == 'all'
+        run: node scripts/ci/check-generated-clean.mjs
+      - name: Report validation scope
+        if: always()
+        run: |
+          echo "### Portable checks only" >> "$GITHUB_STEP_SUMMARY"
+          echo "This job does not install the private Viro fork, typecheck the full workspace, build native modules, or test devices. Individual step results above remain authoritative." >> "$GITHUB_STEP_SUMMARY"
+          echo "Private validation is a separate, main-only protected-environment job. A skipped private job is NOT a passing native/full-workspace test." >> "$GITHUB_STEP_SUMMARY"
+
+  private:
+    name: Private Viro validation (${{ inputs.suite }})
+    needs: portable
+    # The environment's server-side branch policy is the security boundary.
+    # A condition alone cannot stop a same-repository PR from editing workflow YAML.
+    if: >-
+      github.repository == 'mikevocalz/viro-external' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    environment: spatial-dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@12.8.1 --activate
+          pnpm --version
+      - name: Checkout compatible Viro sibling
+        uses: ./.github/actions/checkout-viro
+        with:
+          token: ${{ secrets.SPATIAL_DEPENDENCIES_TOKEN }}
+      - name: Install committed workspace graph
+        run: pnpm install --frozen-lockfile --strict-peer-dependencies=false
+      - name: Hydrate linked Viro types without a legacy runtime dependency
+        run: |
+          mkdir -p ../viro/node_modules/@types
+          ln -sfn "$GITHUB_WORKSPACE/packages/media/node_modules/react" ../viro/node_modules/react
+          ln -sfn "$GITHUB_WORKSPACE/packages/media/node_modules/react-native" ../viro/node_modules/react-native
+          ln -sfn "$GITHUB_WORKSPACE/packages/media/node_modules/@types/react" ../viro/node_modules/@types/react
+      - name: Regenerate and verify bindings before typechecking
+        if: inputs.suite == 'all'
+        run: |
+          pnpm specs
+          node scripts/ci/check-generated-clean.mjs
+      - name: Typecheck all packages
+        if: inputs.suite == 'all'
+        run: pnpm typecheck
+      - name: Typecheck premium packages and panel state
+        if: inputs.suite == 'premium'
+        run: |
+          pnpm --filter @viro-external/core typecheck
+          pnpm --filter @viro-external/media typecheck
+          pnpm --filter @viro-external/ui typecheck
+          pnpm --filter @viro-external/ui test:world-slot
+          pnpm --filter @viro-external/premium typecheck
+          pnpm --filter @viro-external/pano typecheck
+          pnpm --filter @viro-external/meta typecheck
+      - name: Typecheck XR packages
+        if: inputs.suite == 'xr'
+        run: |
+          pnpm --filter @viro-external/xr-contract typecheck
+          pnpm --filter @viro-external/specs typecheck
+          for name in meta-layout pico-layout spatial-runtime web-layout webspatial; do
+            pnpm --filter "@viro-external/$name" typecheck
+          done
+      - name: Workspace and Rive contracts
+        if: inputs.suite != 'premium'
+        run: |
+          pnpm test:workspace-surface
+          pnpm test:rive-contract
+          pnpm check:metro
+      - name: Build, load and pack XR packages
+        if: inputs.suite == 'xr'
+        run: |
+          pnpm --filter @viro-external/specs specs:validate-lens
+          pnpm --filter @viro-external/xr-contract build
+          pnpm --filter @viro-external/specs build
+          node -e "Promise.all([import('./packages/xr-platform-contract/dist/index.js'), import('./packages/specs/dist/index.js')]).then(() => console.log('ESM imports OK'))"
+          node -e "require('./packages/xr-platform-contract/dist/cjs/index.js'); require('./packages/specs/dist/cjs/index.js'); console.log('CJS requires OK')"
+          mkdir -p "$RUNNER_TEMP/viro-specs-pack"
+          pnpm --filter @viro-external/specs pack --pack-destination "$RUNNER_TEMP/viro-specs-pack"
+          test -n "$(find "$RUNNER_TEMP/viro-specs-pack" -name '*.tgz' -print -quit)"
+          node --check packages/specs/scripts/doctor-lens-project.mjs
+          node --check packages/specs/scripts/bootstrap-platform-lab.mjs
+          node --check packages/specs/scripts/sync-lens-runtime.mjs
+          node --check packages/specs/scripts/go-clad.mjs
+      - name: Final generated-file guard
+        run: node scripts/ci/check-generated-clean.mjs

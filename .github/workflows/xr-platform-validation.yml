@@ -2,29 +2,8 @@ name: XR platform adapters
 
 on:
   push:
-    branches:
-      - feat/xr-platform-contract
-      - feat/webspatial-adapter
-      - feat/meta-wearables-dat
-      - feat/snap-specs-adapter
-      - feat/spatial-workspace-contract
-      - feat/meta-horizon-layout
-      - feat/pico-spatial-layout
-      - feat/spatial-runtime-compute
-      - feat/web-layout-adapters
+    branches: [main]
   pull_request:
-    paths:
-      - "packages/specs/**"
-      - "packages/xr-platform-contract/**"
-      - "packages/meta-layout/**"
-      - "packages/pico-layout/**"
-      - "packages/spatial-runtime/**"
-      - "packages/web-layout/**"
-      - "packages/webspatial/**"
-      - ".github/workflows/xr-platform-validation.yml"
-      - "scripts/check-metro-resolution.mjs"
-      - "test/support/**"
-      - "package.json"
   workflow_dispatch:
 
 permissions:
@@ -35,111 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  typecheck:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-
-    steps:
-      - name: Checkout viro-external
-        uses: actions/checkout@v7
-
-      - name: Setup Node
-        uses: actions/setup-node@v7
-        with:
-          node-version: "24"
-
-      - name: Enable pnpm 12.8.1
-        run: |
-          corepack enable
-          corepack prepare pnpm@12.8.1 --activate
-          pnpm --version
-
-      - name: Checkout Viro 3 sibling
-        run: |
-          rm -rf ../viro
-          git clone --depth 1 --branch v3.0.1 https://github.com/ReactVision/viro.git ../viro
-          node -p "require('../viro/package.json').version"
-
-      - name: Install workspace
-        run: pnpm install --no-frozen-lockfile --strict-peer-dependencies=false
-
-      - name: Hydrate linked Viro type resolution
-        run: |
-          mkdir -p ../viro/node_modules/@types
-          ln -sfn "$GITHUB_WORKSPACE/packages/react-native-viro-mux/node_modules/react" ../viro/node_modules/react
-          ln -sfn "$GITHUB_WORKSPACE/packages/react-native-viro-mux/node_modules/react-native" ../viro/node_modules/react-native
-          ln -sfn "$GITHUB_WORKSPACE/packages/react-native-viro-mux/node_modules/@types/react" ../viro/node_modules/@types/react
-
-      - name: Typecheck XR packages
-        run: |
-          pnpm --filter @viro-external/xr-contract typecheck
-          pnpm --filter @viro-external/specs typecheck
-          if [ -d packages/meta-layout ]; then pnpm --filter @viro-external/meta-layout typecheck; fi
-          if [ -d packages/pico-layout ]; then pnpm --filter @viro-external/pico-layout typecheck; fi
-          if [ -d packages/spatial-runtime ]; then pnpm --filter @viro-external/spatial-runtime typecheck; fi
-          if [ -d packages/web-layout ]; then pnpm --filter @viro-external/web-layout typecheck; fi
-          if [ -d packages/webspatial ]; then pnpm --filter @viro-external/webspatial typecheck; fi
-
-      - name: Workspace surface contract tests
-        run: pnpm test:workspace-surface
-
-      - name: PICO WindowContainer host tests
-        run: node --experimental-strip-types --test packages/pico-layout/test/windowContainerHost.test.mjs
-
-      - name: Validate Lens Studio runtime sources
-        run: pnpm --filter @viro-external/specs specs:validate-lens
-
-      - name: Build publishable XR packages
-        run: |
-          pnpm --filter @viro-external/xr-contract build
-          pnpm --filter @viro-external/specs build
-
-      - name: Smoke-test built ESM entrypoints in Node
-        run: |
-          node -e "Promise.all([import('./packages/xr-platform-contract/dist/index.js'), import('./packages/specs/dist/index.js')]).then(() => console.log('ESM imports OK'))"
-
-      - name: Smoke-test built CommonJS entrypoints in Node
-        run: |
-          node -e "require('./packages/xr-platform-contract/dist/cjs/index.js'); require('./packages/specs/dist/cjs/index.js'); console.log('CJS requires OK')"
-
-      - name: Check Metro resolves workspace packages to src
-        run: pnpm check:metro
-
-      - name: Pack SPECS package
-        run: |
-          mkdir -p /tmp/viro-specs-pack
-          pnpm --filter @viro-external/specs pack --pack-destination /tmp/viro-specs-pack
-          test -n "$(find /tmp/viro-specs-pack -name '*.tgz' -print -quit)"
-
-      - name: Validate Lens bootstrap scripts
-        run: |
-          node --check packages/specs/scripts/doctor-lens-project.mjs
-          node --check packages/specs/scripts/bootstrap-platform-lab.mjs
-          node --check packages/specs/scripts/sync-lens-runtime.mjs
-          node --check packages/specs/scripts/go-clad.mjs
-
-      - name: Verify XR package manifests
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-
-          const expectations = {
-            'packages/xr-platform-contract/package.json': '@viro-external/xr-contract',
-            'packages/webspatial/package.json': '@viro-external/webspatial',
-            'packages/meta-wearables/package.json': '@viro-external/meta-wearables',
-            'packages/specs/package.json': '@viro-external/specs',
-            'packages/meta-layout/package.json': '@viro-external/meta-layout',
-            'packages/pico-layout/package.json': '@viro-external/pico-layout',
-            'packages/spatial-runtime/package.json': '@viro-external/spatial-runtime',
-            'packages/web-layout/package.json': '@viro-external/web-layout',
-          };
-
-          for (const [file, name] of Object.entries(expectations)) {
-            if (!fs.existsSync(file)) continue;
-            const pkg = JSON.parse(fs.readFileSync(file, 'utf8'));
-            if (pkg.name !== name) throw new Error(`${file}: unexpected package name`);
-            if (pkg.scripts?.typecheck !== 'tsc --noEmit') {
-              throw new Error(`${file}: missing typecheck script`);
-            }
-          }
-          NODE
+  validate:
+    uses: ./.github/workflows/spatial-validation.yml
+    with:
+      suite: xr
+    # Deliberately no secrets: inherit. Private credentials are environment-only.
