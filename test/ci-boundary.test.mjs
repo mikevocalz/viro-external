@@ -19,12 +19,17 @@ test('private jobs require canonical repo, main and push/manual events', () => {
   assert.match(privateJob, /--frozen-lockfile/);
   assert.doesNotMatch(workflow, /contents: write|git push|git commit|pull_request_target/);
 });
-test('all callers are read-only and never inherit secrets', () => {
+test('all callers are read-only and pass only secrets: inherit', () => {
   for (const file of ['premium-stack.yml', 'viro3-expo58-refresh.yml', 'xr-platform-validation.yml']) {
     const text = read(`.github/workflows/${file}`);
     assert.match(text, /pull_request:/);
     assert.match(text, /contents: read/);
-    assert.doesNotMatch(text, /^\s*secrets:/m);
+    // secrets: inherit is required, not optional: environment-scoped secrets
+    // resolve to "" inside called workflows without it (actions/runner#4453).
+    // It forwards repository/organization secrets only — none may exist; the
+    // environment secret still resolves solely in the environment-bound job.
+    assert.match(text, /^\s*secrets: inherit\s*$/m);
+    assert.doesNotMatch(text, /secrets\.[A-Z_]+/);
     assert.match(text, /uses: \.\/\.github\/workflows\/spatial-validation.yml/);
   }
 });
