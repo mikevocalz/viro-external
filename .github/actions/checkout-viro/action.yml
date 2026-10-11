@@ -1,19 +1,27 @@
 name: Checkout compatible Viro fork
-description: Resolve the linked Viro package to the tested SDK 58 spatial fork.
+description: Trusted-main-only checkout of the pinned SDK 58 spatial fork.
 inputs:
   token:
-    description: Token with read-only Contents access to mikevocalz/viro.
+    description: Environment-only token with read-only Contents access to mikevocalz/viro.
     required: true
 runs:
   using: composite
   steps:
-    - name: Verify private dependency access is configured
+    - name: Verify trusted context and private dependency access
       shell: bash
       env:
         DEPENDENCY_TOKEN: ${{ inputs.token }}
       run: |
+        case "$GITHUB_EVENT_NAME" in
+          push|workflow_dispatch) ;;
+          *) echo "::error::Private Viro checkout is forbidden on pull-request events."; exit 1 ;;
+        esac
+        if [ "$GITHUB_REPOSITORY" != "mikevocalz/viro-external" ] || [ "$GITHUB_REF" != "refs/heads/main" ]; then
+          echo "::error::Private Viro checkout is restricted to this repository's main branch."
+          exit 1
+        fi
         if [ -z "$DEPENDENCY_TOKEN" ]; then
-          echo "::error::Configure SPATIAL_DEPENDENCIES_TOKEN with read-only Contents access to mikevocalz/viro. Upstream Viro does not provide this workspace's external-video API."
+          echo "::error::Configure SPATIAL_DEPENDENCIES_TOKEN only in the spatial-dependencies environment, restricted to main. Full private-dependency validation has NOT run. See docs/CI_SECURITY.md."
           exit 1
         fi
     - name: Checkout pinned Viro source
@@ -27,5 +35,9 @@ runs:
     - name: Place Viro at the workspace link target
       shell: bash
       run: |
+        if [ -e ../viro ] || [ -L ../viro ]; then
+          echo "::error::Unexpected existing Viro sibling; refusing to overwrite it."
+          exit 1
+        fi
         mv .spatial-deps/viro ../viro
         node -p "require('../viro/package.json').version"
