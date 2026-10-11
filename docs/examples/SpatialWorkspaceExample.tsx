@@ -9,13 +9,13 @@ import {
 type Props = {
   origin: SpatialWorkspaceOrigin;
   epoch: number;
-  selectedTitle: string | null;
+  selectedItem: { readonly id: string; readonly title: string } | null;
   onCloseDetails: () => void;
 };
 
 /** Render inside the application's existing Viro scene. State remains app-owned. */
 export function SpatialWorkspaceExample({
-  origin, epoch, selectedTitle, onCloseDetails,
+  origin, epoch, selectedItem, onCloseDetails,
 }: Props): React.ReactElement {
   return (
     <SpatialWorkspaceFrame key={epoch} {...origin}>
@@ -25,16 +25,17 @@ export function SpatialWorkspaceExample({
       <SpatialPanel title="Workspace" snapTo="center" showCloseAction={false}>
         <PanelText text="Primary task" width={1.3} height={0.6} />
       </SpatialPanel>
-      {selectedTitle !== null ? (
+      {selectedItem !== null ? (
         <SpatialPanel
-          key={selectedTitle}
+          // Titles may change or collide; only a new item should reset placement.
+          key={selectedItem.id}
           title="Inspector"
           curved
           curvature={0.24}
           snapTo="right"
           onClose={onCloseDetails}
         >
-          <PanelText text={selectedTitle} width={1.3} height={0.6} />
+          <PanelText text={selectedItem.title} width={1.3} height={0.6} />
         </SpatialPanel>
       ) : null}
     </SpatialWorkspaceFrame>
