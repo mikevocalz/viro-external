@@ -117,6 +117,9 @@ export class ViroSpecsSceneRuntime {
 
       case "image":
         record.image = object.createComponent("Component.Image") as Image;
+        if (this.assets.defaultImageMaterial) {
+          record.image.mainMaterial = this.assets.defaultImageMaterial;
+        }
         break;
 
       case "ui-frame":

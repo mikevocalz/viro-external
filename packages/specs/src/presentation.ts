@@ -43,31 +43,65 @@ export function compileSpecsPresentation(input: {
   }
 
   const declared = new Set<string>();
+  const safeNodes: PortableXRNode[] = [];
   for (const node of compiled.scene.nodes) {
-    if (!node.id.trim()) throw new Error("Specs node IDs must not be empty.");
+    if (typeof node.id !== "string" || !node.id.trim() ||
+        typeof node.kind !== "string") {
+      throw new Error("Specs node IDs and kinds must be non-empty strings.");
+    }
+    if (node.parentId !== undefined && typeof node.parentId !== "string") {
+      throw new Error("Specs node parent must be a string.");
+    }
     if (node.parentId && !declared.has(node.parentId)) {
       throw new Error(`Specs node ${node.id} must follow its existing parent ${node.parentId}.`);
     }
     for (const [key, count] of [["position", 3], ["rotation", 4], ["scale", 3]] as const) {
       assertVector(node, key, count);
     }
+    if (node.text !== undefined &&
+        (node.kind !== "text" || typeof node.text !== "string")) {
+      throw new Error("Specs text is only valid on text nodes.");
+    }
+    if (node.source !== undefined &&
+        ((node.kind !== "image" && node.kind !== "model") ||
+          typeof node.source !== "string" || !node.source.trim())) {
+      throw new Error("Specs asset sources are only valid on image and model nodes.");
+    }
+    if (node.visible !== undefined && typeof node.visible !== "boolean") {
+      throw new Error("Specs node visibility must be boolean.");
+    }
+    // Compile only the known serialized fields. Native objects, closures and
+    // accidental circular properties never cross the Lens transport boundary.
+    safeNodes.push({
+      id: node.id,
+      kind: node.kind,
+      ...(node.parentId ? { parentId: node.parentId } : {}),
+      ...(node.position ? { position: [...node.position] as [number, number, number] } : {}),
+      ...(node.rotation ? { rotation: [...node.rotation] as [number, number, number, number] } : {}),
+      ...(node.scale ? { scale: [...node.scale] as [number, number, number] } : {}),
+      ...(node.text !== undefined ? { text: node.text } : {}),
+      ...(node.source !== undefined ? { source: node.source } : {}),
+      ...(node.visible !== undefined ? { visible: node.visible } : {}),
+    });
     declared.add(node.id);
   }
 
   const targetIds = new Set<string>();
   const targets = (input.targets ?? []).map((target) => {
-    if (!target.targetId.trim() || !declared.has(target.targetId)) {
+    if (typeof target.targetId !== "string" || !target.targetId.trim() ||
+        !declared.has(target.targetId)) {
       throw new Error(`Specs action target does not exist: ${target.targetId}`);
     }
     if (targetIds.has(target.targetId)) {
       throw new Error(`Specs action target duplicated: ${target.targetId}`);
     }
-    if (!target.action.trim() || target.action.length > 256) {
+    if (typeof target.action !== "string" || !target.action.trim() ||
+        target.action.length > 256) {
       throw new Error("Specs actions must be non-empty and at most 256 characters.");
     }
     targetIds.add(target.targetId);
     return { targetId: target.targetId, action: target.action };
   });
 
-  return { scene: compiled.scene, targets };
+  return { scene: { version: 1, nodes: safeNodes }, targets };
 }

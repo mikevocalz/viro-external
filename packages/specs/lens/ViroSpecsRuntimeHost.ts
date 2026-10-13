@@ -2,6 +2,7 @@ import {
   compileLensRenderPlan,
   type ViroSpecsRenderPlan,
   type ViroSpecsSceneSnapshot,
+  type ViroSpecsSceneNode,
 } from "./ViroSpecsProtocol";
 import { ViroSpecsAssetRegistry } from "./ViroSpecsAssetRegistry";
 import { ViroSpecsSceneRuntime } from "./ViroSpecsSceneRuntime";
@@ -22,6 +23,7 @@ export class ViroSpecsRuntimeHost extends BaseScriptComponent {
   assetRegistryObject: SceneObject;
 
   private runtime: ViroSpecsSceneRuntime | null = null;
+  private registry: ViroSpecsAssetRegistry | null = null;
 
   onAwake(): void {
     (globalThis as unknown as { __VIRO_SPECS_BUILD__?: boolean })
@@ -37,6 +39,7 @@ export class ViroSpecsRuntimeHost extends BaseScriptComponent {
       );
     }
 
+    this.registry = registry;
     this.runtime = new ViroSpecsSceneRuntime(
       this.root ?? this.getSceneObject(),
       registry
@@ -49,6 +52,31 @@ export class ViroSpecsRuntimeHost extends BaseScriptComponent {
 
   applyRenderPlan(plan: ViroSpecsRenderPlan): void {
     this.requireRuntime().apply(plan);
+  }
+
+  /**
+   * Check assets and required Lens materials before retiring the active page.
+   * This complements (rather than replaces) source/permission validation in
+   * the portable compiler and content access layer.
+   */
+  validateSources(nodes: readonly ViroSpecsSceneNode[]): void {
+    if (!this.registry) throw new Error("Specs asset registry is not ready.");
+    for (const node of nodes) {
+      if (node.kind === "panel" && !this.registry.defaultPanelPrefab) {
+        throw new Error("Specs UI Kit panel prefab is not registered: " + node.id);
+      }
+      if (node.kind === "image") {
+        if (node.source !== undefined && !this.registry.resolveImage(node.source)) {
+          throw new Error("Specs image asset is not registered: " + node.source);
+        }
+        if (node.source !== undefined && !this.registry.defaultImageMaterial) {
+          throw new Error("Specs image material is not registered: " + node.id);
+        }
+      }
+      if (node.kind === "model" && (!node.source || !this.registry.resolveModel(node.source))) {
+        throw new Error("Specs model asset is not registered: " + node.id);
+      }
+    }
   }
 
   clear(): void {

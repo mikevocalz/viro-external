@@ -20,6 +20,10 @@ session in the app transport.
 3. Attach `ViroSpecsAssetRegistry`, `ViroSpecsRuntimeHost`,
    `ViroSpecsInteractionHost`, and `ViroSpecsPresentationHost`.
 4. Assign `runtimeHostObject` and `interactionHostObject` in the Inspector.
+   Register a UI Kit frame as `defaultPanelPrefab`. For an image-backed
+   scene, assign the texture's logical ID and `defaultImageMaterial` in
+   `ViroSpecsAssetRegistry`; a missing asset/material is rejected before
+   clearing the previous view.
 5. In a Lens script, call `presentationHost.subscribeAction(handler)`
    and `presentationHost.present(payload)` after the runtime hosts initialize.
 6. Run `specs:validate-lens`, `specs:test-presentation` (after build), CLAD

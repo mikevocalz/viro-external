@@ -49,6 +49,10 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
   present(snapshot: ViroSpecsPresentationSnapshot): void {
     const renderer = this.requireRenderer();
     const interactions = this.requireInteractions();
+    if (!snapshot.scene || snapshot.scene.version !== 1 ||
+        !Array.isArray(snapshot.scene.nodes) || snapshot.scene.nodes.length === 0) {
+      throw new Error("Specs presentation requires a non-empty version 1 scene.");
+    }
     const plan = compileLensRenderPlan(snapshot.scene);
     if (plan.diagnostics.some((d) => d.level === "error")) {
       throw new Error("Invalid Specs scene: " + plan.diagnostics.map((d) => d.message).join("; "));
@@ -67,6 +71,9 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
       }
       next.set(target.targetId, target.action);
     }
+
+    // No visible state changes until all predictable source failures are ruled out.
+    renderer.validateSources(snapshot.scene.nodes);
 
     // Subscription survives changes of page; target bindings never do.
     if (!this.unsubscribe) {

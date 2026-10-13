@@ -49,6 +49,30 @@ test("rejects duplicate nodes, action bindings, and non-finite transforms", () =
   assert.throws(() => compileSpecsPresentation(nan), /Invalid position/);
 });
 
+test("strips extra properties that would break JSON scene serialization", () => {
+  const fixture = base();
+  const extra = { circular: null };
+  extra.circular = extra;
+  fixture.scene.nodes[0].untrusted = extra;
+  fixture.scene.nodes[1].onTap = () => undefined;
+  const compiled = compileSpecsPresentation(fixture);
+  assert.deepEqual(JSON.parse(JSON.stringify(compiled)), compiled);
+  assert.equal("untrusted" in compiled.scene.nodes[0], false);
+  assert.equal("onTap" in compiled.scene.nodes[1], false);
+  const wrong = base();
+  wrong.scene.nodes[2].text = 123;
+  assert.throws(() => compileSpecsPresentation(wrong), /text is only valid/);
+});
+
+test("preflights empty scenes and assets before clearing the Lens frame", () => {
+  const empty = base();
+  empty.scene.nodes = [];
+  assert.throws(() => compileSpecsPresentation(empty), /non-empty/);
+  const host = readFileSync(new URL("../lens/ViroSpecsPresentationHost.ts", import.meta.url), "utf8");
+  assert.match(host, /nodes.length === 0/);
+  assert.ok(host.indexOf("renderer.validateSources") < host.indexOf("renderer.clear()"));
+});
+
 test("asserts Lens quaternion construction uses the shared Viro XYZW order", () => {
   const source = readFileSync(new URL("../lens/ViroSpecsSceneRuntime.ts", import.meta.url), "utf8");
   assert.match(source, /new quat\(\s*command\.rotation\[3\],\s*command\.rotation\[0\],\s*command\.rotation\[1\],\s*command\.rotation\[2\]/);
