@@ -136,3 +136,4 @@ export * from "./testing.js";
 export * from "./viro-runtime-provider.js";
 export * from "./viro-bundle.js";
 export * from "./ui-interaction.js";
+export * from "./presentation.js";

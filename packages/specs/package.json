@@ -24,8 +24,9 @@
     "specs:go": "node scripts/go-clad.mjs",
     "specs:test-runner": "node --test scripts/go-clad.test.mjs",
     "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.build.cjs.json && node -e \"require('node:fs').writeFileSync('dist/cjs/package.json', JSON.stringify({ type: 'commonjs' }) + '\\n')\"",
-    "prepack": "pnpm --filter @viro-external/xr-contract build && pnpm build && node -e \"require('./dist/cjs/index.js')\" && node --input-type=module -e \"await import('./dist/index.js')\" && pnpm specs:validate-lens && pnpm specs:test-runner && node --test scripts/viro-bundle.test.mjs",
-    "specs:test-bundle": "pnpm build && node --test scripts/viro-bundle.test.mjs"
+    "prepack": "pnpm --filter @viro-external/xr-contract build && pnpm build && node -e \"require('./dist/cjs/index.js')\" && node --input-type=module -e \"await import('./dist/index.js')\" && pnpm specs:validate-lens && pnpm specs:test-runner && pnpm specs:test-presentation && node --test scripts/viro-bundle.test.mjs",
+    "specs:test-bundle": "pnpm build && node --test scripts/viro-bundle.test.mjs",
+    "specs:test-presentation": "node --test scripts/presentation.test.mjs"
   },
   "peerDependencies": {
     "@viro-external/xr-contract": "^0.2.0"

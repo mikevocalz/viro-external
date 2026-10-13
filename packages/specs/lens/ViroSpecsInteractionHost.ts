@@ -37,6 +37,11 @@ export class ViroSpecsInteractionHost extends BaseScriptComponent {
     return this.requireRuntime().subscribe(listener);
   }
 
+  /** Retire stale targets before the render host destroys or replaces nodes. */
+  resetTargets(): void {
+    this.requireRuntime().resetTargets();
+  }
+
   setInteractable(nodeId: string, enabled: boolean): void {
     this.requireRuntime().setInteractable(nodeId, enabled);
   }

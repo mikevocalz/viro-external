@@ -8,6 +8,8 @@ type InteractionRecord = {
   root: SceneObject;
   interactable: Interactable;
   manipulation?: InteractableManipulation;
+  /** Event.add callbacks retained so replaced SceneObjects never keep stale handlers. */
+  unsubscribers: (() => void)[];
 };
 
 export class ViroSpecsInteractionRuntime {
@@ -46,15 +48,15 @@ export class ViroSpecsInteractionRuntime {
       // optional depth amplification otherwise changes Z on lateral motion.
       record.manipulation.enableStretchZ = false;
 
-      record.manipulation.onManipulationStart.add(() => {
+      this.trackUnsubscribe(record, record.manipulation.onManipulationStart.add(() => {
         this.activeDrags.add(nodeId);
         this.emitDrag(nodeId);
-      });
+      }));
 
-      record.manipulation.onManipulationEnd.add(() => {
+      this.trackUnsubscribe(record, record.manipulation.onManipulationEnd.add(() => {
         this.emitDrag(nodeId);
         this.activeDrags.delete(nodeId);
-      });
+      }));
     }
 
     record.manipulation.enabled = enabled;
@@ -66,17 +68,26 @@ export class ViroSpecsInteractionRuntime {
     }
   }
 
-  dispose(): void {
+  /** Keep subscribers, but dispose SIK bindings before replacing the scene. */
+  resetTargets(): void {
     for (const record of this.records.values()) {
-      record.interactable.enabled = false;
-      if (record.manipulation) {
-        record.manipulation.enabled = false;
+      if (!isNull(record.target)) {
+        record.interactable.enabled = false;
+        if (record.manipulation) record.manipulation.enabled = false;
       }
+      for (const unsubscribe of record.unsubscribers) unsubscribe();
     }
-
     this.activeDrags.clear();
     this.records.clear();
+  }
+
+  dispose(): void {
+    this.resetTargets();
     this.listeners.clear();
+  }
+
+  private trackUnsubscribe(record: InteractionRecord, maybe: unknown): void {
+    if (typeof maybe === "function") record.unsubscribers.push(maybe as () => void);
   }
 
   private ensureRecord(nodeId: string): InteractionRecord {
@@ -104,43 +115,25 @@ export class ViroSpecsInteractionRuntime {
       ) as Interactable;
     }
 
-    interactable.onHoverEnter.add(() => {
-      this.emit({
-        source: "hand",
-        phase: "hover-enter",
-        targetId: nodeId,
-      });
-    });
-
-    interactable.onHoverExit.add(() => {
-      this.emit({
-        source: "hand",
-        phase: "hover-exit",
-        targetId: nodeId,
-      });
-    });
-
-    interactable.onTriggerStart.add(() => {
-      this.emit({
-        source: "pinch",
-        phase: "select-start",
-        targetId: nodeId,
-      });
-    });
-
-    interactable.onTriggerEnd.add(() => {
-      this.emit({
-        source: "pinch",
-        phase: "select-end",
-        targetId: nodeId,
-      });
-    });
-
     const record: InteractionRecord = {
       target,
       root: node,
       interactable,
+      unsubscribers: [],
     };
+
+    this.trackUnsubscribe(record, interactable.onHoverEnter.add(() => {
+      this.emit({ source: "hand", phase: "hover-enter", targetId: nodeId });
+    }));
+    this.trackUnsubscribe(record, interactable.onHoverExit.add(() => {
+      this.emit({ source: "hand", phase: "hover-exit", targetId: nodeId });
+    }));
+    this.trackUnsubscribe(record, interactable.onTriggerStart.add(() => {
+      this.emit({ source: "pinch", phase: "select-start", targetId: nodeId });
+    }));
+    this.trackUnsubscribe(record, interactable.onTriggerEnd.add(() => {
+      this.emit({ source: "pinch", phase: "select-end", targetId: nodeId });
+    }));
 
     this.records.set(nodeId, record);
     return record;

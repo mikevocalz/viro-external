@@ -151,11 +151,12 @@ export class ViroSpecsSceneRuntime {
 
     if (command.rotation) {
       transform.setLocalRotation(
+        // Shared Viro quaternion is [x, y, z, w]; Lens constructor is (w, x, y, z).
         new quat(
+          command.rotation[3],
           command.rotation[0],
           command.rotation[1],
-          command.rotation[2],
-          command.rotation[3]
+          command.rotation[2]
         )
       );
     }

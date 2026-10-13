@@ -140,7 +140,7 @@ Inside the Lens, any script holding a `ViroSpecsRuntimeHost` reference calls `ru
 | `kind` | `"group" \| "text" \| "image" \| "model" \| "panel"` | Picks the Lens primitive (see [Mapping table](#mapping-table)) |
 | `parentId` | `string?` | Parents the SceneObject. Omitted means the host's `root` input |
 | `position` | `[x, y, z]` meters | Multiplied by 100 into Lens centimeters |
-| `rotation` | 4-tuple | Passed **positionally** to `new quat(r[0], r[1], r[2], r[3])`. Lens Studio's constructor is `quat(w, x, y, z)`, so write `[w, x, y, z]` |
+| `rotation` | 4-tuple | Portable Viro uses **[x, y, z, w]**; the Lens host reorders to its `quat(w, x, y, z)` constructor |
 | `scale` | `[x, y, z]` | Applied as-is, with no unit conversion |
 | `text` | `string?` | Sets `Text.text`. Throws on any node that is not `text` |
 | `source` | `string?` | Logical asset ID resolved through `ViroSpecsAssetRegistry`. Valid on `image` and `model` only |
