@@ -118,7 +118,9 @@ export class ViroSpecsSceneRuntime {
       case "image":
         record.image = object.createComponent("Component.Image") as Image;
         if (this.assets.defaultImageMaterial) {
-          record.image.mainMaterial = this.assets.defaultImageMaterial;
+          // Image materials are mutable shared assets. Each dynamic image must
+          // own a clone or setting baseTex would replace every other image.
+          record.image.mainMaterial = this.assets.defaultImageMaterial.clone();
         }
         break;
 
