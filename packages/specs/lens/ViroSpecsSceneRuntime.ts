@@ -117,6 +117,11 @@ export class ViroSpecsSceneRuntime {
 
       case "image":
         record.image = object.createComponent("Component.Image") as Image;
+        if (this.assets.defaultImageMaterial) {
+          // Image materials are mutable shared assets. Each dynamic image must
+          // own a clone or setting baseTex would replace every other image.
+          record.image.mainMaterial = this.assets.defaultImageMaterial.clone();
+        }
         break;
 
       case "ui-frame":
@@ -151,11 +156,12 @@ export class ViroSpecsSceneRuntime {
 
     if (command.rotation) {
       transform.setLocalRotation(
+        // Shared Viro quaternion is [x, y, z, w]; Lens constructor is (w, x, y, z).
         new quat(
+          command.rotation[3],
           command.rotation[0],
           command.rotation[1],
-          command.rotation[2],
-          command.rotation[3]
+          command.rotation[2]
         )
       );
     }

@@ -34,6 +34,10 @@ export class ViroSpecsAssetRegistry extends BaseScriptComponent {
   @allowUndefined
   defaultFont: Font | null = null;
 
+  @input
+  @allowUndefined
+  defaultImageMaterial: Material | null = null;
+
   resolveModel(source: string): ObjectPrefab | null {
     return this.resolveById(source, this.modelIds, this.modelPrefabs);
   }

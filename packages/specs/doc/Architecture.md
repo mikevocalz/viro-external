@@ -73,14 +73,14 @@ const scene = compileSpecsScene([
 ```
 
 `worldSlot()` returns `rotation` as Euler degrees `[0, yawDeg, 0]` and has no
-`yaw` field. The portable `rotation` is a quaternion that
-`ViroSpecsSceneRuntime` passes positionally to Lens Studio's
-`new quat(w, x, y, z)`, so the yaw must be converted in `[w, x, y, z]` order:
+`yaw` field. The portable `rotation` is a Viro quaternion in `[x, y, z, w]` order.
+`ViroSpecsSceneRuntime` reorders those values when constructing the Lens
+`new quat(w, x, y, z)`, so the yaw conversion stays in Viro order:
 
 ```ts
 function yawToSpecsRotation(yawDeg: number): [number, number, number, number] {
   const half = (yawDeg * Math.PI) / 360;
-  return [Math.cos(half), 0, Math.sin(half), 0];
+  return [0, Math.sin(half), 0, Math.cos(half)];
 }
 ```
 
