@@ -40,6 +40,25 @@ a listener can call `present()` without destroying an Interactable while SIK is
 still dispatching to it. Every `select-end` on a bound target fires the action
 again; debounce in the caller if a repeated pinch must not repeat the action.
 
+Text nodes take an optional `textStyle: { size, color }`. `size` is in Lens
+text points and `color` is linear RGBA from 0 to 1. Without it, text renders at
+48 points in the font's default color, which is too small to read at arm's
+length.
+
+The host adds a `Component.Canvas` to each top-level node so UI Kit frames
+draw behind the text and models that follow them, and binds action targets
+one frame after the page is created. UI Kit frames build their mesh after
+creation; binding in the same frame fits the collider to a text label, and
+SIK then never reports a hit on it. A newer `present()` or `clear()` before
+that frame cancels the bind.
+
+Before retiring targets, the interaction runtime calls SIK's
+`clearCurrentInteractable()` on every interactor still holding one of them,
+the release SIK documents for deleting an Interactable at runtime. In a
+6-replacement Preview run this cut SIK's "Object is null" cursor errors from
+6 to 2; the remaining two come from the cursor's per-frame cache and SIK
+catches them.
+
 SIK fits the collider to the first visual under the bound node. Bind actions
 to a panel-sized node, not a group whose only visual is a text label, or the
 pinch target shrinks to the glyph bounds.

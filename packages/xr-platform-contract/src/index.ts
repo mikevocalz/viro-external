@@ -168,6 +168,12 @@ export type PortableXRNodeKind =
   | "model"
   | "panel";
 
+/** Text appearance. size is in Lens/renderer points; color is linear RGBA in 0..1. */
+export interface PortableXRTextStyle {
+  size?: number;
+  color?: [number, number, number, number];
+}
+
 export interface PortableXRNode {
   id: string;
   kind: PortableXRNodeKind;
@@ -177,6 +183,7 @@ export interface PortableXRNode {
   scale?: [number, number, number];
   source?: string;
   text?: string;
+  textStyle?: PortableXRTextStyle;
   visible?: boolean;
 }
 

@@ -24,6 +24,22 @@ function assertVector(node: PortableXRNode, key: "position" | "rotation" | "scal
   }
 }
 
+function assertTextStyle(node: PortableXRNode): void {
+  const style = node.textStyle;
+  if (node.kind !== "text" || typeof style !== "object" || style === null) {
+    throw new Error(`Specs textStyle is only valid on text nodes: ${node.id}.`);
+  }
+  if (style.size !== undefined &&
+      (typeof style.size !== "number" || !Number.isFinite(style.size) || style.size <= 0 || style.size > 1000)) {
+    throw new Error(`Invalid textStyle.size on Specs node ${node.id}.`);
+  }
+  if (style.color !== undefined &&
+      (!Array.isArray(style.color) || style.color.length !== 4 ||
+        style.color.some((v) => typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > 1))) {
+    throw new Error(`Invalid textStyle.color on Specs node ${node.id}.`);
+  }
+}
+
 /**
  * Validate a complete presentation *before* the Lens clears the old scene.
  * Child-first/missing parents previously passed compiler warnings but would
@@ -67,6 +83,7 @@ export function compileSpecsPresentation(input: {
           typeof node.source !== "string" || !node.source.trim())) {
       throw new Error("Specs asset sources are only valid on image and model nodes.");
     }
+    if (node.textStyle !== undefined) assertTextStyle(node);
     if (node.visible !== undefined && typeof node.visible !== "boolean") {
       throw new Error("Specs node visibility must be boolean.");
     }
@@ -81,6 +98,10 @@ export function compileSpecsPresentation(input: {
       ...(node.scale ? { scale: [...node.scale] as [number, number, number] } : {}),
       ...(node.text !== undefined ? { text: node.text } : {}),
       ...(node.source !== undefined ? { source: node.source } : {}),
+      ...(node.textStyle ? { textStyle: {
+        ...(node.textStyle.size !== undefined ? { size: node.textStyle.size } : {}),
+        ...(node.textStyle.color ? { color: [...node.textStyle.color] as [number, number, number, number] } : {}),
+      } } : {}),
       ...(node.visible !== undefined ? { visible: node.visible } : {}),
     });
     declared.add(node.id);

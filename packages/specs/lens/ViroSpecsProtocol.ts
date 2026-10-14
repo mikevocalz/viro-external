@@ -14,6 +14,12 @@ export type ViroSpecsNodeKind =
   | "model"
   | "panel";
 
+/** Mirrors PortableXRTextStyle: size in Lens points, color linear RGBA 0..1. */
+export type ViroSpecsTextStyle = {
+  size?: number;
+  color?: [number, number, number, number];
+};
+
 export type ViroSpecsSceneNode = {
   id: string;
   kind: ViroSpecsNodeKind;
@@ -23,6 +29,7 @@ export type ViroSpecsSceneNode = {
   scale?: [number, number, number];
   source?: string;
   text?: string;
+  textStyle?: ViroSpecsTextStyle;
   visible?: boolean;
 };
 
@@ -63,6 +70,7 @@ export type ViroSpecsRenderCommand =
       id: string;
       text?: string;
       source?: string;
+      textStyle?: ViroSpecsTextStyle;
     }
   | {
       op: "visibility";
@@ -273,12 +281,13 @@ export function compileLensRenderPlan(
       });
     }
 
-    if (node.text !== undefined || node.source !== undefined) {
+    if (node.text !== undefined || node.source !== undefined || node.textStyle) {
       commands.push({
         op: "content",
         id: node.id,
         ...(node.text !== undefined ? { text: node.text } : {}),
         ...(node.source !== undefined ? { source: node.source } : {}),
+        ...(node.textStyle ? { textStyle: node.textStyle } : {}),
       });
     }
 

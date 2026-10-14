@@ -191,6 +191,15 @@ export class ViroSpecsSceneRuntime {
       record.text.text = command.text;
     }
 
+    if (command.textStyle) {
+      if (!record.text) {
+        throw new Error("Text style supplied to non-text Specs node " + command.id);
+      }
+      if (command.textStyle.size !== undefined) record.text.size = command.textStyle.size;
+      const c = command.textStyle.color;
+      if (c) record.text.textFill.color = new vec4(c[0], c[1], c[2], c[3]);
+    }
+
     if (command.source === undefined) {
       return;
     }
