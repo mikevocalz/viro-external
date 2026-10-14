@@ -292,15 +292,15 @@ In that branch it returns a `WorldSlotPlacement`:
 | `placement.rotation` | **Euler degrees** `[0, yawDeg, 0]` | Faces the panel's +Z normal back at the head |
 | `placement.distanceM`, `placement.bearingDeg` | m, degrees | Informational |
 
-`position` goes straight into a portable node. `rotation` does not. The portable field is a quaternion, and the Lens runtime reads it as `[w, x, y, z]`. Convert the yaw first:
+`position` goes straight into a portable node. `rotation` does not. The portable field is a quaternion in `[x, y, z, w]` order; the Lens runtime reorders it for `quat(w, x, y, z)`. Convert the yaw first:
 
 ```ts
 import type { PortableXRNode } from "@viro-external/xr-contract";
 
-// Yaw about +Y, in the [w, x, y, z] order ViroSpecsSceneRuntime hands to new quat().
+// Yaw about +Y, in the portable [x, y, z, w] order.
 function yawToSpecsRotation(yawDeg: number): [number, number, number, number] {
   const half = (yawDeg * Math.PI) / 360;
-  return [Math.cos(half), 0, Math.sin(half), 0];
+  return [0, Math.sin(half), 0, Math.cos(half)];
 }
 
 const head: [number, number, number] = [0, 1.6, 0];
@@ -329,7 +329,7 @@ The yaw sign follows Viro (counter-clockwise about +Y, so the user's left is pos
 | `Specs Image node requires an Image material before setting source` | Lens creates `Component.Image` without a material | Give the Image a material, or use a `model` prefab for that content |
 | `Text content supplied to non-text Specs node` / `Source content is unsupported for Specs primitive` | `text` on a non-text node, or `source` on `group` / `panel` | Move the field to a `text`, `image` or `model` child |
 | Panel is invisible | `defaultPanelPrefab` not set, so `panel` is an empty SceneObject | Assign a UI Kit frame prefab in the registry |
-| Panels face the wrong way or tilt | Rotation written as `[x, y, z, w]` or as Euler angles | Write `[w, x, y, z]`. See [Three-slot workspace](#three-slot-workspace-on-specs) |
+| Panels face the wrong way or tilt | Rotation written as `[w, x, y, z]` or as Euler angles | Write `[x, y, z, w]`. See [Three-slot workspace](#three-slot-workspace-on-specs) |
 | Content 100× too large or too small | Mixed units | `position` is meters (converted to cm). `scale` is not converted |
 | Lens compile errors in `Assets/ViroSpecs/lens` naming an `.lspkg` path | One of the eight packages is missing, including the editor-only LEAF and AiPreviewAgent ones | Install every package in [step 3](#3-install-lens-packages) and recompile |
 | Scene references to `ViroSpecs*` scripts are lost after a resync | `specs:sync --clean` deleted the `.meta` files | Resync without `--clean`. `specs:bootstrap` and `specs:go` never pass it |

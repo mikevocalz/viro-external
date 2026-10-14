@@ -1,7 +1,7 @@
 # Live Specs presentations
 
-The Lens host now supports replacing one focused page at a time without
-preserving stale SIK targets from the previous scene. It is a **Lens Studio
+The Lens host replaces one focused page at a time and retires the previous
+scene's SIK targets first. It is a **Lens Studio
 host**, not a React/React Native runtime on the glasses.
 
 ## App-side protocol
@@ -29,10 +29,27 @@ session in the app transport.
 6. Run `specs:validate-lens`, `specs:test-presentation` (after build), CLAD
    Preview and LEAF selection/teardown tests.
 
-The presentation host performs validation before clearing the visible page;
-it retires previous targets before creating the next set. Its callback fires on
-the normalized `select-end` event exactly once per bound target. The caller
-owns authorization and state transitions.
+The presentation host validates parents, targets, transforms, content fields
+and registered assets before clearing the visible page, then retires previous
+targets before creating the next set. A payload that fails during
+`applyRenderPlan` after those checks still leaves the page empty; the caller
+should catch the error and present a fallback page.
+
+Action listeners run on the frame after the normalized `select-end` event, so
+a listener can call `present()` without destroying an Interactable while SIK is
+still dispatching to it. Every `select-end` on a bound target fires the action
+again; debounce in the caller if a repeated pinch must not repeat the action.
+
+SIK fits the collider to the first visual under the bound node. Bind actions
+to a panel-sized node, not a group whose only visual is a text label, or the
+pinch target shrinks to the glyph bounds.
+
+Node positions are local to the `ViroSpecsRuntimeHost` SceneObject. Placing
+that object (world-locked, head-following, or re-placed per page) is the Lens
+scene's job; this host does not move it.
+
+None of this lifecycle behavior has run in CLAD Preview or on Specs hardware
+yet. The tests below are source-level.
 
 ### Boundaries
 

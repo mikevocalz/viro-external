@@ -70,7 +70,27 @@ test("preflights empty scenes and assets before clearing the Lens frame", () => 
   assert.throws(() => compileSpecsPresentation(empty), /non-empty/);
   const host = readFileSync(new URL("../lens/ViroSpecsPresentationHost.ts", import.meta.url), "utf8");
   assert.match(host, /nodes.length === 0/);
-  assert.ok(host.indexOf("renderer.validateSources") < host.indexOf("renderer.clear()"));
+  const validate = host.indexOf("renderer.validateSources");
+  assert.ok(validate < host.indexOf("interactions.resetTargets()"));
+  assert.ok(validate < host.indexOf("renderer.clear()"));
+  // Raw wire payloads bypass the portable compiler, so the host repeats the
+  // checks that would otherwise throw after the page is cleared.
+  for (const check of [/text is only valid on text nodes/, /source is only valid on image\/model/,
+    /assertVector\(node\.rotation, 4/, /assertVector\(node\.position, 3/]) {
+    assert.match(host, check);
+  }
+  assert.match(host, /emitDeferred\(action\)/);
+});
+
+test("passes portable [x, y, z, w] rotation through unchanged", () => {
+  const fixture = base();
+  const half = Math.PI / 8;
+  const yaw45 = [0, Math.sin(half), 0, Math.cos(half)];
+  fixture.scene.nodes[0].rotation = yaw45;
+  assert.deepEqual(compileSpecsPresentation(fixture).scene.nodes[0].rotation, yaw45);
+  const short = base();
+  short.scene.nodes[0].rotation = [0, 0, 1];
+  assert.throws(() => compileSpecsPresentation(short), /rotation/i);
 });
 
 test("asserts Lens quaternion construction uses the shared Viro XYZW order", () => {

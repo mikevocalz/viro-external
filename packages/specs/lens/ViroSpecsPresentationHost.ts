@@ -62,6 +62,16 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
       if (node.parentId && !sceneIds.has(node.parentId)) {
         throw new Error("Specs child precedes parent or parent is missing: " + node.id);
       }
+      // Raw wire JSON may skip compileSpecsPresentation; these would throw after clear().
+      if (node.text !== undefined && node.kind !== "text") {
+        throw new Error("Specs text is only valid on text nodes: " + node.id);
+      }
+      if (node.source !== undefined && node.kind !== "image" && node.kind !== "model") {
+        throw new Error("Specs source is only valid on image/model nodes: " + node.id);
+      }
+      assertVector(node.position, 3, "position", node.id);
+      assertVector(node.rotation, 4, "rotation", node.id);
+      assertVector(node.scale, 3, "scale", node.id);
       sceneIds.add(node.id);
     }
     const next = new Map<string, string>();
@@ -80,7 +90,7 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
       this.unsubscribe = interactions.subscribe((event) => {
         if (event.phase !== "select-end" || !event.targetId) return;
         const action = this.actions.get(event.targetId);
-        if (action) for (const listener of this.listeners) listener(action);
+        if (action) this.emitDeferred(action);
       });
     }
     interactions.resetTargets();
@@ -95,6 +105,17 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
       renderer.clear();
       throw error;
     }
+  }
+
+  // Listeners usually call present(), which destroys the selected Interactable.
+  // Doing that inside SIK's trigger-end dispatch leaves SIK walking dead objects,
+  // so actions are delivered on the next frame instead.
+  private emitDeferred(action: string): void {
+    const delayed = this.createEvent("DelayedCallbackEvent");
+    delayed.bind(() => {
+      for (const listener of this.listeners) listener(action);
+    });
+    delayed.reset(0);
   }
 
   clear(): void {
@@ -118,5 +139,13 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
   private requireInteractions(): ViroSpecsInteractionHost {
     if (!this.interactions) throw new Error("ViroSpecsInteractionHost not initialized.");
     return this.interactions;
+  }
+}
+
+function assertVector(value: unknown, length: number, field: string, id: string): void {
+  if (value === undefined) return;
+  if (!Array.isArray(value) || value.length !== length ||
+      !value.every((n) => typeof n === "number" && Number.isFinite(n))) {
+    throw new Error("Invalid Specs " + field + " on node " + id);
   }
 }
