@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { compileSpecsPresentation } from "../dist/index.js";
+import { compileSpecsPresentation, compileSpecsRenderPlan } from "../dist/index.js";
 
 const scene = (nodes) => ({ version: 1, nodes });
 const base = () => ({
@@ -80,6 +80,12 @@ test("preflights empty scenes and assets before clearing the Lens frame", () => 
     assert.match(host, check);
   }
   assert.match(host, /emitDeferred\(action\)/);
+  // Targets bind a frame later, and a newer page or clear() cancels the bind.
+  assert.match(host, /if \(generation !== this\.generation\) return;/);
+  assert.match(host, /clear\(\): void \{\s*this\.generation\+\+;/);
+  // A failed render must not leave an older page's bind live.
+  assert.ok(host.indexOf("++this.generation") < host.indexOf("renderer.clear();\n    this.actions.clear();\n    try"));
+  assert.match(host, /value < 0 \|\| value > 1/);
 });
 
 test("passes portable [x, y, z, w] rotation through unchanged", () => {
@@ -96,4 +102,30 @@ test("passes portable [x, y, z, w] rotation through unchanged", () => {
 test("asserts Lens quaternion construction uses the shared Viro XYZW order", () => {
   const source = readFileSync(new URL("../lens/ViroSpecsSceneRuntime.ts", import.meta.url), "utf8");
   assert.match(source, /new quat\(\s*command\.rotation\[3\],\s*command\.rotation\[0\],\s*command\.rotation\[1\],\s*command\.rotation\[2\]/);
+});
+
+test("carries validated text style to the Lens content command", () => {
+  const fixture = base();
+  fixture.scene.nodes[2].textStyle = { size: 96, color: [0.97, 0.78, 0.15, 1] };
+  const compiled = compileSpecsPresentation(fixture);
+  assert.deepEqual(compiled.scene.nodes[2].textStyle, { size: 96, color: [0.97, 0.78, 0.15, 1] });
+  const plan = compileSpecsRenderPlan(compiled.scene.nodes);
+  const content = plan.commands.find((c) => c.op === "content" && c.id === "place-label");
+  assert.deepEqual(content.textStyle, { size: 96, color: [0.97, 0.78, 0.15, 1] });
+
+  const onPanel = base();
+  onPanel.scene.nodes[1].textStyle = { size: 40 };
+  assert.throws(() => compileSpecsPresentation(onPanel), /only valid on text nodes/);
+  const badColor = base();
+  badColor.scene.nodes[2].textStyle = { color: [1, 1, 2, 1] };
+  assert.throws(() => compileSpecsPresentation(badColor), /textStyle.color/);
+  const badSize = base();
+  badSize.scene.nodes[2].textStyle = { size: -4 };
+  assert.throws(() => compileSpecsPresentation(badSize), /textStyle.size/);
+
+  const runtime = readFileSync(new URL("../lens/ViroSpecsSceneRuntime.ts", import.meta.url), "utf8");
+  assert.match(runtime, /record\.text\.size = command\.textStyle\.size/);
+  const host = readFileSync(new URL("../lens/ViroSpecsPresentationHost.ts", import.meta.url), "utf8");
+  assert.match(host, /textStyle is only valid on text nodes/);
+  assert.match(host, /createComponent\("Component\.Canvas"\)/);
 });

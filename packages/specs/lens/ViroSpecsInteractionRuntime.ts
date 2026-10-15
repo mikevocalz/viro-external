@@ -1,5 +1,7 @@
 import { Interactable } from "SpectaclesInteractionKit.lspkg/Components/Interaction/Interactable/Interactable";
 import { InteractableManipulation } from "SpectaclesInteractionKit.lspkg/Components/Interaction/InteractableManipulation/InteractableManipulation";
+import { InteractionManager } from "SpectaclesInteractionKit.lspkg/Core/InteractionManager/InteractionManager";
+import { InteractorInputType } from "SpectaclesInteractionKit.lspkg/Core/Interactor/Interactor";
 import type { ViroSpecsPortableInteraction } from "./ViroSpecsProtocol";
 import { ViroSpecsRuntimeHost } from "./ViroSpecsRuntimeHost";
 
@@ -70,6 +72,18 @@ export class ViroSpecsInteractionRuntime {
 
   /** Keep subscribers, but dispose SIK bindings before replacing the scene. */
   resetTargets(): void {
+    // SIK's cursor keeps the hovered/triggered Interactable for a frame; once
+    // its SceneObject is destroyed that read throws "Object is null". SIK's
+    // documented release for runtime deletion is clearCurrentInteractable().
+    const retiring = new Set<Interactable>();
+    for (const record of this.records.values()) retiring.add(record.interactable);
+    if (retiring.size) {
+      for (const interactor of InteractionManager.getInstance().getInteractorsByType(InteractorInputType.All)) {
+        if (interactor.currentInteractable && retiring.has(interactor.currentInteractable)) {
+          interactor.clearCurrentInteractable();
+        }
+      }
+    }
     for (const record of this.records.values()) {
       if (!isNull(record.target)) {
         record.interactable.enabled = false;

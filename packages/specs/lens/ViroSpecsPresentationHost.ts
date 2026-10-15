@@ -27,6 +27,7 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
   private readonly actions = new Map<string, string>();
   private readonly listeners = new Set<(action: string) => void>();
   private unsubscribe: (() => void) | null = null;
+  private generation = 0;
 
   onAwake(): void {
     this.renderer = this.runtimeHostObject.getComponent(
@@ -69,6 +70,20 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
       if (node.source !== undefined && node.kind !== "image" && node.kind !== "model") {
         throw new Error("Specs source is only valid on image/model nodes: " + node.id);
       }
+      if (node.textStyle !== undefined) {
+        const style = node.textStyle;
+        if (node.kind !== "text" || typeof style !== "object" || style === null) {
+          throw new Error("Specs textStyle is only valid on text nodes: " + node.id);
+        }
+        if (style.size !== undefined &&
+            (typeof style.size !== "number" || !Number.isFinite(style.size) || style.size <= 0 || style.size > 1000)) {
+          throw new Error("Invalid Specs textStyle.size on node " + node.id);
+        }
+        assertVector(style.color, 4, "textStyle.color", node.id);
+        if (style.color?.some((value) => value < 0 || value > 1)) {
+          throw new Error("Invalid Specs textStyle.color on node " + node.id);
+        }
+      }
       assertVector(node.position, 3, "position", node.id);
       assertVector(node.rotation, 4, "rotation", node.id);
       assertVector(node.scale, 3, "scale", node.id);
@@ -93,13 +108,31 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
         if (action) this.emitDeferred(action);
       });
     }
+    // Invalidate any pending bind first, so a failed render below cannot
+    // leave an older page's callback binding destroyed nodes.
+    const generation = ++this.generation;
     interactions.resetTargets();
     renderer.clear();
     this.actions.clear();
     try {
       renderer.applyRenderPlan(plan);
-      for (const target of next.keys()) interactions.setInteractable(target, true);
-      for (const [key, action] of next) this.actions.set(key, action);
+      // A Canvas on each top-level node keeps UI Kit backing frames behind
+      // later text/model children, as the validated Platform Lab does.
+      for (const node of snapshot.scene.nodes) {
+        if (node.parentId) continue;
+        const root = renderer.getNode(node.id);
+        if (root && !root.getComponent("Component.Canvas")) root.createComponent("Component.Canvas");
+      }
+      // UI Kit frames build their mesh after creation, so binding now would
+      // fit the collider to a text label instead of the frame. Bind next
+      // frame, and only if no newer page or clear() has replaced this one.
+      const bind = this.createEvent("DelayedCallbackEvent");
+      bind.bind(() => {
+        if (generation !== this.generation) return;
+        for (const target of next.keys()) interactions.setInteractable(target, true);
+        for (const [key, action] of next) this.actions.set(key, action);
+      });
+      bind.reset(0);
     } catch (error) {
       interactions.resetTargets();
       renderer.clear();
@@ -119,6 +152,7 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
   }
 
   clear(): void {
+    this.generation++;
     this.interactions?.resetTargets();
     this.renderer?.clear();
     this.actions.clear();
