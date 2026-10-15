@@ -40,6 +40,23 @@ function assertTextStyle(node: PortableXRNode): void {
   }
 }
 
+function assertScroll(node: PortableXRNode): void {
+  const scroll = node.scroll;
+  if (node.kind !== "group" || typeof scroll !== "object" || scroll === null) {
+    throw new Error(`Specs scroll is only valid on group nodes: ${node.id}.`);
+  }
+  for (const key of ["width", "height"] as const) {
+    const value = scroll[key];
+    if (typeof value !== "number" || !Number.isFinite(value) || value <= 0 || value > 10) {
+      throw new Error(`Invalid scroll.${key} on Specs node ${node.id}.`);
+    }
+  }
+  if (typeof scroll.contentHeight !== "number" || !Number.isFinite(scroll.contentHeight) ||
+      scroll.contentHeight < 0) {
+    throw new Error(`Invalid scroll.contentHeight on Specs node ${node.id}.`);
+  }
+}
+
 /**
  * Validate a complete presentation *before* the Lens clears the old scene.
  * Child-first/missing parents previously passed compiler warnings but would
@@ -84,6 +101,7 @@ export function compileSpecsPresentation(input: {
       throw new Error("Specs asset sources are only valid on image and model nodes.");
     }
     if (node.textStyle !== undefined) assertTextStyle(node);
+    if (node.scroll !== undefined) assertScroll(node);
     if (node.visible !== undefined && typeof node.visible !== "boolean") {
       throw new Error("Specs node visibility must be boolean.");
     }
@@ -101,6 +119,11 @@ export function compileSpecsPresentation(input: {
       ...(node.textStyle ? { textStyle: {
         ...(node.textStyle.size !== undefined ? { size: node.textStyle.size } : {}),
         ...(node.textStyle.color ? { color: [...node.textStyle.color] as [number, number, number, number] } : {}),
+      } } : {}),
+      ...(node.scroll ? { scroll: {
+        width: node.scroll.width,
+        height: node.scroll.height,
+        contentHeight: node.scroll.contentHeight,
       } } : {}),
       ...(node.visible !== undefined ? { visible: node.visible } : {}),
     });

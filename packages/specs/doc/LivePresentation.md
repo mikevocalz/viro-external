@@ -23,7 +23,10 @@ session in the app transport.
    Register a UI Kit frame as `defaultPanelPrefab`. For an image-backed
    scene, assign the texture's logical ID and `defaultImageMaterial` in
    `ViroSpecsAssetRegistry`; a missing asset/material is rejected before
-   clearing the previous view.
+   clearing the previous view. Textures that only exist at runtime, such as
+   remote CMS photos loaded with `RemoteMediaModule`, are added with
+   `registry.registerImage(id, texture)` before presenting a node whose
+   `source` is that id.
 5. In a Lens script, call `presentationHost.subscribeAction(handler)`
    and `presentationHost.present(payload)` after the runtime hosts initialize.
 6. Run `specs:validate-lens`, `specs:test-presentation` (after build), CLAD
@@ -44,6 +47,37 @@ Text nodes take an optional `textStyle: { size, color }`. `size` is in Lens
 text points and `color` is linear RGBA from 0 to 1. Without it, text renders at
 48 points in the font's default color, which is too small to read at arm's
 length.
+
+A `group` node can take `scroll: { width, height, contentHeight }`, in
+meters, to show more content than fits on a card. The Lens runtime gives the
+group a child SceneObject with a Spectacles UI Kit `ScrollWindow`, vertical
+only, with a `width` x `height` window over a scroll area of `width` x
+max(`height`, `contentHeight`), and starts it scrolled to the top.
+
+Children of a scroll group use content coordinates: x = 0 is the window's
+centre line, y = 0 is the top edge of the content, and y goes negative
+downward. A row 4 cm tall sits at y = -0.02, the next at y = -0.06. The
+runtime gets there by parenting children to a content anchor placed at
++contentHeight / 2 inside the ScrollWindow's scroller, because ScrollWindow
+centres its content area on its own origin and shows the top at normalized
+scroll position y = 1. The anchor goes in through `ScrollWindow.addObject`,
+the same way UI Kit's own Dropdown builds its list, so it works whether or
+not the ScrollWindow has initialized yet.
+
+Pinch targets inside the content bind through the usual deferred bind. After
+that bind the runtime rewrites each ScrollWindow's `scrollDimensions`, which
+drops the collider cache ScrollWindow uses to switch child colliders off
+outside the window. Bind actions to rows inside the content, not to the
+scroll group: the group's subtree already holds the ScrollWindow's own
+Interactable, and a second one on the group would compete with it for the
+pinch (untested). Clearing the page destroys the group, and the ScrollWindow
+and its Scroller go with it. Scrolling has not run in Preview or on hardware.
+
+There is no scroll bar. UI Kit's `ScrollBar` takes its `scrollWindow` and
+`orientation` as private Inspector inputs with no setters, and its start
+handler reads `scrollWindow` straight away, so a ScrollBar created from
+script has nothing to read. Adding one needs Inspector wiring or writes to
+private fields, and this runtime does neither.
 
 The host adds a `Component.Canvas` to each top-level node so UI Kit frames
 draw behind the text and models that follow them, and binds action targets

@@ -61,6 +61,8 @@ const dependencies = {
   },
   requiredPackages: [
     "SpectaclesInteractionKit.lspkg",
+    // ScrollWindow for scroll groups (ViroSpecsSceneRuntime).
+    "SpectaclesUIKit.lspkg",
     "SurfacePlacement.lspkg",
     "VolumetricLine.lspkg",
     "SpecsNavigationKit.lspkg",

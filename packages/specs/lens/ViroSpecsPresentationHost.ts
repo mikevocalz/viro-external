@@ -84,6 +84,21 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
           throw new Error("Invalid Specs textStyle.color on node " + node.id);
         }
       }
+      if (node.scroll !== undefined) {
+        const scroll = node.scroll;
+        if (node.kind !== "group" || typeof scroll !== "object" || scroll === null) {
+          throw new Error("Specs scroll is only valid on group nodes: " + node.id);
+        }
+        for (const value of [scroll.width, scroll.height]) {
+          if (typeof value !== "number" || !Number.isFinite(value) || value <= 0 || value > 10) {
+            throw new Error("Invalid Specs scroll size on node " + node.id);
+          }
+        }
+        if (typeof scroll.contentHeight !== "number" || !Number.isFinite(scroll.contentHeight) ||
+            scroll.contentHeight < 0) {
+          throw new Error("Invalid Specs scroll.contentHeight on node " + node.id);
+        }
+      }
       assertVector(node.position, 3, "position", node.id);
       assertVector(node.rotation, 4, "rotation", node.id);
       assertVector(node.scale, 3, "scale", node.id);
@@ -130,6 +145,8 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
       bind.bind(() => {
         if (generation !== this.generation) return;
         for (const target of next.keys()) interactions.setInteractable(target, true);
+        // ScrollWindow caches the colliders it toggles; register the new ones.
+        renderer.refreshScrollColliders();
         for (const [key, action] of next) this.actions.set(key, action);
       });
       bind.reset(0);

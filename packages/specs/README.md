@@ -144,6 +144,8 @@ Inside the Lens, any script holding a `ViroSpecsRuntimeHost` reference calls `ru
 | `scale` | `[x, y, z]` | Applied as-is, with no unit conversion |
 | `text` | `string?` | Sets `Text.text`. Throws on any node that is not `text` |
 | `source` | `string?` | Logical asset ID resolved through `ViroSpecsAssetRegistry`. Valid on `image` and `model` only |
+| `textStyle` | `{ size?, color? }` | Text points and linear RGBA 0..1. Valid on `text` only |
+| `scroll` | `{ width, height, contentHeight }` meters | Valid on `group` only. Puts the group's children in a vertical UI Kit `ScrollWindow` (see [Mapping table](#mapping-table)) |
 | `visible` | `boolean?` | Sets `SceneObject.enabled` |
 
 Use stable logical IDs for `source`, such as `models/tutor`, not file paths. Each renderer maps the ID to its own asset type.
@@ -155,6 +157,7 @@ What each node kind becomes, and what the compilers and runtime reject. "Compile
 | Kind | Lens primitive | Upstream package recorded | Carries | Dropped or rejected |
 | --- | --- | --- | --- | --- |
 | `group` | empty `SceneObject` | `AccessComponents` | transform, visibility | `text` or `source`: runtime throws |
+| `group` with `scroll` | `SceneObject` + child `viro-scroll:<id>` with a UI Kit `ScrollWindow`, vertical only. Window `width` x `height`, scroll area `width` x max(`height`, `contentHeight`), all x100 into cm, scrolled to the top. Children attach to a content anchor added with `ScrollWindow.addObject` | `AccessComponents` | transform, visibility, `scroll` | `scroll` on any other kind, non-finite values, `width`/`height` outside (0, 10] or `contentHeight` < 0: `compileSpecsPresentation` and the Lens presentation host throw |
 | `text` | `Component.Text`: size 48, centered, overflow, depth test on, registry `defaultFont` if set | none | transform, `text`, visibility | `source`: runtime throws |
 | `image` | `Component.Image` | none | transform, `source` to `mainPass.baseTex`, visibility | Runtime throws if the ID is unregistered or the Image has no material |
 | `model` | `SceneObject` + instantiated `ObjectPrefab` | `Instantiation` | transform, `source`, visibility | Missing `source`: compile **error**. Unregistered ID: runtime throws |
@@ -169,7 +172,7 @@ Diagnostics across all kinds:
 | `parentId` not in the scene | warning | Compile passes. **The Lens runtime then throws** `Specs render node does not exist` when it creates the child, so treat this warning as fatal |
 | Child listed before its parent | none | Not checked at compile time. Lens runtime throws for the same reason |
 
-Not in the portable contract, so not serialized: portals, physics bodies, custom render passes, native texture handles, spatial audio graphs, video surfaces, scroll views, materials per node, text styling beyond the defaults above. [`doc/Architecture.md`](./doc/Architecture.md) says to report these, never replace them with a flat image or screenshot.
+Not in the portable contract, so not serialized: portals, physics bodies, custom render passes, native texture handles, spatial audio graphs, video surfaces, horizontal scrolling, scroll bars, materials per node, text styling beyond `textStyle`. [`doc/Architecture.md`](./doc/Architecture.md) says to report these, never replace them with a flat image or screenshot.
 
 ### `@viro-external/ui` components
 

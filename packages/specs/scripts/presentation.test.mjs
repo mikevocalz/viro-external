@@ -129,3 +129,96 @@ test("carries validated text style to the Lens content command", () => {
   assert.match(host, /textStyle is only valid on text nodes/);
   assert.match(host, /createComponent\("Component\.Canvas"\)/);
 });
+
+const scrollPage = () => ({
+  scene: scene([
+    { id: "list", kind: "group", position: [0, 0, -1], scroll: { width: 0.3, height: 0.2, contentHeight: 0.6 } },
+    { id: "row-0", kind: "panel", parentId: "list", position: [0, -0.05, 0] },
+    { id: "row-0-label", kind: "text", parentId: "list", position: [0, -0.05, 0.01], text: "Apollo Theater" },
+  ]),
+  targets: [{ targetId: "row-0", action: "place:apollo-theater" }],
+});
+
+test("carries a validated scroll window to the Lens content command", () => {
+  const compiled = compileSpecsPresentation(scrollPage());
+  assert.deepEqual(compiled.scene.nodes[0].scroll, { width: 0.3, height: 0.2, contentHeight: 0.6 });
+  assert.deepEqual(JSON.parse(JSON.stringify(compiled)), compiled);
+  const plan = compileSpecsRenderPlan(compiled.scene.nodes);
+  const content = plan.commands.find((c) => c.op === "content" && c.id === "list");
+  assert.deepEqual(content.scroll, { width: 0.3, height: 0.2, contentHeight: 0.6 });
+  // Content shorter than the window is still valid; it just does not scroll.
+  const short = scrollPage();
+  short.scene.nodes[0].scroll.contentHeight = 0;
+  assert.equal(compileSpecsPresentation(short).scene.nodes[0].scroll.contentHeight, 0);
+  // Extra fields on scroll are dropped at the boundary.
+  const extra = scrollPage();
+  extra.scene.nodes[0].scroll.horizontal = true;
+  assert.equal("horizontal" in compileSpecsPresentation(extra).scene.nodes[0].scroll, false);
+});
+
+test("rejects scroll on non-groups and non-finite or out-of-range sizes", () => {
+  const onPanel = scrollPage();
+  onPanel.scene.nodes[1].scroll = { width: 0.3, height: 0.2, contentHeight: 0.6 };
+  assert.throws(() => compileSpecsPresentation(onPanel), /scroll is only valid on group nodes/);
+  for (const bad of [
+    { width: NaN, height: 0.2, contentHeight: 0.6 },
+    { width: 0.3, height: Infinity, contentHeight: 0.6 },
+    { width: 0, height: 0.2, contentHeight: 0.6 },
+    { width: 0.3, height: 10.5, contentHeight: 0.6 },
+    { width: 0.3, height: 0.2, contentHeight: -0.1 },
+    { width: 0.3, height: 0.2 },
+    "tall",
+    null,
+  ]) {
+    const page = scrollPage();
+    page.scene.nodes[0].scroll = bad;
+    assert.throws(() => compileSpecsPresentation(page), /scroll/, JSON.stringify(bad));
+  }
+});
+
+test("Lens runtime puts scroll content in a UI Kit ScrollWindow and the host preflights it", () => {
+  const protocol = readFileSync(new URL("../lens/ViroSpecsProtocol.ts", import.meta.url), "utf8");
+  assert.match(protocol, /scroll\?: ViroSpecsScroll/);
+  assert.match(protocol, /node\.scroll \? \{ scroll: node\.scroll \}/);
+
+  const runtime = readFileSync(new URL("../lens/ViroSpecsSceneRuntime.ts", import.meta.url), "utf8");
+  assert.match(runtime, /from "SpectaclesUIKit\.lspkg\/Scripts\/Components\/ScrollWindow\/ScrollWindow"/);
+  assert.match(runtime, /createComponent\(ScrollWindow\.getTypeName\(\)\)/);
+  assert.match(runtime, /\.vertical = true;/);
+  assert.match(runtime, /\.horizontal = false;/);
+  assert.match(runtime, /windowSize = new vec2\(width, height\)/);
+  assert.match(runtime, /Math\.max\(height, scroll\.contentHeight \* 100\)/);
+  assert.match(runtime, /scrollPositionNormalized = new vec2\(0, 1\)/);
+  // Content goes through addObject, and later children parent to the content anchor.
+  assert.match(runtime, /\.addObject\(content\)/);
+  assert.match(runtime, /parentRecord\.contentParent \?\? parentRecord\.object/);
+  // The ScrollWindow lives under the node's SceneObject, so clearing the page destroys it.
+  assert.match(runtime, /scrollObject\.setParent\(record\.object\)/);
+
+  const host = readFileSync(new URL("../lens/ViroSpecsPresentationHost.ts", import.meta.url), "utf8");
+  assert.match(host, /scroll is only valid on group nodes/);
+  assert.match(host, /value <= 0 \|\| value > 10/);
+  // Colliders bound a frame later are re-registered with the ScrollWindow,
+  // inside the generation-guarded bind.
+  const guard = host.indexOf("if (generation !== this.generation) return;");
+  const refresh = host.indexOf("renderer.refreshScrollColliders()");
+  assert.ok(guard > 0 && refresh > guard);
+  assert.ok(refresh > host.indexOf("interactions.setInteractable(target, true)"));
+});
+
+test("initializes runtime ScrollWindows and declares the UI Kit dependency", () => {
+  const runtime = readFileSync(new URL("../lens/ViroSpecsSceneRuntime.ts", import.meta.url), "utf8");
+  const created = runtime.indexOf("createComponent(ScrollWindow.getTypeName())");
+  const init = runtime.indexOf("scrollWindow.initialize();");
+  assert.ok(created > 0 && init > created && init < runtime.indexOf("scrollWindow.addObject(content)"));
+  const sync = readFileSync(new URL("./sync-lens-runtime.mjs", import.meta.url), "utf8");
+  assert.match(sync, /"SpectaclesUIKit\.lspkg"/);
+});
+
+test("registers runtime textures without mutating Inspector arrays", () => {
+  const registry = readFileSync(new URL("../lens/ViroSpecsAssetRegistry.ts", import.meta.url), "utf8");
+  assert.match(registry, /registerImage\(id: string, texture: Texture\): void/);
+  assert.match(registry, /const ids = this\.imageIds\.slice\(\)/);
+  assert.match(registry, /this\.imageIds = ids;\s*this\.imageTextures = textures;/);
+  assert.doesNotMatch(registry, /this\.imageIds\.push\(/);
+});
