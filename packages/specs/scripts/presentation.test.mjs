@@ -205,3 +205,12 @@ test("Lens runtime puts scroll content in a UI Kit ScrollWindow and the host pre
   assert.ok(guard > 0 && refresh > guard);
   assert.ok(refresh > host.indexOf("interactions.setInteractable(target, true)"));
 });
+
+test("initializes runtime ScrollWindows and declares the UI Kit dependency", () => {
+  const runtime = readFileSync(new URL("../lens/ViroSpecsSceneRuntime.ts", import.meta.url), "utf8");
+  const created = runtime.indexOf("createComponent(ScrollWindow.getTypeName())");
+  const init = runtime.indexOf("scrollWindow.initialize();");
+  assert.ok(created > 0 && init > created && init < runtime.indexOf("scrollWindow.addObject(content)"));
+  const sync = readFileSync(new URL("./sync-lens-runtime.mjs", import.meta.url), "utf8");
+  assert.match(sync, /"SpectaclesUIKit\.lspkg"/);
+});

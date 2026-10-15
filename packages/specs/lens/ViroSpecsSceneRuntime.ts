@@ -273,14 +273,17 @@ export class ViroSpecsSceneRuntime {
       scrollWindow = scrollObject.createComponent(ScrollWindow.getTypeName()) as ScrollWindow;
       scrollWindow.vertical = true;
       scrollWindow.horizontal = false;
+      // Snap's dynamic-creation pattern: initialize() right after
+      // createComponent sets up the Scroller, masking, collider and
+      // Interactable before any setter touches them. It ignores repeat calls,
+      // so the component's own OnStart initialize is harmless.
+      scrollWindow.initialize();
       content = global.scene.createSceneObject("viro-scroll-content:" + id);
       content.layer = record.object.layer;
       // Children that already exist (a scroll added by a later plan) move in
       // with their local transforms intact.
       const existing = record.object.children.filter((child) => child !== scrollObject);
-      // addObject works before and after ScrollWindow initializes: before, the
-      // anchor is parented to the window object and initialize() moves it into
-      // the internal Scroller; after, it goes straight into the Scroller.
+      // After initialize(), addObject parents the anchor into the internal Scroller.
       scrollWindow.addObject(content);
       for (const child of existing) child.setParent(content);
       record.scrollWindow = scrollWindow;
