@@ -2,7 +2,9 @@
 
 The standard procedure for getting an app that uses `@viro-external/specs` running in Lens Studio 5.24.1 Preview (SPECS 27 target), and then on Spectacles.
 
-Every fact below was checked on 2026-10-14 against the Harlem Might Specs project in Lens Studio 5.24.1 Preview. None of it was checked on Spectacles hardware. Step 11 covers the device run.
+Every fact below was checked on 2026-10-14 and 2026-10-15 against the Harlem Might Specs project in Lens Studio 5.24.1 Preview. Apart from the push command in step 11, none of it was checked on Spectacles hardware. Step 11 covers the device run.
+
+Two steps depend on open PRs that are not merged into `main` yet: runtime images (PR #69, `feat/specs-runtime-images`) and scroll groups (PR #70, `feat/specs-scroll-window`). On `main`, neither `registerImage` nor `scroll` exists.
 
 Run every package script from the repo root. The local `pnpm` shim on the machine used for this runbook is broken, so the commands go through `npx -y pnpm@12.8.1`, the version pinned in the root `packageManager`. A working `pnpm` 12.8.1 runs the same commands.
 
@@ -20,7 +22,9 @@ The scripts expect exactly one `.esproj` in the folder you pass them. Do not lea
 npx -y pnpm@12.8.1 --filter @viro-external/specs specs:doctor -- --project "/abs/path/MyAppSpecs"
 ```
 
-`specs:doctor` fails unless the folder has one `.esproj`, `targetPlatform: Spectacles` and Lens Studio 5.22 or later. It warns about missing Lens packages and an unsynced runtime. Install any missing package through the Asset Library (see [README step 3](../README.md#3-install-lens-packages)).
+`specs:doctor` fails unless the folder has one `.esproj`, `targetPlatform: Spectacles` and Lens Studio 5.22 or later. It warns about missing Lens packages and an unsynced runtime. Install any missing package through the Asset Library (see [README step 3](../README.md#3-install-lens-packages)). Installing a package through the MCP also drops its demo objects into the scene; delete them.
+
+If the Lens fetches `http://` URLs (a local dev server) or uses WebView, tick **Project Settings > Experimental API** and save. Lens Studio stores this as `EXPERIMENTAL_API` in `metaInfo.lensDescriptors` in the `.esproj`. The `.esproj` also has a `spkPrivilegeLevel` field, which is a different setting: editing it by hand does nothing useful, because the next save overwrites it, and the Editor API has no setter for it.
 
 ### 3. Sync the Lens runtime
 
@@ -51,6 +55,8 @@ Create your app's entry script (the Harlem Might project uses `HarlemMightSpecsE
 
 Disable the `ViroSpecsPlatformLab` demo object that came with the copy, so only your app presents a page.
 
+A component lower in the hierarchy initializes after one higher up, so a callback you set on it in `onAwake` can be overwritten by its own initialization. Wire callbacks in `OnStartEvent`.
+
 ### 6. Fill the AssetRegistry
 
 `ViroSpecsAssetRegistry` sits on a child of `ViroSpecsRuntime`. Set:
@@ -59,6 +65,8 @@ Disable the `ViroSpecsPlatformLab` demo object that came with the copy, so only 
 - `defaultImageMaterial`: the material from step 7. The lab's own materials do not work.
 - `defaultPanelPrefab`: `ViroLabPanel`, the lab's UI Kit panel prefab.
 - `defaultFont`: `SpecsSans-Medium`.
+
+Textures created at runtime, such as photos loaded with `RemoteMediaModule`, are not in the Inspector arrays. With PR #69, call `ViroSpecsAssetRegistry.registerImage(id, texture)` before you present a node whose source is that id.
 
 ### 7. Create a working image material
 
@@ -76,6 +84,10 @@ In the entry script, once the runtime hosts have initialized, call `presentation
 
 Style text nodes with `textStyle: { size, color }` (`size` in Lens text points, `color` as linear RGBA from 0 to 1). Text nodes without it render at 48 points.
 
+With PR #70, a group node can scroll: set `scroll: { width, height, contentHeight }` in metres and the host builds a UI Kit `ScrollWindow`. Children of that group use content coordinates, with y = 0 at the content top and negative downward. There is no ScrollBar, because its inputs are private. `present()` rebuilds the window at the top, so an app that re-presents the same page must keep the offset itself: read `ScrollWindow.scrollPosition` before `present()` and set it again after.
+
+Lens has no `Intl` time zones. Port any date formatting that relies on them.
+
 ### 9. Run Preview
 
 Press Preview and pick a SPECS 27 Interactive Preview room. Check, in this order:
@@ -86,6 +98,16 @@ Press Preview and pick a SPECS 27 Interactive Preview room. Check, in this order
 4. Pinch on every action target fires its action, and page replacement works more than once.
 
 For Navigation Kit walks, set simulated GPS from the dropdown at the bottom left of the Preview panel. It offers **Start** and **Custom Location**.
+
+The same checks run through the Lens Studio MCP without touching the screen:
+
+1. `RecompileTypeScriptTool`.
+2. `RunAndCollectLogsTool` with refresh.
+3. `QueryRuntimeSceneTool` to find the `viro-interactable:<id>` uniqueIds.
+4. `PreviewInteractTool` with Pinch on a target, or Drag on a `viro-scroll:<id>` uniqueId to scroll a ScrollWindow.
+5. `CapturePanelScreenshotTool` on `Snap.Plugin.Gui.PreviewPanel`, or `CaptureRuntimeViewTool` with isolate.
+
+`ExecuteEditorCode` can set script inputs, create scene objects, instantiate prefabs and save with `project.save()`. `QueryLensStudioKnowledgeBase` needs a Snap login in Lens Studio.
 
 ### 10. Run the repo checks
 
@@ -106,7 +128,7 @@ These are the checks that exist in the repo. None of them compiles `lens/` the w
 
 ### 11. Run on Spectacles
 
-Push the Lens to Spectacles from Lens Studio. This repo has no scripts or recorded evidence for this step. Repeat the step 9 checks on the device, and record them separately (see [Evidence](#evidence)).
+Push the Lens to Spectacles from Lens Studio. Through `ExecuteEditorCode`, get the `LensStudio:PushToDevice` interface (`IPushToDevice`) with `pluginSystem.findInterface`, check `isSpectaclesConnected()`, then call `push([PushType.Spectacles])`. This repo has no scripts or recorded on-device evidence for this step. Repeat the step 9 checks on the device, and record them separately (see [Evidence](#evidence)).
 
 ## Evidence
 
@@ -148,6 +170,22 @@ SIK's cursor holds the hovered Interactable for a frame. When a page swap destro
 ### Stale scripts break the compile
 
 See step 4. `specs:sync` without `--clean` leaves old files in place, and `--clean` breaks scene references. Move stale files out by hand.
+
+### Fetch fails with "URL is not secure"
+
+Without Experimental API, the Lens fetches `https://` only and fails with "URL is not secure (Experimental API must be enabled to access insecure URLs)". Enable it as in step 2. Spectacles also can't reach the Mac's `localhost`: use the Mac's LAN IP with both on the same Wi-Fi, or a public `https://` host.
+
+### WebView is blank in Preview
+
+Lens Studio Preview creates the WebView texture and accepts `loadUrl`, but renders nothing; only Spectacles render it. `onReady` may never fire, so load the URL shortly after the texture callback instead of waiting for it. To hide the WebView, disable its Image component, not the SceneObject holding the script, or that script's `DelayedCallbackEvent`s and callbacks stop. Page controls need input: forward SIK pinches with `WebPageTextureProvider.touch()`.
+
+### A deleted script keeps failing the compile
+
+A file removed from `Assets/` while Lens Studio is running can stay registered and keep failing compilation. Restoring the file, or installing the dependency it was missing, clears it.
+
+### `openProject` refuses the open project
+
+Lens Studio's `openProject` will not reopen the project that is already open; it reports it as "in use by another instance". Open another project, then switch back.
 
 ### The lens-studio MCP is not connected
 
