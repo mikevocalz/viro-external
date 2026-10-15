@@ -38,6 +38,28 @@ export class ViroSpecsAssetRegistry extends BaseScriptComponent {
   @allowUndefined
   defaultImageMaterial: Material | null = null;
 
+  /**
+   * Registers or replaces an image at runtime, for textures that only exist
+   * once the Lens is running (remote media, WebView, camera crops). Nodes
+   * whose `source` is `id` resolve to it on their next render.
+   */
+  registerImage(id: string, texture: Texture): void {
+    if (!id || !texture) throw new Error("registerImage requires an id and a texture");
+    // Inspector arrays may be read-only at runtime and shorter than their ids,
+    // so rebuild both, aligned, instead of mutating them.
+    const ids = this.imageIds.slice();
+    const textures = ids.map((_, i) => this.imageTextures[i] ?? (null as unknown as Texture));
+    const index = ids.indexOf(id);
+    if (index >= 0) {
+      textures[index] = texture;
+    } else {
+      ids.push(id);
+      textures.push(texture);
+    }
+    this.imageIds = ids;
+    this.imageTextures = textures;
+  }
+
   resolveModel(source: string): ObjectPrefab | null {
     return this.resolveById(source, this.modelIds, this.modelPrefabs);
   }
