@@ -13,7 +13,7 @@ A two-tab Spectacles page built on `ViroSpecsPresentationHost`: a header with on
 ## Requirements
 
 - Lens Studio 5.22 or later; checked against 5.24.1.
-- The Viro Specs runtime with scroll groups, from PR #70 (`feat/specs-scroll-window`), not yet merged into `main`. On `main` the list's `scroll` field fails validation.
+- The Viro Specs runtime from `main` (scroll groups landed in PR #70), synced with `specs:sync`.
 - `SpectaclesInteractionKit.lspkg` and `SpectaclesUIKit.lspkg` installed in the project.
 
 ## Setup

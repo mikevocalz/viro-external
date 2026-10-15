@@ -4,7 +4,7 @@ A guide for writing your own Lens UI on top of the Viro Specs presentation host.
 
 Status, as of 2026-10-15:
 
-- Scroll groups need PR #70 (`feat/specs-scroll-window`) and runtime images need PR #69 (`feat/specs-runtime-images`). Neither is merged into `main`. On `main`, `scroll` and `registerImage` do not exist.
+- Scroll groups (PR #70) and runtime images (PR #69) are on `main` as of 2026-10-15; sync from `main`.
 - Everything here ran in Lens Studio Preview. Only the push command was exercised against Spectacles; no page in this guide has recorded on-device evidence. Keep Preview and hardware results apart (see the runbook's [Evidence](./LensStudioRunbook.md#evidence) section).
 - Every code block marked `// File:` was typechecked with the TypeScript compiler against Lens Studio 5.24.1's declarations (`Cache/TypeScript/lib/LensifyTS/Declarations`), the Harlem Might project's synced `ViroSpecs/lens` runtime and its installed packages, with that project's own `tsconfig.json` options. That is a compile check, not a Lens Studio compile or a run.
 
@@ -20,7 +20,7 @@ Lens Studio draws everything. Your script builds a JSON page of portable nodes a
 | `text` | `Text` with the registry's `defaultFont` | `textStyle: { size, color }`; 48 pt without it |
 | `image` | `Image` with `defaultImageMaterial`, texture looked up by `source` in `ViroSpecsAssetRegistry` | `scale` is about 1 cm per unit |
 | `group` | empty `SceneObject` (`viro:<id>`) | parent for layout and the pinch target for buttons |
-| `group` + `scroll` | child `viro-scroll:<id>` with a vertical UI Kit `ScrollWindow` | PR #70; children go into the window's content |
+| `group` + `scroll` | child `viro-scroll:<id>` with a vertical UI Kit `ScrollWindow` | children go into the window's content |
 | `model` | instance of a prefab from `modelIds` / `modelPrefabs` | |
 | `targets[]` | SIK `Interactable` on the target node (`viro-interactable:<id>`) | `select-end` fires the target's action string |
 
@@ -44,7 +44,7 @@ Short version of the runbook:
    npx -y pnpm@12.8.1 --filter @viro-external/specs specs:sync -- --project "/abs/path/MyAppSpecs"
    ```
 
-   Never `--clean` a wired project. With PR #70, the synced `requiredPackages` list includes `SpectaclesUIKit.lspkg`, because the runtime imports `ScrollWindow`.
+   Never `--clean` a wired project. The synced `requiredPackages` list includes `SpectaclesUIKit.lspkg`, because the runtime imports `ScrollWindow`.
 
 2. Wire the four hosts. In the Platform Lab they sit on `ViroSpecsRuntime` and its children:
 
@@ -289,7 +289,7 @@ export function grid(ui: Blocks, cards: Card[], parentId: string): number {
 
 A detail page is a header at y 0.16 (subtitle 3.3 cm under it), a body between y ≈ 0.11 and -0.13, and the action row at y -0.168. With a long body, make the middle a scroll group (section 6).
 
-## 6. Scrolling (PR #70)
+## 6. Scrolling
 
 Add `scroll: { width, height, contentHeight }` (metres) to a `group`. The host builds a vertical UI Kit `ScrollWindow` on a child named `viro-scroll:<id>`, calls `initialize()` on it right after creating it, and parents the group's children into the window's content. Children use content coordinates: x = 0 on the window's centre line, y = 0 at the content top, negative downward. Validation rejects `scroll` on non-groups, width or height outside (0, 10] and a negative `contentHeight`. There is no ScrollBar; its inputs are private.
 
@@ -539,7 +539,7 @@ Rules:
 - Track a status per tab, `loading` / `ready` / `offline`. Load a tab the first time it opens, render "Loading…" while it loads, and on failure show built-in content with a muted "offline" note. Retry the next time the tab opens. Harlem Might's `load(tab)` does exactly this.
 - Lens has no `Intl` time zones. `toLocaleString` with a `timeZone` won't do what it does on the phone; port the date formatting to plain arithmetic.
 
-## 9. Runtime images (PR #69)
+## 9. Runtime images
 
 Textures you download aren't in the Inspector arrays. Load them with `RemoteMediaModule`, register them on the registry under an id, and use that id as an image node's `source`. Cache by URL, and redraw when a load finishes:
 

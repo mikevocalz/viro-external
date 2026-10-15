@@ -4,7 +4,7 @@ The standard procedure for getting an app that uses `@viro-external/specs` runni
 
 Every fact below was checked on 2026-10-14 and 2026-10-15 against the Harlem Might Specs project in Lens Studio 5.24.1 Preview. Apart from the push command in step 11, none of it was checked on Spectacles hardware. Step 11 covers the device run.
 
-Two steps depend on open PRs that are not merged into `main` yet: runtime images (PR #69, `feat/specs-runtime-images`) and scroll groups (PR #70, `feat/specs-scroll-window`). On `main`, neither `registerImage` nor `scroll` exists.
+Runtime images (`registerImage`, PR #69) and scroll groups (`scroll`, PR #70) are on `main` as of 2026-10-15.
 
 To write the Lens UI itself (layouts, buttons, lists, data, WebView), see [BuildingSpecsApps.md](./BuildingSpecsApps.md) and the runnable sample in [`examples/specs-sample/`](../examples/specs-sample/README.md).
 
@@ -35,7 +35,7 @@ npx -y pnpm@12.8.1 --filter @viro-external/specs specs:validate-lens
 npx -y pnpm@12.8.1 --filter @viro-external/specs specs:sync -- --project "/abs/path/MyAppSpecs"
 ```
 
-`specs:sync` copies `packages/specs/lens/` to `<project>/Assets/ViroSpecs/lens/`. With PR #70 the synced `requiredPackages` list also names `SpectaclesUIKit.lspkg`, because the runtime imports `ScrollWindow`. Do not pass `--clean` on a wired project: it deletes the Lens `.meta` files, the scripts get new asset identities, and every Inspector reference to them breaks.
+`specs:sync` copies `packages/specs/lens/` to `<project>/Assets/ViroSpecs/lens/`. The synced `requiredPackages` list also names `SpectaclesUIKit.lspkg`, because the runtime imports `ScrollWindow`. Do not pass `--clean` on a wired project: it deletes the Lens `.meta` files, the scripts get new asset identities, and every Inspector reference to them breaks.
 
 `specs:bootstrap -- --project <path>` runs the doctor and then a sync without `--clean`. `specs:go` adds the Lens Studio MCP and Codex setup; see [OneCommandCLAD.md](./OneCommandCLAD.md).
 
@@ -68,7 +68,7 @@ A component lower in the hierarchy initializes after one higher up, so a callbac
 - `defaultPanelPrefab`: `ViroLabPanel`, the lab's UI Kit panel prefab.
 - `defaultFont`: `SpecsSans-Medium`.
 
-Textures created at runtime, such as photos loaded with `RemoteMediaModule`, are not in the Inspector arrays. With PR #69, call `ViroSpecsAssetRegistry.registerImage(id, texture)` before you present a node whose source is that id.
+Textures created at runtime, such as photos loaded with `RemoteMediaModule`, are not in the Inspector arrays. Call `ViroSpecsAssetRegistry.registerImage(id, texture)` before you present a node whose source is that id.
 
 ### 7. Create a working image material
 
@@ -86,7 +86,7 @@ In the entry script, once the runtime hosts have initialized, call `presentation
 
 Style text nodes with `textStyle: { size, color }` (`size` in Lens text points, `color` as linear RGBA from 0 to 1). Text nodes without it render at 48 points.
 
-With PR #70, a group node can scroll: set `scroll: { width, height, contentHeight }` in metres and the host builds a UI Kit `ScrollWindow` on a child named `viro-scroll:<id>`, calling `initialize()` on it right after `createComponent`. Children of that group use content coordinates, with y = 0 at the content top and negative downward. There is no ScrollBar, because its inputs are private. `present()` rebuilds the window at the top, so an app that re-presents the same page must keep the offset itself: read `ScrollWindow.scrollPosition` before `present()` and set it again after.
+A group node can scroll: set `scroll: { width, height, contentHeight }` in metres and the host builds a UI Kit `ScrollWindow` on a child named `viro-scroll:<id>`, calling `initialize()` on it right after `createComponent`. Children of that group use content coordinates, with y = 0 at the content top and negative downward. There is no ScrollBar, because its inputs are private. `present()` rebuilds the window at the top, so an app that re-presents the same page must keep the offset itself: read `ScrollWindow.scrollPosition` before `present()` and set it again after.
 
 Lens has no `Intl` time zones. Port any date formatting that relies on them.
 
