@@ -125,7 +125,7 @@ The Platform Lab ships two image materials, `ViroSpecsImageMaterial` and `ViroSp
 
 ### Image scale is not centimeters
 
-A Lens Image at scale `[15, 5]` drew a 3:1 logo about 12 cm wide. At `[36, 12]` it was about 28 cm. Portable `scale` passes through with no unit conversion, and the drawn size also depends on the texture. Measure in Preview; do not compute it.
+Measured against a 50 cm frame in Preview, one unit of image `scale` drew about 1 cm: a 3:1 logo at `[36, 12]` came out about 36 cm wide, and `[30, 10]` about 30 cm. Portable `scale` passes through with no unit conversion, and the drawn size also depends on the texture. Measure against a frame of known size in Preview; do not compute it.
 
 ### Pinch does nothing on a new page
 
