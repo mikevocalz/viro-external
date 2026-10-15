@@ -129,3 +129,11 @@ test("carries validated text style to the Lens content command", () => {
   assert.match(host, /textStyle is only valid on text nodes/);
   assert.match(host, /createComponent\("Component\.Canvas"\)/);
 });
+
+test("registers runtime textures without mutating Inspector arrays", () => {
+  const registry = readFileSync(new URL("../lens/ViroSpecsAssetRegistry.ts", import.meta.url), "utf8");
+  assert.match(registry, /registerImage\(id: string, texture: Texture\): void/);
+  assert.match(registry, /const ids = this\.imageIds\.slice\(\)/);
+  assert.match(registry, /this\.imageIds = ids;\s*this\.imageTextures = textures;/);
+  assert.doesNotMatch(registry, /this\.imageIds\.push\(/);
+});
