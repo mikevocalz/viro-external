@@ -49,7 +49,7 @@ Create your app's entry script (the Harlem Might project uses `HarlemMightSpecsE
 | `navigationObject` | the "Navigation Kit Menu" object, which holds `NavigationDataComponent` | only for Navigation Kit walks |
 | `arNavigationObject` | the "AR Navigation" object, which holds `ARNavigation` | only for Navigation Kit walks |
 
-Disable the `ViroSpecsPlatformLab` demo object that came with the copy, so only your app presents a page. If both run, the lab page and your page share the same runtime host.
+Disable the `ViroSpecsPlatformLab` demo object that came with the copy, so only your app presents a page.
 
 ### 6. Fill the AssetRegistry
 
