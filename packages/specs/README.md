@@ -397,6 +397,7 @@ Repository and in-repo docs:
 - Compatibility matrix: [`doc/Compatibility.md`](./doc/Compatibility.md)
 - Build workflow: [`doc/LensBuildWorkflow.md`](./doc/LensBuildWorkflow.md)
 - Lens Studio 5.24.1 Preview to Spectacles runbook, with known traps: [`doc/LensStudioRunbook.md`](./doc/LensStudioRunbook.md)
+- Developer guide for building your own Lens UI, with code: [`doc/BuildingSpecsApps.md`](./doc/BuildingSpecsApps.md). Runnable sample: [`examples/specs-sample/`](./examples/specs-sample/README.md)
 - Preview validation without a device: [`doc/NoDeviceValidation.md`](./doc/NoDeviceValidation.md)
 
 Snap:
