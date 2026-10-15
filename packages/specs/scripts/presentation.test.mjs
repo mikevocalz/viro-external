@@ -83,6 +83,9 @@ test("preflights empty scenes and assets before clearing the Lens frame", () => 
   // Targets bind a frame later, and a newer page or clear() cancels the bind.
   assert.match(host, /if \(generation !== this\.generation\) return;/);
   assert.match(host, /clear\(\): void \{\s*this\.generation\+\+;/);
+  // A failed render must not leave an older page's bind live.
+  assert.ok(host.indexOf("++this.generation") < host.indexOf("renderer.clear();\n    this.actions.clear();\n    try"));
+  assert.match(host, /value < 0 \|\| value > 1/);
 });
 
 test("passes portable [x, y, z, w] rotation through unchanged", () => {

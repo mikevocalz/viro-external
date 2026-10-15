@@ -80,6 +80,9 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
           throw new Error("Invalid Specs textStyle.size on node " + node.id);
         }
         assertVector(style.color, 4, "textStyle.color", node.id);
+        if (style.color?.some((value) => value < 0 || value > 1)) {
+          throw new Error("Invalid Specs textStyle.color on node " + node.id);
+        }
       }
       assertVector(node.position, 3, "position", node.id);
       assertVector(node.rotation, 4, "rotation", node.id);
@@ -105,6 +108,9 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
         if (action) this.emitDeferred(action);
       });
     }
+    // Invalidate any pending bind first, so a failed render below cannot
+    // leave an older page's callback binding destroyed nodes.
+    const generation = ++this.generation;
     interactions.resetTargets();
     renderer.clear();
     this.actions.clear();
@@ -120,7 +126,6 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
       // UI Kit frames build their mesh after creation, so binding now would
       // fit the collider to a text label instead of the frame. Bind next
       // frame, and only if no newer page or clear() has replaced this one.
-      const generation = ++this.generation;
       const bind = this.createEvent("DelayedCallbackEvent");
       bind.bind(() => {
         if (generation !== this.generation) return;
