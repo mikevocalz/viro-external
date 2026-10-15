@@ -1,4 +1,4 @@
-import type { PortableXRNode, PortableXRTextStyle } from "@viro-external/xr-contract";
+import type { PortableXRNode, PortableXRScroll, PortableXRTextStyle } from "@viro-external/xr-contract";
 import type { SpecsUpstreamPackageName } from "./upstream.js";
 
 export type SpecsRenderPrimitive =
@@ -35,6 +35,7 @@ export type SpecsRenderCommand =
       text?: string;
       source?: string;
       textStyle?: PortableXRTextStyle;
+      scroll?: PortableXRScroll;
     }
   | {
       op: "visibility";
@@ -131,13 +132,14 @@ export function compileSpecsRenderPlan(
       });
     }
 
-    if (node.text !== undefined || node.source !== undefined || node.textStyle) {
+    if (node.text !== undefined || node.source !== undefined || node.textStyle || node.scroll) {
       commands.push({
         op: "content",
         id: node.id,
         ...(node.text !== undefined ? { text: node.text } : {}),
         ...(node.source !== undefined ? { source: node.source } : {}),
         ...(node.textStyle ? { textStyle: node.textStyle } : {}),
+        ...(node.scroll ? { scroll: node.scroll } : {}),
       });
     }
 

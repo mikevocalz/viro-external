@@ -174,6 +174,18 @@ export interface PortableXRTextStyle {
   color?: [number, number, number, number];
 }
 
+/**
+ * Vertical scroll window on a group node, in metres. width and height are the
+ * visible window; contentHeight is the full height of the content. Children of
+ * the group use content coordinates: x = 0 is the window's centre line and
+ * y = 0 is the top edge of the content, with y negative going down.
+ */
+export interface PortableXRScroll {
+  width: number;
+  height: number;
+  contentHeight: number;
+}
+
 export interface PortableXRNode {
   id: string;
   kind: PortableXRNodeKind;
@@ -184,6 +196,7 @@ export interface PortableXRNode {
   source?: string;
   text?: string;
   textStyle?: PortableXRTextStyle;
+  scroll?: PortableXRScroll;
   visible?: boolean;
 }
 

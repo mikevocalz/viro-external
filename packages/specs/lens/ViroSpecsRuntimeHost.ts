@@ -83,6 +83,10 @@ export class ViroSpecsRuntimeHost extends BaseScriptComponent {
     this.requireRuntime().clear();
   }
 
+  refreshScrollColliders(): void {
+    this.requireRuntime().refreshScrollColliders();
+  }
+
   getNode(id: string): SceneObject | null {
     return this.requireRuntime().getSceneObject(id);
   }

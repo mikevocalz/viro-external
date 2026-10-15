@@ -1,7 +1,9 @@
+import { ScrollWindow } from "SpectaclesUIKit.lspkg/Scripts/Components/ScrollWindow/ScrollWindow";
 import type {
   ViroSpecsRenderCommand,
   ViroSpecsRenderPlan,
   ViroSpecsRenderPrimitive,
+  ViroSpecsScroll,
 } from "./ViroSpecsProtocol";
 import { ViroSpecsAssetRegistry } from "./ViroSpecsAssetRegistry";
 
@@ -11,6 +13,9 @@ type NodeRecord = {
   text?: Text;
   image?: Image;
   instantiatedModel?: SceneObject;
+  scrollWindow?: ScrollWindow;
+  /** Where child nodes attach. Set for scroll groups: the content anchor inside the ScrollWindow. */
+  contentParent?: SceneObject;
 };
 
 /**
@@ -62,6 +67,19 @@ export class ViroSpecsSceneRuntime {
     return this.nodes.get(id)?.object ?? null;
   }
 
+  /**
+   * ScrollWindow caches the child colliders it enables and disables, and only
+   * drops that cache when scrollDimensions is written. Colliders added after
+   * the cache was built (deferred pinch targets) would otherwise stay live
+   * outside the visible window.
+   */
+  refreshScrollColliders(): void {
+    for (const record of this.nodes.values()) {
+      const scrollWindow = record.scrollWindow;
+      if (scrollWindow && !isNull(scrollWindow)) scrollWindow.scrollDimensions = scrollWindow.scrollDimensions;
+    }
+  }
+
   private applyCommand(command: ViroSpecsRenderCommand): void {
     switch (command.op) {
       case "create":
@@ -95,9 +113,11 @@ export class ViroSpecsSceneRuntime {
       this.removeNode(id);
     }
 
-    const parent = parentId
-      ? this.requireNode(parentId).object
-      : this.root;
+    let parent = this.root;
+    if (parentId) {
+      const parentRecord = this.requireNode(parentId);
+      parent = parentRecord.contentParent ?? parentRecord.object;
+    }
 
     const object = global.scene.createSceneObject("viro:" + id);
     object.setParent(parent);
@@ -200,6 +220,13 @@ export class ViroSpecsSceneRuntime {
       if (c) record.text.textFill.color = new vec4(c[0], c[1], c[2], c[3]);
     }
 
+    if (command.scroll) {
+      if (record.primitive !== "scene-object") {
+        throw new Error("Scroll supplied to non-group Specs node " + command.id);
+      }
+      this.applyScroll(record, command.scroll, command.id);
+    }
+
     if (command.source === undefined) {
       return;
     }
@@ -221,6 +248,52 @@ export class ViroSpecsSceneRuntime {
         command.id +
         ")"
     );
+  }
+
+  /**
+   * Gives a group a vertical UI Kit ScrollWindow, following the pattern UI
+   * Kit's own Dropdown uses: the ScrollWindow sits on a child SceneObject and
+   * the content goes in through addObject(). ScrollWindow centres its content
+   * area on its origin and shows the top when scrolled to normalized y = 1, so
+   * the content anchor sits at +contentHeight / 2. Children parented to the
+   * anchor then use y = 0 for the content top, negative downward.
+   */
+  private applyScroll(record: NodeRecord, scroll: ViroSpecsScroll, id: string): void {
+    // Viro sizes are metres; ScrollWindow works in local centimetres.
+    const width = scroll.width * 100;
+    const height = scroll.height * 100;
+    const contentHeight = Math.max(height, scroll.contentHeight * 100);
+
+    let scrollWindow = record.scrollWindow;
+    let content = record.contentParent;
+    if (!scrollWindow || isNull(scrollWindow) || !content || isNull(content)) {
+      const scrollObject = global.scene.createSceneObject("viro-scroll:" + id);
+      scrollObject.setParent(record.object);
+      scrollObject.layer = record.object.layer;
+      scrollWindow = scrollObject.createComponent(ScrollWindow.getTypeName()) as ScrollWindow;
+      scrollWindow.vertical = true;
+      scrollWindow.horizontal = false;
+      // Snap's dynamic-creation pattern: initialize() right after
+      // createComponent sets up the Scroller, masking, collider and
+      // Interactable before any setter touches them. It ignores repeat calls,
+      // so the component's own OnStart initialize is harmless.
+      scrollWindow.initialize();
+      content = global.scene.createSceneObject("viro-scroll-content:" + id);
+      content.layer = record.object.layer;
+      // Children that already exist (a scroll added by a later plan) move in
+      // with their local transforms intact.
+      const existing = record.object.children.filter((child) => child !== scrollObject);
+      // After initialize(), addObject parents the anchor into the internal Scroller.
+      scrollWindow.addObject(content);
+      for (const child of existing) child.setParent(content);
+      record.scrollWindow = scrollWindow;
+      record.contentParent = content;
+    }
+
+    scrollWindow.windowSize = new vec2(width, height);
+    scrollWindow.scrollDimensions = new vec2(width, contentHeight);
+    content.getTransform().setLocalPosition(new vec3(0, contentHeight / 2, 0));
+    scrollWindow.scrollPositionNormalized = new vec2(0, 1);
   }
 
   private applyImageSource(
