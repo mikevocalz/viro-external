@@ -214,3 +214,11 @@ test("initializes runtime ScrollWindows and declares the UI Kit dependency", () 
   const sync = readFileSync(new URL("./sync-lens-runtime.mjs", import.meta.url), "utf8");
   assert.match(sync, /"SpectaclesUIKit\.lspkg"/);
 });
+
+test("registers runtime textures without mutating Inspector arrays", () => {
+  const registry = readFileSync(new URL("../lens/ViroSpecsAssetRegistry.ts", import.meta.url), "utf8");
+  assert.match(registry, /registerImage\(id: string, texture: Texture\): void/);
+  assert.match(registry, /const ids = this\.imageIds\.slice\(\)/);
+  assert.match(registry, /this\.imageIds = ids;\s*this\.imageTextures = textures;/);
+  assert.doesNotMatch(registry, /this\.imageIds\.push\(/);
+});

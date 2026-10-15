@@ -23,7 +23,10 @@ session in the app transport.
    Register a UI Kit frame as `defaultPanelPrefab`. For an image-backed
    scene, assign the texture's logical ID and `defaultImageMaterial` in
    `ViroSpecsAssetRegistry`; a missing asset/material is rejected before
-   clearing the previous view.
+   clearing the previous view. Textures that only exist at runtime, such as
+   remote CMS photos loaded with `RemoteMediaModule`, are added with
+   `registry.registerImage(id, texture)` before presenting a node whose
+   `source` is that id.
 5. In a Lens script, call `presentationHost.subscribeAction(handler)`
    and `presentationHost.present(payload)` after the runtime hosts initialize.
 6. Run `specs:validate-lens`, `specs:test-presentation` (after build), CLAD
