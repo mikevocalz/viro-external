@@ -20,6 +20,13 @@ export type ViroSpecsTextStyle = {
   color?: [number, number, number, number];
 };
 
+/** Mirrors PortableXRScroll: metres; children use y = 0 at the content top, negative down. */
+export type ViroSpecsScroll = {
+  width: number;
+  height: number;
+  contentHeight: number;
+};
+
 export type ViroSpecsSceneNode = {
   id: string;
   kind: ViroSpecsNodeKind;
@@ -30,6 +37,7 @@ export type ViroSpecsSceneNode = {
   source?: string;
   text?: string;
   textStyle?: ViroSpecsTextStyle;
+  scroll?: ViroSpecsScroll;
   visible?: boolean;
 };
 
@@ -71,6 +79,7 @@ export type ViroSpecsRenderCommand =
       text?: string;
       source?: string;
       textStyle?: ViroSpecsTextStyle;
+      scroll?: ViroSpecsScroll;
     }
   | {
       op: "visibility";
@@ -281,13 +290,14 @@ export function compileLensRenderPlan(
       });
     }
 
-    if (node.text !== undefined || node.source !== undefined || node.textStyle) {
+    if (node.text !== undefined || node.source !== undefined || node.textStyle || node.scroll) {
       commands.push({
         op: "content",
         id: node.id,
         ...(node.text !== undefined ? { text: node.text } : {}),
         ...(node.source !== undefined ? { source: node.source } : {}),
         ...(node.textStyle ? { textStyle: node.textStyle } : {}),
+        ...(node.scroll ? { scroll: node.scroll } : {}),
       });
     }
 
