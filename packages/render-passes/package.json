@@ -31,12 +31,12 @@
     "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
     "@types/react": "19.3.0",
     "@viro-external/splat-pass": "workspace:*",
-    "react": "19.3.0",
-    "react-native": "0.88.0-rc.3",
+    "expo": "58.0.19",
+    "expo-modules-core": "58.0.26",
+    "react": "19.3.1",
+    "react-native": "0.88.0",
     "typescript": "7.0.2",
-    "zustand": "5.0.15",
-    "expo": "58.0.0",
-    "expo-modules-core": "58.0.9"
+    "zustand": "5.0.16"
   },
   "sideEffects": false
 }

@@ -17,23 +17,23 @@
   "peerDependencies": {
     "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
     "@viro-external/core": "workspace:*",
+    "@viro-external/ui": "workspace:*",
     "react": ">=19.3.0 <20.0.0",
     "react-native": ">=0.88.0-rc.0 <0.89.0",
     "react-native-viro-mux": "workspace:*",
-    "zustand": "^5.0.15",
-    "@viro-external/ui": "workspace:*"
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
     "@types/react": "19.3.0",
     "@viro-external/core": "workspace:*",
-    "lucide-static": "1.49.0",
-    "react": "19.3.0",
-    "react-native": "0.88.0-rc.3",
+    "@viro-external/ui": "workspace:*",
+    "lucide-static": "1.61.0",
+    "react": "19.3.1",
+    "react-native": "0.88.0",
     "react-native-viro-mux": "workspace:*",
-    "sharp": "0.35.4",
+    "sharp": "0.35.5",
     "typescript": "7.0.2",
-    "zustand": "5.0.15",
-    "@viro-external/ui": "workspace:*"
+    "zustand": "5.0.16"
   }
 }
