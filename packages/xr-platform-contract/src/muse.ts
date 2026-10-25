@@ -8,8 +8,12 @@ export type MusePenSample = {
   tipPressed: boolean;
   primaryPressed: boolean;
   secondaryPressed: boolean;
+  /** Pressure as the stylus stream reports it. Passed through, never synthesized. */
   pressure: number;
+  /** @deprecated Wall-clock milliseconds (`Date.now()`); can jump. Use `timestampMs`. */
   timestamp: number;
+  /** Milliseconds on a monotonic clock (`performance.now()`), the clock board pointer events use. */
+  timestampMs?: number;
 };
 
 export type MusePenInputProps = {

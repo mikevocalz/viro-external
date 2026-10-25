@@ -108,3 +108,35 @@ export type {
   BoardPoint,
   BoardSelectionOverlay,
 } from "./quickdraw-headless/BoardOverlay";
+
+export { createBoardInputRouter } from "./quickdraw-input/createBoardInputRouter";
+export { createQuickDrawBoardSession } from "./quickdraw-input/createQuickDrawBoardSession";
+export {
+  createAdapterHandleSink,
+  createHeadlessBoardSink,
+  toLegacyQuickdrawSpatialPointer,
+} from "./quickdraw-input/pointer-sinks";
+export {
+  assertFlatBoard,
+  boardDragPlane,
+  boardToPage,
+  composeNodeWorld,
+  IDENTITY_MAT4,
+  invertAffine,
+  mapWorldPointToBoard,
+  multiplyMat4,
+  paperRectInQuad,
+  paperUvToBoard,
+  planeHitFromDrag,
+  transformPoint,
+} from "./quickdraw-input/board-geometry";
+export type { BoardHit, BoardSurfaceGeometry, Mat4, NodePose } from "./quickdraw-input/board-geometry";
+export { isInsideRoundedPanel, panelCornerRadiiPx, panelCoverage } from "./quickdraw-input/panel-coverage";
+export type { PanelCornerRadiiPx } from "./quickdraw-input/panel-coverage";
+export type {
+  BoardInputCancelReason,
+  BoardInputRouter,
+  BoardInputRouterOptions,
+  BoardInputSubscription,
+} from "./quickdraw-input/BoardInputRouter";
+export type { QuickDrawBoardSession, QuickDrawBoardSessionOptions } from "./quickdraw-input/QuickDrawBoardSession";
