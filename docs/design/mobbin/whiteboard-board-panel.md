@@ -38,3 +38,34 @@ Status: **run** 2026-10-24 through the Mobbin MCP.
 | Bottom toolbar near the thumb | Tool strip above the paper today; the research plan tests above vs side vs mirrored |
 | Drag a canvas by scrolling | Separate grip bar under the panel; drawing and moving never share an input |
 | Rounded card corners | `radius.board` on the face, applied by the shared coverage function |
+
+## Pass 2 (2026-10-25)
+
+Re-run of the same queries through the Mobbin MCP for the device-validation lane. The five references above still apply; the new results below were added only where they show something the first pass did not.
+
+| Query | Tool | Platform | Result |
+| --- | --- | --- | --- |
+| "whiteboard canvas" | `search_screens` | iOS | 8 screens; 2 new and relevant (Yubo, Ahead); Givingli and Cash App repeat |
+| "draw and erase" | `search_flows` | iOS | 5 flows; 1 new and relevant (Freeform "Drawing on a board"); the other 3 Freeform/Brave flows repeat or cover eraser size |
+
+| # | App | Link | What it shows |
+| --- | --- | --- | --- |
+| 6 | Freeform | https://mobbin.com/flows/043dd666-daee-4571-b1c2-68b2f758f60e | Drawing on a board: Undo is greyed on the empty board and lights after the first mark; the pen tray replaces the insert bar while drawing |
+| 7 | Yubo | https://mobbin.com/screens/35bf2986-80e0-45e6-8e2e-25e453a5231c | A white rounded card on a coloured ground with one centred placeholder, "Draw here" |
+| 8 | Ahead | https://mobbin.com/screens/b366fcb1-b0c8-44bf-b51b-9c387c35d97f | A small drawing card with one clear (X) control beside the mark and the main action below |
+
+Adopted: Undo disabled until the first mark (Freeform) matches the handoff's empty state, where Undo, Redo and Clear start disabled. A single centred line on empty paper (Yubo) matches the empty-board copy.
+
+Rejected: Ahead's clear control beside the drawing. On the board, Clear stays in the strip with its two-step confirm; a lone X next to the paper is a small target at 2.6 m and easy to hit by accident.
+
+## Held up on device?
+
+**Not yet run.** For each adopted pattern, the session in `../../validation/session-plan.md` checks whether it still works at 2.6 m on Quest 3S and PICO 4 Ultra.
+
+| Pattern | Device check | Quest 3S | PICO 4 Ultra |
+| --- | --- | --- | --- |
+| Plain paper edge to edge, no grid | Paper reads as one surface; no moiré or shimmer at 2.6 m | not yet run | not yet run |
+| Light paper on dark surround | Paper edge visible over bright and dim passthrough | not yet run | not yet run |
+| Whole-mark erase | Eraser removes the mark aimed at, not a neighbour | not yet run | not yet run |
+| Undo disabled until first mark | Disabled state is visible on the strip and does not rely on colour alone | not yet run | not yet run |
+| One line of copy on empty paper | Line readable at 2.6 m and gone after the first mark | not yet run | not yet run |
