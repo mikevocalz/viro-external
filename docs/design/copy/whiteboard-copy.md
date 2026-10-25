@@ -149,3 +149,23 @@ The XR scene exposes no `accessibilityLabel` today; a key's visible word is its 
 - Expect up to 40% expansion. The tool strip keys are 104 artboard units wide; "Highlighter" already needs a smaller weight or a second line in some languages. Test the longest locale before locking key widths.
 - "Hold to move" is an instruction about a physical action; translate the action, not the words.
 - Keep "Natalie" untranslated.
+
+## Render-quality setting
+
+**Developer-only, no copy.** Eye-buffer scale and foveation are build settings (manifest plus Expo config plugin). Nothing in the app names them, and no learner or tutor sees a control for them. If a future build exposes one, it goes through this file first.
+
+## Wording for the validation report
+
+The device validation report is read by the roster in `prompts/ROSTER.md`, and parts of it end up in PR descriptions. Rules for its wording: The numbers and file names in the "Write" column show the form only; they are not results.
+
+| Write | Not | Why |
+| --- | --- | --- |
+| "Corners on the cylinder layer showed a dark rim at 60° off-axis (`quest3s-r2-on-C2-1.png`)." | "Corners looked off." | Name the panel, the angle and the capture. A reader should be able to open the file and see it. |
+| "Not yet run." | "Pending", "TBD", "should pass" | One fixed phrase for an empty row, so a search finds every gap. |
+| "Mike could not read the bottom line of the 0.9-opacity panel at 1.4 m." | "Legibility issues were observed." | Say who did what. Active voice, a person and a distance. |
+| "12 ms median ink latency, 19 ms p95, 300 strokes." | "Latency felt fine." | Numbers come from the measurement, not from the wearer. The wearer's words go in a separate "Mike said" line. |
+| "No difference seen between Build A and Build B on R1.2." | "No regression." | Report what was compared. "No regression" claims more than one wearer and one capture can show. |
+| "Blind broken: the version label was visible." | (silence) | A broken blind changes how much the Round 1 answers count. |
+| "Eye-buffer scale", "foveation" | "Render quality", "graphics setting" | Use the engineering names in the report; there is no learner-facing name to keep consistent with. |
+
+Units: metres with two to four decimals for sizes, degrees with up to three decimals for angles, ms for time, MB for memory. Headset names in full: "Quest 3S", "PICO 4 Ultra".
