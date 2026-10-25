@@ -68,5 +68,5 @@ Rejected: Higgsfield's floating colour row above the dock. The board's ink row s
 | Selected tool by inversion | Mike names the selected tool without relying on colour, at 2.6 m | not yet run | not yet run |
 | Undo and Redo on the strip | Disabled state readable; keys hit on the first press | not yet run | not yet run |
 | Stroke preview per tool | Pen and Highlighter told apart at 2.6 m | not yet run | not yet run |
-| Four discrete size keys | Each key hit on the first press with the ray | not yet run | not yet run |
+| Four discrete size keys (once size keys ship; the strip has none today) | Each key hit on the first press with the ray | not yet run | not yet run |
 | Ink row swaps into the band | No overlap with the paper; swap readable with `reducedMotion` on and off | not yet run | not yet run |
