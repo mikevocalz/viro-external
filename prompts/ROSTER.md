@@ -60,6 +60,31 @@ Embed this file by reference in every sub-prompt derived from `docs/adr/0001-nat
 | V1 Validation | Device procedures, measurements, captures | Callstack and Software Mansion skills |
 | V2 Independent review | The integrated diff and real evidence, not the implementer's summary | Whole roster |
 
+## Device validation and #112 hardening
+
+virocore #112 changes eye-buffer size, foveation, eye-buffer alpha, external-texture decode and external-surface sampling for every app, flags or not. The device pass runs on the supported headsets, Quest 3S and PICO 4 Ultra (decided by Mike), in two rounds A/B against baseline virocore `main` at `f5c2a728`: round 1 with every feature flag off, round 2 with flags on. Each seat signs the items below from device captures and measured numbers.
+
+| Seat | Device-pass duty |
+| --- | --- |
+| Pavlik | Eye-buffer size against the runtime's recommended rect and `maxImageRect` on both headsets; foveation level and dynamic mode as applied; projection-layer alpha flags with passthrough on and off; swapchain create, destroy and recreate across session state changes |
+| Dalton | Rive render mode chosen on each headset; colour parity between the Rive panel and the same artboard on a phone; texture ring and fence behaviour on device |
+| Rousavy | Boundaries of the render-quality setting: native and build config only, no JS runtime API, defaults unchanged until evidence |
+| Falch, Candillon | Whiteboard producer on device; surface recreation after pause, resume, recenter and scene rebuild |
+| Kleppmann | One authority for board state during the device pass; no divergent native state after recreation |
+| Ruiz | Ink feel and stroke latency in the headset |
+| Barry, Riquelme Sánchez | Tool strip and every panel state (empty, loading, error, evicted) in the headset |
+| Andersson | Smallest-text legibility at 1.0x vs 1.3x eye buffers and at LOW vs MEDIUM foveation |
+
+## Hardening lanes
+
+These run alongside L0-L6 and report to V2.
+
+| Lane | Owns | Seats |
+| --- | --- | --- |
+| S0 Stack record | #112 PR body (per-commit behaviour, who is affected, risk, how to dial back), stack heads and baselines, this roster | Pavlik, Rousavy |
+| S1 Render-quality setting | Eye-buffer scale and foveation as a setting on #112: Java setter on the OpenXR renderer class, AndroidManifest meta-data written by an Expo config-plugin option; defaults 1.3 and LOW dynamic | Pavlik, Rousavy |
+| V Device validation | Two A/B rounds on Quest 3S and PICO 4 Ultra against `f5c2a728`, flags off then on; captures and GPU numbers per seat duty above | Every seat in the device-pass table; Callstack and Software Mansion skills |
+
 ## Standing review rules
 
 1. A seat reviews before the change lands. Work that skipped its seat is reverted, not patched.
