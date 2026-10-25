@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test:world-slot": "node --experimental-strip-types --test test/*.test.mjs"
+    "test:world-slot": "node --experimental-strip-types --conditions=react-native --import ../../test/support/metro-like-resolve.mjs --test test/*.test.mjs"
   },
   "peerDependencies": {
     "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
