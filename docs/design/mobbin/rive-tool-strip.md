@@ -40,3 +40,33 @@ The iOS run returned mostly photo-markup screens, so the same query was also run
 | Undo/redo in the toolbar | Same band, after the tools, separated from Clear |
 | Colour row expands in place | `paletteOpen` swaps the tool row for the ink row in the same band; nothing overlaps the paper |
 | Vertical rail on one side | Candidate for left-handed mirroring (research question 3) |
+
+## Pass 2 (2026-10-25)
+
+Re-run of the same queries through the Mobbin MCP for the device-validation lane. The five references above still apply.
+
+| Query | Tool | Platform | Result |
+| --- | --- | --- | --- |
+| "drawing toolbar" | `search_screens` | web | 8 screens; 2 new and relevant (Tana, Higgsfield); Base44, Replit, Recraft and Telegram repeat |
+| "pen tool picker" | `search_screens` | iOS | 6 screens; **none relevant** again (search, model and app pickers) |
+
+| # | App | Link | What it shows |
+| --- | --- | --- | --- |
+| 6 | Tana | https://mobbin.com/screens/68f81005-9959-433c-ade3-294d70ffc7b4 | Stroke size as four discrete keys (S, M, L, XL) next to a colour grid in one popover |
+| 7 | Higgsfield | https://mobbin.com/screens/b7ec4845-f2c2-4186-bff2-c398d2f14435 | Undo and Redo dimmed when unavailable in a small rail; the colour row floats above the tool dock |
+
+Adopted: four discrete size keys (Tana). This backs the first pass's decision to use QuickDraw's four sizes as keys instead of a slider.
+
+Rejected: Higgsfield's floating colour row above the dock. The board's ink row swaps into the tool band instead (`paletteOpen`), so nothing appears over the paper.
+
+## Held up on device?
+
+**Not yet run.** Checks run in `../../validation/session-plan.md` on Quest 3S and PICO 4 Ultra.
+
+| Pattern | Device check | Quest 3S | PICO 4 Ultra |
+| --- | --- | --- | --- |
+| Selected tool by inversion | Mike names the selected tool without relying on colour, at 2.6 m | not yet run | not yet run |
+| Undo and Redo on the strip | Disabled state readable; keys hit on the first press | not yet run | not yet run |
+| Stroke preview per tool | Pen and Highlighter told apart at 2.6 m | not yet run | not yet run |
+| Four discrete size keys | Each key hit on the first press with the ray | not yet run | not yet run |
+| Ink row swaps into the band | No overlap with the paper; swap readable with `reducedMotion` on and off | not yet run | not yet run |
