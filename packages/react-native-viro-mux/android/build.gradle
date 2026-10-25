@@ -5,7 +5,7 @@ buildscript {
   }
 
   dependencies {
-    classpath "com.android.tools.build:gradle:9.2.1"
+    classpath "com.android.tools.build:gradle:9.3.1"
   }
 }
 
@@ -23,10 +23,11 @@ apply plugin: 'org.jetbrains.kotlin.android'
 apply from: '../nitrogen/generated/android/NitroViroMux+autolinking.gradle'
 apply from: "./fix-prefab.gradle"
 
-// Intentionally do not apply `com.facebook.react` here — Nitro generates the
-// Kotlin/C++ bindings via nitrogen; the RN plugin would codegen
-// ViewManagerDelegates for every package in the consumer's node_modules and
-// collide at dex merge time. (Same rationale as nitro-canvas-in-Vision.)
+// Intentionally do not apply `com.facebook.react` here, although the Nitro V1
+// template does. Nitro generates the Kotlin/C++ bindings via nitrogen; the RN
+// plugin would codegen ViewManagerDelegates for every package in the
+// consumer's node_modules and collide at dex merge time. (Same rationale as
+// nitro-canvas-in-Vision.)
 
 def getExtOrDefault(name) {
   return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties["ViroMux_" + name]
@@ -138,8 +139,9 @@ repositories {
 }
 
 dependencies {
-  //noinspection GradleDynamicVersion
-  implementation "com.facebook.react:react-native:+"
+  // Version comes from the consuming app's React Native Gradle plugin, which
+  // pins react-android across every project in the build.
+  implementation "com.facebook.react:react-android"
 
   // Nitro core (prefab + Kotlin base classes)
   implementation project(":react-native-nitro-modules")

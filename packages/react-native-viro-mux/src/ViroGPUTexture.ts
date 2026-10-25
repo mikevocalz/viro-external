@@ -7,18 +7,23 @@
  * iOS throws until the Metal/IOSurface path lands.
  */
 
-import { NitroModules } from "react-native-nitro-modules";
+import * as generated from "#nitro/ViroGPUTextureModule";
 import type { ExternalTextureHandle, ExternalTextureSource } from "./contract";
-import type { ViroGPUTextureModule as NitroSpec } from "./spec/ViroGPUTextureModule.nitro";
+import type { ViroGPUTextureModule as ViroGPUTextureModuleClass } from "./spec/ViroGPUTextureModule.nitro";
 
-let cached: NitroSpec | null = null;
+// Bind to the nitrogen-generated runtime, not the spec module. The spec uses
+// `@Android(...)` decorators, which @react-native/babel-preset cannot parse
+// without `parserOpts: { plugins: ['decorators'] }`; this package ships `src/`,
+// so consumers would bundle the spec. The type-only import is erased.
+const runtime = generated as unknown as {
+  readonly ViroGPUTextureModule: typeof ViroGPUTextureModuleClass;
+};
 
-/** Lazily created so merely importing the package never dereferences the native lib. */
-function getModule(): NitroSpec {
-  if (cached == null) {
-    cached = NitroModules.createHybridObject<NitroSpec>("ViroGPUTextureModule");
-  }
-  return cached;
+// The generated getter resolves `viromux.ViroGPUTextureModule` on first read.
+// Read it per call, never at module scope, so importing the package (e.g. on
+// iOS, which has no implementation) never touches the native lib.
+function nitroClass(): typeof ViroGPUTextureModuleClass {
+  return runtime.ViroGPUTextureModule;
 }
 
 /**
@@ -33,7 +38,7 @@ export function registerExternalTexture(
   materialName: string,
   source: ExternalTextureSource
 ): ExternalTextureHandle {
-  const handle = getModule().registerExternalTexture(materialName, {
+  const handle = nitroClass().registerExternalTexture(materialName, {
     id: source.id,
     kind: source.kind,
     width: source.width,
@@ -52,7 +57,7 @@ export function registerExternalTexture(
 
 /** Release the renderer-side wrapper. Idempotent. Producer GPU memory is untouched. */
 export function releaseExternalTexture(handle: ExternalTextureHandle): void {
-  getModule().releaseTexture(handle.id);
+  nitroClass().releaseTexture(handle.id);
 }
 
 /**
@@ -61,7 +66,7 @@ export function releaseExternalTexture(handle: ExternalTextureHandle): void {
  * future fence-gated paths.
  */
 export function updateExternalTexture(handle: ExternalTextureHandle): void {
-  getModule().updateTexture(handle.id);
+  nitroClass().updateTexture(handle.id);
 }
 
 /**
@@ -70,5 +75,5 @@ export function updateExternalTexture(handle: ExternalTextureHandle): void {
  * `com.margelo.nitro.viromux.ViroGPUTextureSurfaces.getSurface(handle.id)`.
  */
 export function isExternalTextureReady(handle: ExternalTextureHandle): boolean {
-  return getModule().isSurfaceReady(handle.id);
+  return nitroClass().isSurfaceReady(handle.id);
 }

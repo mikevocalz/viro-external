@@ -1,5 +1,39 @@
 # viro-external — DECISIONS.md (workspace-level)
 
+## 2026-10-24 — react-native-viro-mux on Nitro V1 alpha
+
+Moved `react-native-viro-mux` from Nitro 0.37.1 to `1.0.0-alpha.nightly.100.g107f6fc66597`
+(`react-native-nitro-modules`, `nitro-core`, `nitrogen`). It is the only Nitro
+package in the workspace. Peers are optional `*` per the V1 docs, so the app's
+copy wins.
+
+1. **`ViroGPUTextureModule` is all-static.** JS used one lazily created
+   instance and the Kotlin handle counter was already process-wide, so the four
+   methods are `static` on the spec and live on the Kotlin
+   `companion object : HybridViroGPUTextureModuleSpec.Companion`. No public
+   constructor.
+2. **`MuxPlayer` declares no implementation** (`allowMultipleImplementations:
+   true`, no constructor). The 0.37 `nitro.json` autolinked it to
+   `HybridMuxPlayer`, a class that never existed, so creating it would have
+   failed at runtime. V1's generated Kotlin references the implementation class
+   directly, which would have broken the Kotlin compile. Playback stays on the
+   classic `ViroMuxPlayer` module. Re-add `implementation` + `constructor()`
+   when `HybridMuxPlayer` exists.
+3. **JS binds to `#nitro/ViroGPUTextureModule`, not the spec.** The spec's
+   `@Android` decorator does not parse under the stock
+   `@react-native/babel-preset` (verified: `MissingOneOfPlugins`
+   `decorators`). The package ships `src/`, so `src/ViroGPUTexture.ts` imports
+   the spec as a type only and reads the generated getter per call.
+4. **Only `@Android` is declared.** Nitrogen V1 accepted it (2/2 HybridObjects
+   generated). iOS needs SwiftPM and Swift 6.4 under V1; see
+   `packages/react-native-viro-mux/doc/Native-iOS.md`.
+5. **Not verified:** an Android compile of the package. There is no app in this
+   workspace and the package has no Gradle wrapper. A consumer app build on
+   RN 0.88 is the gate. `.cjs` resolution in Metro is verified with
+   `metro-resolver`; Expo's Metro config adds `cjs` to `sourceExts`, bare
+   `@react-native/metro-config` 0.88 inherits Metro's default list, which does
+   not include `cjs`.
+
 ## 2026-10-01 — Viro 3 / Expo SDK 58 baseline (versions refreshed 2026-10-24)
 
 The July 2026 dependency matrix is historical. The active workspace baseline is now:
@@ -10,7 +44,7 @@ The July 2026 dependency matrix is historical. The active workspace baseline is 
 | `expo` | **SDK 58 / 58.x** |
 | `react-native` | **0.88.0** (SDK 58 line) |
 | `react` | **19.3.1** |
-| `react-native-nitro-modules` / `nitrogen` | **0.37.1 / 0.37.1** |
+| `react-native-nitro-modules` / `nitro-core` / `nitrogen` | **1.0.0-alpha.nightly.100.g107f6fc66597** (all three, dist-tag `alpha-nightly`) |
 | `@expo/config-plugins` | **58.0.10** |
 | `expo-modules-core` | **58.0.26** |
 | `zustand` | **5.0.16** |
@@ -24,7 +58,7 @@ The July 2026 dependency matrix is historical. The active workspace baseline is 
 1. **Viro 2.x is no longer a valid workspace target.** Every external package must declare a Viro 3 peer range.
 2. **Expo SDK 58 wins over the generic npm `react-native@latest` tag.** SDK 58 is on the React Native 0.88 line; do not downgrade to RN 0.87 just because npm's generic latest tag temporarily points there.
 3. The root `pnpm.overrides["@reactvision/react-viro"] = "link:../viro"` is intentional for side-by-side development against the Moyo Viro fork. That sibling checkout must be Viro 3.x.
-4. Nitro runtime and Nitrogen codegen move together. After a Nitro version change, regenerate the committed `nitrogen/generated` trees before merging.
+4. Nitro runtime (`react-native-nitro-modules` + `nitro-core`) and Nitrogen codegen move together on one exact version. After a Nitro version change, regenerate the committed `nitrogen/generated` trees (including `shared/javascript/*.cjs` and `hybrid-classes.json`) before merging.
 5. Package peers are ranges for consumers; workspace dev dependencies are pinned to the validated SDK 58 toolchain.
 6. TypeScript is a build-time tool here, so the workspace tracks the current stable compiler rather than Expo's starter-template TypeScript pin. CI/typecheck is the gate for compiler compatibility.
 7. pnpm 12 stays pinned for CI, but `pmOnFail: ignore` keeps `pnpm-lock.yaml` single-document so GitHub's dependency graph and Dependabot can continue to read the project dependency graph.

@@ -45,11 +45,15 @@ externalNativeBuild {
 
 Validate the produced `.so` with `mikevocalz/virocore/scripts/verify-16kb-alignment.py`.
 
-## Nitro module (shipped 2026-07-03)
+## Nitro module (shipped 2026-07-03, ported to Nitro V1 2026-10-24)
 
-- Spec: `src/spec/ViroGPUTextureModule.nitro.ts` (android-kotlin; iOS added later).
-- Impl: `android/src/main/java/com/margelo/nitro/viromux/HybridViroGPUTextureModule.kt`.
+- Nitro: `react-native-nitro-modules`, `nitro-core` and `nitrogen` all at `1.0.0-alpha.nightly.100.g107f6fc66597` (npm dist-tag `alpha-nightly`). The three move together; a mismatch fails at runtime with "Nitro was installed twice".
+- Spec: `src/spec/ViroGPUTextureModule.nitro.ts`, an `@Android({ language: "kotlin", implementation: { className: "HybridViroGPUTextureModule" } })` decorated `declare class`. Every member is `static`; there is no public constructor. Autolinking comes from the decorator, not `nitro.json`.
+- Impl: `android/src/main/java/com/margelo/nitro/viromux/HybridViroGPUTextureModule.kt`. The static members are overrides on `companion object : HybridViroGPUTextureModuleSpec.Companion`, which also owns the handle-id counter and entry map (`ViroGPUTextureEntry.kt`).
+- JS: `src/ViroGPUTexture.ts` calls the statics through the generated runtime `#nitro/ViroGPUTextureModule` (package `imports` map → `nitrogen/generated/shared/javascript/*.cjs`). It imports the spec as a type only, because `@react-native/babel-preset` cannot parse decorators without `parserOpts: { plugins: ['decorators'] }` and this package ships `src/`.
+- `MuxPlayer.nitro.ts` is a typed contract with no native implementation (`allowMultipleImplementations: true`, no constructor). Playback runs through the classic `ViroMuxPlayer` module.
 - Producer surface registry: `.../ViroGPUTextureSurfaces.kt` (`getSurface(id)` for native producers).
-- JNI: only `android/src/main/cpp/cpp-adapter.cpp` (`JNI_OnLoad` → generated `registerAllNatives()`); all GL work rides virocore's VideoSink machinery — no GL code in this package.
-- Codegen: `pnpm specs` (nitrogen pinned at `0.35.9` to match `react-native-nitro-modules@0.35.9`; do NOT bump to latest independently).
+- JNI: only `android/src/main/cpp/cpp-adapter.cpp` (`JNI_OnLoad` → generated `margelo::nitro::viromux::registerAllNatives()`, header `<NitroViroMux/private/NitroViroMuxOnLoad.hpp>`); all GL work rides virocore's VideoSink machinery — no GL code in this package.
+- CMake: target-scoped V1 form (`cmake_minimum_required(3.22.1)`, `target_compile_features(cxx_std_20)`); the generated `NitroViroMux+autolinking.cmake` adds sources, include dirs, `fbjni` / `NitroModules` / `ReactAndroid` links and the Folly definitions.
+- Codegen: `pnpm --filter react-native-viro-mux specs`. Commit the whole `nitrogen/generated/` tree, including `shared/javascript/*.cjs` and `hybrid-classes.json`.
 - Autolinking: `react-native.config.js` (android only) + `ViroMuxPackage.kt` loads `libNitroViroMux.so`.

@@ -1,4 +1,6 @@
-import type { HybridObject } from "react-native-nitro-modules";
+import { Android, type HybridObject } from "nitro-core";
+
+export * from "#nitro/ViroGPUTextureModule";
 
 /**
  * Nitro spec for the external GPU texture bridge (Android v1).
@@ -10,8 +12,12 @@ import type { HybridObject } from "react-native-nitro-modules";
  *                           surface-producer path; see doc/TextureBridge.md)
  *   - releaseTexture(id)  — releases the renderer-side wrapper
  *
- * iOS is intentionally NOT declared yet — the Metal/IOSurface path lands
- * later. Adding `ios: 'swift'` to the platforms map is an additive change.
+ * The bridge is process-wide (one handle-id space, one surface registry), so
+ * every member is static: `ViroGPUTextureModule.registerExternalTexture(...)`.
+ * There is no public constructor.
+ *
+ * Only `@Android` is declared. The Metal/IOSurface path lands later; adding an
+ * `@Apple` decorator then is an additive change.
  */
 
 /** Keep in sync with `ExternalTextureHandle["kind"]` in contract.ts. */
@@ -42,8 +48,11 @@ export interface NitroExternalTextureHandle {
   nativeToken: number;
 }
 
-export interface ViroGPUTextureModule
-  extends HybridObject<{ android: "kotlin" }> {
+@Android({
+  language: "kotlin",
+  implementation: { className: "HybridViroGPUTextureModule" },
+})
+export declare class ViroGPUTextureModule extends HybridObject {
   /**
    * Register an external texture and bind it to `materialName`'s diffuse slot.
    *
@@ -56,7 +65,7 @@ export interface ViroGPUTextureModule
    *
    * Throws for kinds not implemented on the current platform.
    */
-  registerExternalTexture(
+  static registerExternalTexture(
     materialName: string,
     source: NitroExternalTextureSource
   ): NitroExternalTextureHandle;
@@ -66,11 +75,11 @@ export interface ViroGPUTextureModule
    * frame-listener pump calls SurfaceTexture.updateTexImage() every rendered
    * frame already (VideoSink pattern).
    */
-  updateTexture(id: number): void;
+  static updateTexture(id: number): void;
 
   /** Release the renderer-side wrapper. Idempotent. Does NOT free producer GPU memory. */
-  releaseTexture(id: number): void;
+  static releaseTexture(id: number): void;
 
   /** True once the producer-facing Surface exists and the material is bound. */
-  isSurfaceReady(id: number): boolean;
+  static isSurfaceReady(id: number): boolean;
 }

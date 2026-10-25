@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "classes": {
+    "MuxPlayer": {
+      "android": {
+        "allowMultipleImplementations": true,
+        "language": "kotlin"
+      }
+    },
+    "ViroGPUTextureModule": {
+      "android": {
+        "implementation": {
+          "className": "HybridViroGPUTextureModule"
+        },
+        "language": "kotlin"
+      }
+    }
+  }
+}

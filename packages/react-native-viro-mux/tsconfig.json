@@ -10,6 +10,7 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "resolvePackageJsonImports": true,
     "noEmit": true
   },
   "include": ["src", "config"]
