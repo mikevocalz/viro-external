@@ -8,61 +8,69 @@ import org.json.JSONTokener
 /**
  * Parses the renderer's wire JSON (see `WhiteboardRenderer.nitro.ts`).
  *
- * Parsing is all-or-nothing: any malformed known record throws
- * [BoardParseException] and nothing from the call is used. Records of a
+ * Parsing is all-or-nothing: any malformed known record, or input over a
+ * [BoardLimits] limit, throws [BoardParseException] and nothing from the
+ * call is used. Records of a
  * `typeName` or shape `type` this renderer does not know are skipped, so a
  * newer QuickDraw record kind does not reject a whole document.
  */
 internal object BoardJsonParser {
+  private val DEFAULT_LIMITS = BoardLimits()
+
   /** `{ document: { store: { [id]: record } } }`. */
-  fun parseSnapshot(json: String): List<BoardRecord> {
-    val root = parseObject(json, "snapshot")
+  fun parseSnapshot(json: String, limits: BoardLimits = DEFAULT_LIMITS): List<BoardRecord> {
+    val root = parseObject(json, "snapshot", limits.maxDocumentJsonChars)
     val document = root.optJSONObject("document") ?: throw BoardParseException("snapshot.document must be an object")
     val store = document.optJSONObject("store") ?: throw BoardParseException("snapshot.document.store must be an object")
+    checkRecordCount(store.length(), "snapshot", limits)
     val records = ArrayList<BoardRecord>(store.length())
     for (key in store.keys()) {
       val value = store.opt(key)
       if (value == null || value == JSONObject.NULL) continue
       val record = value as? JSONObject ?: throw BoardParseException("record \"$key\" must be an object")
-      parseRecord(record, "record \"$key\"")?.let { records.add(it) }
+      parseRecord(record, "record \"$key\"", limits)?.let { records.add(it) }
     }
     return records
   }
 
   /** `{ added, updated, removed }`; the first `updated` element and `removed` values are ignored. */
-  fun parseDiff(json: String): BoardDiff {
-    val root = parseObject(json, "diff")
+  fun parseDiff(json: String, limits: BoardLimits = DEFAULT_LIMITS): BoardDiff {
+    val root = parseObject(json, "diff", limits.maxDocumentJsonChars)
+    val added = optObject(root, "added", "diff")
+    val updated = optObject(root, "updated", "diff")
+    val removedObject = optObject(root, "removed", "diff")
+    checkRecordCount((added?.length() ?: 0) + (updated?.length() ?: 0) + (removedObject?.length() ?: 0), "diff", limits)
     val puts = ArrayList<BoardRecord>()
-    optObject(root, "added", "diff")?.let { added ->
+    added?.let { added ->
       for (key in added.keys()) {
         val record = added.opt(key) as? JSONObject ?: throw BoardParseException("diff.added[\"$key\"] must be a record")
-        parseRecord(record, "diff.added[\"$key\"]")?.let { puts.add(it) }
+        parseRecord(record, "diff.added[\"$key\"]", limits)?.let { puts.add(it) }
       }
     }
-    optObject(root, "updated", "diff")?.let { updated ->
+    updated?.let { updated ->
       for (key in updated.keys()) {
         val pair = updated.opt(key) as? JSONArray
         if (pair == null || pair.length() != 2) throw BoardParseException("diff.updated[\"$key\"] must be a [from, to] pair")
         val to = pair.opt(1) as? JSONObject ?: throw BoardParseException("diff.updated[\"$key\"][1] must be a record")
-        parseRecord(to, "diff.updated[\"$key\"][1]")?.let { puts.add(it) }
+        parseRecord(to, "diff.updated[\"$key\"][1]", limits)?.let { puts.add(it) }
       }
     }
-    val removed = optObject(root, "removed", "diff")?.keys()?.asSequence()?.toList() ?: emptyList()
+    val removed = removedObject?.keys()?.asSequence()?.toList() ?: emptyList()
     return BoardDiff(puts, removed)
   }
 
   /** The headless board's `BoardOverlay` as JSON. */
-  fun parseOverlay(json: String): BoardOverlayState {
-    val root = parseObject(json, "overlay")
+  fun parseOverlay(json: String, limits: BoardLimits = DEFAULT_LIMITS): BoardOverlayState {
+    val root = parseObject(json, "overlay", limits.maxOverlayJsonChars)
     val selection = when (val value = root.opt("selection")) {
       null, JSONObject.NULL -> null
-      is JSONObject -> parseSelection(value)
+      is JSONObject -> parseSelection(value, limits)
       else -> throw BoardParseException("overlay.selection must be an object")
     }
-    val marquees = mapArray(root, "marquees", "overlay") { item, path -> parseRect(asObject(item, path), path) }
-    val lasers = mapArray(root, "laserStrokes", "overlay") { item, path ->
+    val marquees = mapArray(root, "marquees", "overlay", limits) { item, path -> parseRect(asObject(item, path), path) }
+    val lasers = mapArray(root, "laserStrokes", "overlay", limits) { item, path ->
       val stroke = asObject(item, path)
-      val points = mapArray(stroke, "points", path) { p, pointPath -> parsePoint(asObject(p, pointPath), pointPath) }
+      val points = mapArray(stroke, "points", path, limits) { p, pointPath -> parsePoint(asObject(p, pointPath), pointPath) }
       val flat = DoubleArray(points.size * 2)
       points.forEachIndexed { i, p ->
         flat[i * 2] = p.x
@@ -72,30 +80,26 @@ internal object BoardJsonParser {
       if (opacity < 0 || opacity > 1) throw BoardParseException("$path.opacity must be in [0, 1]")
       OverlayLaserStroke(flat, opacity)
     }
-    val trails = mapArray(root, "eraserTrails", "overlay") { item, path ->
+    val trails = mapArray(root, "eraserTrails", "overlay", limits) { item, path ->
       val trail = asObject(item, path)
-      val points = numberArray(trail, "points", path)
+      val points = numberArray(trail, "points", path, limits)
       if (points.size % 2 != 0) throw BoardParseException("$path.points must hold x, y pairs")
       points
     }
-    val pending = mapArray(root, "pendingEraseIds", "overlay") { item, path ->
-      item as? String ?: throw BoardParseException("$path must be a string")
-    }.toSet()
+    val pending = mapArray(root, "pendingEraseIds", "overlay", limits) { item, path -> idString(item, path, limits) }.toSet()
     return BoardOverlayState(selection, marquees, lasers, trails, pending)
   }
 
-  private fun parseSelection(value: JSONObject): OverlaySelection =
+  private fun parseSelection(value: JSONObject, limits: BoardLimits): OverlaySelection =
     when (val kind = value.opt("kind")) {
       "box" -> OverlayBoxSelection(
-        ids = mapArray(value, "ids", "overlay.selection") { item, path ->
-          item as? String ?: throw BoardParseException("$path must be a string")
-        },
+        ids = mapArray(value, "ids", "overlay.selection", limits) { item, path -> idString(item, path, limits) },
         bounds = parseRect(requireObject(value, "bounds", "overlay.selection"), "overlay.selection.bounds"),
         isResizable = bool(value, "isResizable", "overlay.selection"),
         isRotatable = bool(value, "isRotatable", "overlay.selection"),
       )
       "line" -> OverlayLineSelection(
-        id = string(value, "id", "overlay.selection"),
+        id = string(value, "id", "overlay.selection", limits),
         start = parsePoint(requireObject(value, "start", "overlay.selection"), "overlay.selection.start"),
         end = parsePoint(requireObject(value, "end", "overlay.selection"), "overlay.selection.end"),
         bend = parsePoint(requireObject(value, "bend", "overlay.selection"), "overlay.selection.bend"),
@@ -103,20 +107,22 @@ internal object BoardJsonParser {
       else -> throw BoardParseException("overlay.selection.kind must be \"box\" or \"line\", got $kind")
     }
 
-  private fun parseRecord(record: JSONObject, path: String): BoardRecord? {
-    val id = string(record, "id", path)
+  private fun parseRecord(record: JSONObject, path: String, limits: BoardLimits): BoardRecord? {
+    val id = string(record, "id", path, limits)
     return when (record.opt("typeName")) {
       "asset" -> {
+        // An asset src is bounded by the document length; AssetSourceResolver
+        // caps what it will decode.
         val src = record.opt("src")
         if (src !is String) throw BoardParseException("$path.src must be a string")
         BoardAsset(id, src)
       }
-      "shape" -> parseShape(record, id, path)
+      "shape" -> parseShape(record, id, path, limits)
       else -> null
     }
   }
 
-  private fun parseShape(record: JSONObject, id: String, path: String): BoardShape? {
+  private fun parseShape(record: JSONObject, id: String, path: String, limits: BoardLimits): BoardShape? {
     val x = finite(record, "x", path)
     val y = finite(record, "y", path)
     val rot = optFinite(record, "rot", path) ?: 0.0
@@ -130,7 +136,7 @@ internal object BoardJsonParser {
           if (!record.has("inkOutline")) {
             throw BoardParseException("$path.inkOutline is required for dash \"draw\"; attach getInkOutline(record)")
           }
-          numberArray(record, "inkOutline", path).also {
+          numberArray(record, "inkOutline", path, limits).also {
             if (it.size % 2 != 0) throw BoardParseException("$path.inkOutline must hold x, y pairs")
           }
         } else {
@@ -141,7 +147,7 @@ internal object BoardJsonParser {
           color = enumOf(props, "color", propsPath) { InkColor.fromId(it) },
           size = enumOf(props, "size", propsPath) { StrokeSize.fromId(it) },
           dash = dash,
-          points = triplets(props, propsPath),
+          points = triplets(props, propsPath, limits),
           inkOutline = outline,
           isDone = props.optBoolean("done", false),
         )
@@ -150,7 +156,7 @@ internal object BoardJsonParser {
         id, x, y, rot, z,
         color = enumOf(props, "color", propsPath) { InkColor.fromId(it) },
         size = enumOf(props, "size", propsPath) { StrokeSize.fromId(it) },
-        points = triplets(props, propsPath),
+        points = triplets(props, propsPath, limits),
       )
       "geo" -> GeoShape(
         id, x, y, rot, z,
@@ -159,9 +165,9 @@ internal object BoardJsonParser {
         dash = enumOf(props, "dash", propsPath) { DashStyle.fromId(it) },
         fill = enumOf(props, "fill", propsPath) { FillStyle.fromId(it) },
         geo = GeoKind.fromId(props.opt("geo") as? String),
-        w = nonNegative(props, "w", propsPath),
-        h = nonNegative(props, "h", propsPath),
-        label = optString(props, "label", propsPath),
+        w = extent(props, "w", propsPath, limits),
+        h = extent(props, "h", propsPath, limits),
+        label = optString(props, "label", propsPath, limits),
         labelSize = enumOf(props, "labelSize", propsPath) { StrokeSize.fromId(it, StrokeSize.S) },
         font = enumOf(props, "font", propsPath) { BoardFont.fromId(it) },
       )
@@ -184,9 +190,9 @@ internal object BoardJsonParser {
           size = enumOf(props, "size", propsPath) { StrokeSize.fromId(it) },
           scale = scale(props, propsPath),
           font = enumOf(props, "font", propsPath) { BoardFont.fromId(it) },
-          text = optString(props, "text", propsPath),
+          text = optString(props, "text", propsPath, limits),
           align = enumOf(props, "align", propsPath) { TextAlign.fromId(it) },
-          fixedWidth = if (autosize == false && w != null && w != 0.0) w else null,
+          fixedWidth = if (autosize == false && w != null && w != 0.0) w.coerceIn(-limits.maxExtent, limits.maxExtent) else null,
         )
       }
       "note" -> NoteShape(
@@ -195,19 +201,20 @@ internal object BoardJsonParser {
         size = enumOf(props, "size", propsPath) { StrokeSize.fromId(it) },
         scale = scale(props, propsPath),
         font = enumOf(props, "font", propsPath) { BoardFont.fromId(it) },
-        text = optString(props, "text", propsPath),
+        text = optString(props, "text", propsPath, limits),
       )
       "image" -> ImageShape(
         id, x, y, rot, z,
-        w = nonNegative(props, "w", propsPath),
-        h = nonNegative(props, "h", propsPath),
-        assetId = optString(props, "assetId", propsPath),
+        w = extent(props, "w", propsPath, limits),
+        h = extent(props, "h", propsPath, limits),
+        assetId = optString(props, "assetId", propsPath, limits),
       )
       else -> null
     }
   }
 
-  private fun parseObject(json: String, what: String): JSONObject {
+  private fun parseObject(json: String, what: String, maxChars: Int): JSONObject {
+    if (json.length > maxChars) throw BoardParseException("$what is ${json.length} characters; the limit is $maxChars")
     try {
       val value = JSONTokener(json).nextValue()
       return value as? JSONObject ?: throw BoardParseException("$what must be a JSON object")
@@ -233,17 +240,23 @@ internal object BoardJsonParser {
       else -> throw BoardParseException("$path.$key must be an object")
     }
 
-  private fun <T> mapArray(obj: JSONObject, key: String, path: String, map: (Any?, String) -> T): List<T> {
+  private fun <T> mapArray(obj: JSONObject, key: String, path: String, limits: BoardLimits, map: (Any?, String) -> T): List<T> {
     val array = when (val value = obj.opt(key)) {
       null, JSONObject.NULL -> return emptyList()
       is JSONArray -> value
       else -> throw BoardParseException("$path.$key must be an array")
     }
+    if (array.length() > limits.maxArrayItems) {
+      throw BoardParseException("$path.$key has ${array.length()} items; the limit is ${limits.maxArrayItems}")
+    }
     return List(array.length()) { i -> map(array.opt(i), "$path.$key[$i]") }
   }
 
-  private fun numberArray(obj: JSONObject, key: String, path: String): DoubleArray {
+  private fun numberArray(obj: JSONObject, key: String, path: String, limits: BoardLimits): DoubleArray {
     val array = obj.opt(key) as? JSONArray ?: throw BoardParseException("$path.$key must be an array of numbers")
+    if (array.length() > limits.maxArrayNumbers) {
+      throw BoardParseException("$path.$key has ${array.length()} numbers; the limit is ${limits.maxArrayNumbers}")
+    }
     return DoubleArray(array.length()) { i ->
       val value = (array.opt(i) as? Number)?.toDouble()
       if (value == null || !value.isFinite()) throw BoardParseException("$path.$key[$i] must be a finite number")
@@ -251,8 +264,8 @@ internal object BoardJsonParser {
     }
   }
 
-  private fun triplets(props: JSONObject, path: String): DoubleArray {
-    val pts = numberArray(props, "pts", path)
+  private fun triplets(props: JSONObject, path: String, limits: BoardLimits): DoubleArray {
+    val pts = numberArray(props, "pts", path, limits)
     if (pts.isEmpty() || pts.size % 3 != 0) throw BoardParseException("$path.pts must hold x, y, pressure triplets")
     return pts
   }
@@ -274,6 +287,26 @@ internal object BoardJsonParser {
     return value
   }
 
+  /** A non-negative size, clamped to [BoardLimits.maxExtent]. */
+  private fun extent(obj: JSONObject, key: String, path: String, limits: BoardLimits): Double =
+    nonNegative(obj, key, path).coerceAtMost(limits.maxExtent)
+
+  private fun checkRecordCount(count: Int, what: String, limits: BoardLimits) {
+    if (count > limits.maxRecords) throw BoardParseException("$what has $count records; the limit is ${limits.maxRecords}")
+  }
+
+  private fun checkTextLength(value: String, path: String, limits: BoardLimits): String {
+    if (value.length > limits.maxTextChars) {
+      throw BoardParseException("$path is ${value.length} characters; the limit is ${limits.maxTextChars}")
+    }
+    return value
+  }
+
+  private fun idString(item: Any?, path: String, limits: BoardLimits): String {
+    val value = item as? String ?: throw BoardParseException("$path must be a string")
+    return checkTextLength(value, path, limits)
+  }
+
   /** QuickDraw's `p.scale || 1`. */
   private fun scale(props: JSONObject, path: String): Double {
     val value = optFinite(props, "scale", path) ?: return 1.0
@@ -281,16 +314,16 @@ internal object BoardJsonParser {
     return if (value == 0.0) 1.0 else value
   }
 
-  private fun string(obj: JSONObject, key: String, path: String): String {
+  private fun string(obj: JSONObject, key: String, path: String, limits: BoardLimits): String {
     val value = obj.opt(key)
     if (value !is String || value.isEmpty()) throw BoardParseException("$path.$key must be a non-empty string")
-    return value
+    return checkTextLength(value, "$path.$key", limits)
   }
 
-  private fun optString(obj: JSONObject, key: String, path: String): String =
+  private fun optString(obj: JSONObject, key: String, path: String, limits: BoardLimits): String =
     when (val value = obj.opt(key)) {
       null, JSONObject.NULL -> ""
-      is String -> value
+      is String -> checkTextLength(value, "$path.$key", limits)
       else -> throw BoardParseException("$path.$key must be a string")
     }
 

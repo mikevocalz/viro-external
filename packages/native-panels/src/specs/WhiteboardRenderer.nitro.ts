@@ -23,7 +23,15 @@ export * from "#nitro/WhiteboardRenderer";
  * `draw` record with dash `draw` must carry `inkOutline`: the flat
  * `[x, y, ...]` outline from `getInkOutline(record)`, so ink matches the web
  * board exactly. Image records are drawn from an asset record whose `src` is
- * a `data:` URL or a `file://` path.
+ * a base64 `data:` URL (up to 8 MiB of text) or a `file://` URL or absolute
+ * path to a regular file inside the app's cache or files directory. Other
+ * sources, and images past the renderer's 96 MiB bitmap budget, draw
+ * QuickDraw's placeholder.
+ *
+ * Size limits. A snapshot or diff may be up to 32 MiB of JSON and 50,000
+ * records, an overlay up to 4 MiB; a `pts`, `inkOutline` or eraser trail up
+ * to 200,000 numbers; a text, label or id up to 32,768 characters. Larger
+ * input is rejected. Shape `w` and `h` are clamped to 1,000,000 board units.
  *
  * Created by {@linkcode WhiteboardRendererFactory.createRenderer}. Call the
  * inherited `dispose()` when done: it stops drawing, ends the Surface
@@ -46,8 +54,9 @@ export declare class WhiteboardRenderer extends HybridObject {
    *
    * @param revision Must be greater than every revision this renderer accepted before.
    * @param snapshotJson QuickDraw snapshot JSON; see the class docs for `inkOutline`.
-   * @throws Error when the revision is not newer, the JSON is malformed, or the
-   * renderer is disposed. The current document is kept.
+   * @throws Error when the revision is not newer, the JSON is malformed or
+   * over a size limit, or the renderer is disposed. The current document is
+   * kept.
    */
   loadSnapshot(revision: number, snapshotJson: string): void;
 
@@ -56,8 +65,9 @@ export declare class WhiteboardRenderer extends HybridObject {
    *
    * @param revision Must be greater than every revision this renderer accepted before.
    * @param diffJson QuickDraw diff JSON; see the class docs.
-   * @throws Error when the revision is not newer, the JSON is malformed, or the
-   * renderer is disposed. Nothing from the rejected diff is applied.
+   * @throws Error when the revision is not newer, the JSON is malformed or
+   * over a size limit, or the renderer is disposed. Nothing from the rejected
+   * diff is applied.
    */
   applyDiff(revision: number, diffJson: string): void;
 
@@ -71,7 +81,8 @@ export declare class WhiteboardRenderer extends HybridObject {
    * Replaces the overlay: the JSON of the headless board's `getOverlay()`
    * (selection, marquees, laser trails, eraser trails, shapes pending erase).
    * Never part of the document.
-   * @throws Error when the JSON is malformed. The previous overlay is kept.
+   * @throws Error when the JSON is malformed or over a size limit. The
+   * previous overlay is kept.
    */
   setOverlay(overlayJson: string): void;
 

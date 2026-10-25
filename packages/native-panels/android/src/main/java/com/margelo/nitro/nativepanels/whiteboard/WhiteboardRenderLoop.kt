@@ -147,7 +147,7 @@ internal class WhiteboardRenderLoop(
   private fun drawFrame() {
     isFrameQueued = false
     if (isDisposed) return
-    var failure: Exception? = null
+    var failure: Throwable? = null
     slot.withSurface { entry ->
       failure = drawInto(entry)
     }
@@ -159,7 +159,7 @@ internal class WhiteboardRenderLoop(
   }
 
   /** Caller holds the slot lock. @return the failure, or null on success. */
-  private fun drawInto(entry: CanvasSurfaces.Entry): Exception? {
+  private fun drawInto(entry: CanvasSurfaces.Entry): Throwable? {
     val surface = entry.surface
     if (!surface.isValid) return IllegalStateException("Surface ${entry.id} is no longer valid")
     val canvas = try {
@@ -171,11 +171,14 @@ internal class WhiteboardRenderLoop(
     } catch (error: Surface.OutOfResourcesException) {
       return error
     }
-    var failure: Exception? = null
+    var failure: Throwable? = null
     try {
       frames.draw(canvas, entry.width, entry.height, document, camera, overlay)
-    } catch (error: RuntimeException) {
-      // A record the painter cannot draw must not take down the render thread.
+    } catch (error: Throwable) {
+      // A record the painter cannot draw, or a bitmap that runs out of
+      // memory, must not end the HandlerThread and with it the process.
+      // The frame is reported as failed (lost); only VM-level errors pass.
+      if (!DrawFailures.isRecoverable(error)) throw error
       failure = error
     }
     try {
