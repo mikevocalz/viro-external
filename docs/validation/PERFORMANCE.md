@@ -37,7 +37,7 @@ Order: alternate stacks (Baseline, Candidate, Baseline, …) so drift in room or
 
 ## R1.4 results
 
-One block per device. Columns are Baseline vs Candidate at the same refresh rate. Cells that need §6.2 or a refresh-rate request are listed in the matrix and stay empty here until they run.
+One block per device. Columns are Baseline vs Candidate at the same refresh rate. Cells that need §6.2 are listed in the matrix and stay empty here until they run. "Highest" cells are Candidate only, built with `android.openxr.displayRefreshRate: "highest"` (device pass §5).
 
 ### Quest 3S, runtime default refresh rate
 
@@ -58,11 +58,23 @@ One block per device. Columns are Baseline vs Candidate at the same refresh rate
 
 ### Quest 3S, highest available refresh rate
 
-Blocked: ViroCore cannot request a refresh rate (device pass §5). Same columns as above once Mike decides how to run it.
+Candidate runs with `displayRefreshRate: "highest"` (device pass §5). Baseline is n/a: virocore `f5c2a728` cannot request a rate, and a setprop override voids the run.
 
 | Metric | Baseline 1.0 / MEDIUM | Candidate 1.0 / LOW | Candidate 1.0 / MEDIUM | Candidate 1.3 / LOW | Candidate 1.3 / MEDIUM |
 | --- | --- | --- | --- | --- | --- |
-| All rows | blocked | blocked | blocked | blocked | blocked |
+| Requested / chosen rate (`[XR-QUALITY]` line), result code | n/a | not yet run | not yet run | not yet run | not yet run |
+| Rate after switch (`changed` line, DRR) | n/a | not yet run | not yet run | not yet run | not yet run |
+| APP T p50 / p95 (µs) | n/a | not yet run | not yet run | not yet run | not yet run |
+| GPU U p50 / p95 (%) | n/a | not yet run | not yet run | not yet run | not yet run |
+| Stale frames (total, % of frames) | n/a | not yet run | not yet run | not yet run | not yet run |
+| Max consecutive stale | n/a | not yet run | not yet run | not yet run | not yet run |
+| FPS p50 / p5 | n/a | not yet run | not yet run | not yet run | not yet run |
+| Thermal (POW L max, battery °C start → end) | n/a | not yet run | not yet run | not yet run | not yet run |
+| EBW × EBH | n/a | not yet run | not yet run | not yet run | not yet run |
+| Foveation level (FOV) | n/a | not yet run | not yet run | not yet run | not yet run |
+| RSS p50 / max (MB) | n/a | not yet run | not yet run | not yet run | not yet run |
+| CSV rows used | n/a | not yet run | not yet run | not yet run | not yet run |
+| Run directory | n/a | not yet run | not yet run | not yet run | not yet run |
 
 ### PICO 4 Ultra, runtime default refresh rate
 
@@ -81,9 +93,21 @@ Blocked: ViroCore cannot request a refresh rate (device pass §5). Same columns 
 
 ### PICO 4 Ultra, highest available refresh rate
 
+Candidate runs with `displayRefreshRate: "highest"` (device pass §5). Baseline is n/a: virocore `f5c2a728` cannot request a rate, and the Performance Tuner voids the run.
+
 | Metric | Baseline 1.0 / MEDIUM | Candidate 1.0 / LOW | Candidate 1.0 / MEDIUM | Candidate 1.3 / LOW | Candidate 1.3 / MEDIUM |
 | --- | --- | --- | --- | --- | --- |
-| All rows | blocked | blocked | blocked | blocked | blocked |
+| Requested / chosen rate (`[XR-QUALITY]` line), result code | n/a | not yet run | not yet run | not yet run | not yet run |
+| Rate after switch (`changed` line, HUD DRR) | n/a | not yet run | not yet run | not yet run | not yet run |
+| APP T p50 / p95 (µs) | n/a | not yet run | not yet run | not yet run | not yet run |
+| GPU U (HUD spot readings) | n/a | not yet run | not yet run | not yet run | not yet run |
+| Stale frames | n/a | not yet run | not yet run | not yet run | not yet run |
+| FPS (HUD spot readings) | n/a | not yet run | not yet run | not yet run | not yet run |
+| Thermal (HUD CPU/GPU °C start → end, sampler status) | n/a | not yet run | not yet run | not yet run | not yet run |
+| EBW × EBH | n/a | not yet run | not yet run | not yet run | not yet run |
+| Foveation level (FRL) | n/a | not yet run | not yet run | not yet run | not yet run |
+| RSS p50 / max (MB, sampler) | n/a | not yet run | not yet run | not yet run | not yet run |
+| Run directory | n/a | not yet run | not yet run | not yet run | not yet run |
 
 ## R1.5 memory results
 

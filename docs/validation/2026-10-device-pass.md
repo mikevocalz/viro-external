@@ -109,18 +109,33 @@ Runs land in `~/viro-device-runs/<UTC stamp>-<label>/`. Captures are not committ
 - PICO: the Performance Tuner (Settings > Developer, PICO 4 Ultra OS 5.13.0 and later) sets refresh rate, eye-buffer resolution, CPU and GPU level and FFR per app (PICO community release notes and newsroom; no developer doc page found). No property exposes its state, so Mike confirms by hand that the app has no profile and the script records `PERF_TUNER_OFF=yes`. The legacy `persist.pvr.config.target_fps` and `eyebuffer_width/height` properties are checked too.
 - Third-party optimizers on Quest (for example SideQuest tools) work through the same `debug.oculus.*` properties, so the property check covers them.
 
-## 5. Refresh-rate request: API gap
+## 5. Refresh-rate request
 
-ViroCore has no way to request a refresh rate. At both `f5c2a728` (`VROSceneRendererOpenXR.cpp:1149-1178`) and `b73d919` (`:1172-1201`) it loads `xrEnumerateDisplayRefreshRatesFB` and `xrGetDisplayRefreshRateFB` only, with the comment "Read-only: enumerate + current. Never xrRequestDisplayRefreshRateFB". It logs every available rate (`[XR-DIAG] display refresh rate: %.2f Hz`) and the current one (`... current: %.2f Hz`), so the runtime default and the highest available rate are recorded on every run without a request.
+Mike approved a request API ("finish all remaining"). Candidate now has one; Baseline does not.
 
-Consequences for R1.4:
+- virocore #112 (`fix/moyo-right-eye-depth-clear` at `e55b4894`, and #113 `feat/compositor-panel-jni` at `79f9fd89` on top of it) adds an opt-in request through `XR_FB_display_refresh_rate`. The viro config plugin (#69 `upgrade/viro-3.0.3` at `3299e4ea`) takes `android.openxr.displayRefreshRate: "highest" | <Hz>` and writes the manifest key `com.viro.openxr.displayRefreshRate`. Without the option, ViroCore never calls `xrRequestDisplayRefreshRateFB`, so every "default" cell stays at the runtime default.
+- With `"highest"`, the renderer requests the highest rate from `xrEnumerateDisplayRefreshRatesFB` after each `xrBeginSession` and logs one line per request, plus a second line when the runtime confirms the switch:
+  ```
+  [XR-QUALITY] display refresh rate: requested highest, chosen 120.00 Hz, current 72.00 Hz, xrRequestDisplayRefreshRateFB result=0
+  [XR-QUALITY] display refresh rate changed: 72.00 Hz -> 120.00 Hz
+  ```
+  The spec makes the request a hint, so `current` can still show the old rate on the first line. The rate the cell actually ran at is the `changed` line plus OVR Metrics `DRR` (PICO HUD `DRR`).
+- No setprop or Performance Tuner profile is involved, so §4's override checks still hold and a "highest" run is not voided.
+- The setting is baked in at prebuild, so each "highest" cell needs its own Candidate APK built with `openxr: { displayRefreshRate: "highest" }` next to the eye-buffer and foveation options for that cell.
 
-- Every cell runs at the runtime default rate. Meta lists 72 Hz as the default for `debug.oculus.refreshRate` and 72, 80, 90 and 120 Hz as the Quest 3S rates (System properties page above). PICO 4 Ultra's rates are read from the `[XR-DIAG]` lines on the first session.
-- The "highest available" cells are **blocked**. `debug.oculus.refreshRate` could force 120 Hz on Quest, but it is one of the overrides that void a run under §6.4. Adding a request API is out of scope unless approved. Mike decides: approve a request API, approve a labelled setprop run (Quest only; PICO would need the Performance Tuner, which is also an override), or drop those cells.
+Baseline is pinned to virocore `f5c2a728`, which has no request API. The text below describes both pinned stacks as they were before the change; it still applies to Baseline.
+
+Before the change, ViroCore had no way to request a refresh rate. At both `f5c2a728` (`VROSceneRendererOpenXR.cpp:1149-1178`) and `b73d919` (`:1172-1201`) it loads `xrEnumerateDisplayRefreshRatesFB` and `xrGetDisplayRefreshRateFB` only, with the comment "Read-only: enumerate + current. Never xrRequestDisplayRefreshRateFB". It logs every available rate (`[XR-DIAG] display refresh rate: %.2f Hz`) and the current one (`... current: %.2f Hz`), so the runtime default and the highest available rate are recorded on every run without a request.
+
+Consequences for R1.4 (updated for the request API):
+
+- Every "default" cell runs at the runtime default rate. Meta lists 72 Hz as the default for `debug.oculus.refreshRate` and 72, 80, 90 and 120 Hz as the Quest 3S rates (System properties page above). PICO 4 Ultra's rates are read from the `[XR-DIAG]` lines on the first session.
+- The Candidate "highest available" cells run with `displayRefreshRate: "highest"` and are no longer blocked.
+- The Baseline "highest available" cells cannot run without an override: `f5c2a728` cannot request a rate, and `debug.oculus.refreshRate` (Quest) or the Performance Tuner (PICO) void a run under §4. They are marked "n/a (Baseline has no request API)". At the highest rate, Candidate is compared against Candidate at the default rate, not against Baseline.
 
 ## 6. Round 1: flags off (`nativeBoard` and `nativeRive` off)
 
-Columns for every row: SHAs (virocore / viro / viro-external / app), device, OS/runtime, refresh, eye-buffer scale, foveation, build mode, workload, duration, numbers, capture links. "Scale" and "foveation" are what the eye-buffer log line and OVR Metrics `EB W`/`EB H`/`FOV` (PICO HUD `EBW`/`EBH`/`FRL`) report, not what the build intended.
+Columns for every row: SHAs (virocore / viro / viro-external / app), device, OS/runtime, refresh, eye-buffer scale, foveation, build mode, workload, duration, numbers, capture links. For Candidate, "refresh" records the requested and chosen rate from the `[XR-QUALITY] display refresh rate: requested X, chosen Y, current Z, ... result=R` line, the result code, and the rate from the `changed` line. A run with no `[XR-QUALITY]` line made no request and is a "default" run. `capture-stop.sh` extracts only the `[XR-DIAG]` rates into `refresh-rate.txt`, so read the request lines with `grep -E 'XR-QUALITY\] display refresh rate' <run>/logcat.txt`. "Scale" and "foveation" are what the eye-buffer log line and OVR Metrics `EB W`/`EB H`/`FOV` (PICO HUD `EBW`/`EBH`/`FRL`) report, not what the build intended.
 
 ### Workload sources in MoyoLearn `a6afe659`
 
@@ -160,7 +175,7 @@ Columns for every row: SHAs (virocore / viro / viro-external / app), device, OS/
 
 ### R1.4 Performance
 
-Each device at the runtime default refresh rate and the highest available, eye-buffer scale 1.0 vs 1.3, foveation LOW vs MEDIUM, 10-minute soak per cell. Evidence: p50/p95 APP T, GPU U, stale frames, FPS, thermal behaviour, logged eye-buffer sizes. Numbers go in [PERFORMANCE.md](PERFORMANCE.md); this table tracks which cells ran.
+Each device at the runtime default refresh rate and the highest available, eye-buffer scale 1.0 vs 1.3, foveation LOW vs MEDIUM, 10-minute soak per cell. "default" cells set no `displayRefreshRate`. Candidate "highest" cells set `android.openxr.displayRefreshRate: "highest"` (§5). Each run records the requested rate, the chosen rate and the result code from the `[XR-QUALITY]` line, and the rate from the `changed` line. Evidence: p50/p95 APP T, GPU U, stale frames, FPS, thermal behaviour, logged eye-buffer sizes. Numbers go in [PERFORMANCE.md](PERFORMANCE.md); this table tracks which cells ran.
 
 Baseline has no scale or foveation setting: it always renders at scale 1.0 with MEDIUM dynamic foveation. Candidate is fixed at 1.3 with LOW dynamic foveation until the §6.2 render-quality setting lands; until then only the "1.3 / LOW" Candidate cells can run. The viro bridge has no JS foveation API at `fa238896` (no `setFoveation` in `android/viro_bridge` or `components`), and virocore's `Renderer.setFoveationLevel` (`Renderer.java:215`, `b73d919`) has no caller from the app.
 
@@ -171,21 +186,21 @@ Baseline has no scale or foveation setting: it always renders at scale 1.0 with 
 | Quest 3S | default | Candidate | 1.0 | MEDIUM dyn | 10 min | not yet run (needs §6.2) |
 | Quest 3S | default | Candidate | 1.3 | LOW dyn | 10 min | not yet run |
 | Quest 3S | default | Candidate | 1.3 | MEDIUM dyn | 10 min | not yet run (needs §6.2) |
-| Quest 3S | highest | Baseline | 1.0 | MEDIUM dyn | 10 min | blocked (§5) |
-| Quest 3S | highest | Candidate | 1.0 | LOW dyn | 10 min | blocked (§5, §6.2) |
-| Quest 3S | highest | Candidate | 1.0 | MEDIUM dyn | 10 min | blocked (§5, §6.2) |
-| Quest 3S | highest | Candidate | 1.3 | LOW dyn | 10 min | blocked (§5) |
-| Quest 3S | highest | Candidate | 1.3 | MEDIUM dyn | 10 min | blocked (§5, §6.2) |
+| Quest 3S | highest | Baseline | 1.0 | MEDIUM dyn | 10 min | n/a (Baseline has no request API, §5) |
+| Quest 3S | highest | Candidate | 1.0 | LOW dyn | 10 min | not yet run (`displayRefreshRate: "highest"`; needs §6.2) |
+| Quest 3S | highest | Candidate | 1.0 | MEDIUM dyn | 10 min | not yet run (`displayRefreshRate: "highest"`; needs §6.2) |
+| Quest 3S | highest | Candidate | 1.3 | LOW dyn | 10 min | not yet run (`displayRefreshRate: "highest"`) |
+| Quest 3S | highest | Candidate | 1.3 | MEDIUM dyn | 10 min | not yet run (`displayRefreshRate: "highest"`; needs §6.2) |
 | PICO 4 Ultra | default | Baseline | 1.0 | MEDIUM dyn | 10 min | not yet run |
 | PICO 4 Ultra | default | Candidate | 1.0 | LOW dyn | 10 min | not yet run (needs §6.2) |
 | PICO 4 Ultra | default | Candidate | 1.0 | MEDIUM dyn | 10 min | not yet run (needs §6.2) |
 | PICO 4 Ultra | default | Candidate | 1.3 | LOW dyn | 10 min | not yet run |
 | PICO 4 Ultra | default | Candidate | 1.3 | MEDIUM dyn | 10 min | not yet run (needs §6.2) |
-| PICO 4 Ultra | highest | Baseline | 1.0 | MEDIUM dyn | 10 min | blocked (§5) |
-| PICO 4 Ultra | highest | Candidate | 1.0 | LOW dyn | 10 min | blocked (§5, §6.2) |
-| PICO 4 Ultra | highest | Candidate | 1.0 | MEDIUM dyn | 10 min | blocked (§5, §6.2) |
-| PICO 4 Ultra | highest | Candidate | 1.3 | LOW dyn | 10 min | blocked (§5) |
-| PICO 4 Ultra | highest | Candidate | 1.3 | MEDIUM dyn | 10 min | blocked (§5, §6.2) |
+| PICO 4 Ultra | highest | Baseline | 1.0 | MEDIUM dyn | 10 min | n/a (Baseline has no request API, §5) |
+| PICO 4 Ultra | highest | Candidate | 1.0 | LOW dyn | 10 min | not yet run (`displayRefreshRate: "highest"`; needs §6.2) |
+| PICO 4 Ultra | highest | Candidate | 1.0 | MEDIUM dyn | 10 min | not yet run (`displayRefreshRate: "highest"`; needs §6.2) |
+| PICO 4 Ultra | highest | Candidate | 1.3 | LOW dyn | 10 min | not yet run (`displayRefreshRate: "highest"`) |
+| PICO 4 Ultra | highest | Candidate | 1.3 | MEDIUM dyn | 10 min | not yet run (`displayRefreshRate: "highest"`; needs §6.2) |
 
 ## 7. Round 2: flags on (`nativeBoard` and `nativeRive` on)
 
@@ -205,7 +220,7 @@ Round 2 cannot run on MoyoLearn `a6afe659` as it stands: the app does not depend
 ## 8. Gates and open decisions for Mike
 
 1. Free disk space so the four builds can run (§3).
-2. Refresh-rate cells: approve a request API, approve a labelled setprop run, or drop the "highest" cells (§5).
+2. Refresh-rate cells: the request API is approved and in Candidate (§5). Candidate "highest" cells need one Candidate APK per cell built with `displayRefreshRate: "highest"`. Baseline "highest" cells stay n/a unless Mike approves a labelled override run.
 3. R1.2 and R1.5 need an app-side probe route and a test clip, added in one app commit used by both stacks.
 4. Round 2 needs an app commit that adds `@viro-external/native-panels` and `@viro-external/spatial-panels`.
 5. R3 needs a Rive-mode log line in virocore before it can pass.
