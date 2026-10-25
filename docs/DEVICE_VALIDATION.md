@@ -127,7 +127,7 @@ Each row: what to do, what passes, what fails. Source is where the check comes f
 
 ### 4.4 Compositor route B2
 
-These need a host that calls `addRiveCompositorPanel`. The engine and its Java API exist (virocore `d5e219c1`, `48ed1ffc`); a viro-external host is in progress and none is merged, so every B2 row is blocked until one lands.
+These need a host that calls `addRiveCompositorPanel`. The engine and its Java API exist (virocore `d5e219c1`, `48ed1ffc`); the host is `@viro-external/spatial-panels` (`createSpatialPanelsHost`, `CompositorPanelFallback`) on this branch. Build the app with that package and the renderer from viro `fa238896` or later.
 
 | # | Check | Pass | Fail | Source |
 | --- | --- | --- | --- | --- |
@@ -161,7 +161,7 @@ Run fields (section 2): not yet run.
 | R1-R11 | not yet run | |
 | R3 interlock mode | not yet run | |
 | C1-C2 | not yet run | |
-| X1-X9 | not yet run (blocked: no B2 host) | |
+| X1-X9 | not yet run | |
 | Panel sizing | not yet run | |
 
 ### PICO 4 Ultra
@@ -174,7 +174,7 @@ Run fields (section 2): not yet run.
 | R1-R11 | not yet run | |
 | R3 interlock mode | not yet run | |
 | C1-C2 | not yet run | |
-| X1-X9 | not yet run (blocked: no B2 host) | |
+| X1-X9 | not yet run | |
 
 ### visionOS
 
