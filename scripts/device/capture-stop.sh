@@ -58,6 +58,12 @@ record_device_info "$RUN/device-after.txt"
 #     "compositor panel %s: %s (%s)" presentation/eviction (:1819)
 #   ViroRivePanel "EGL ready..." (VRORivePanelEGL.cpp:194), ViroOpenXRRivePanel
 #     "finish pass ready..." (VROOpenXRRivePanelProducer.cpp:69)
+#   ViroRivePanel "render mode scene=%p interlock=... GL_RENDERER=..." once per
+#     Rive render context (virocore 8f0e920b VRORivePanelScene.cpp)
+#   VRORendererOpenXR "OpenXR panel swapchains: live=%d ..." and
+#     "OpenXR eye swapchains: live=%d ..." (8f0e920b); Viro
+#     "ExternalSurfaceTexture: live=%d ..." and "AndroidViewTexture: live=%d ..."
+#     (VROAndroidViewTexture.cpp). Events only, never per frame.
 #   NativePanelsRive, WhiteboardRenderer, ViroSpatialPanels: viro-external
 #     packages/native-panels and packages/spatial-panels
 LOG="$RUN/logcat.txt"
@@ -66,6 +72,8 @@ grep -E 'XR-DIAG\] display refresh rate' "$LOG" >"$RUN/refresh-rate.txt" || true
 grep -E 'ViroRivePanel|ViroOpenXRRivePanel|NativePanelsRive' "$LOG" >"$RUN/rive.txt" || true
 grep -E 'XR-PANEL|compositor panel|addRiveCompositorPanel|ViroSpatialPanels' "$LOG" >"$RUN/compositor.txt" || true
 grep -E 'WhiteboardRenderer' "$LOG" >"$RUN/whiteboard.txt" || true
+grep -E 'render mode scene=' "$LOG" >"$RUN/rive-mode.txt" || true
+grep -E '(OpenXR (panel|eye) swapchains|ExternalSurfaceTexture|AndroidViewTexture): live=' "$LOG" >"$RUN/live-counts.txt" || true
 grep -E 'FATAL EXCEPTION|SIGSEGV|SIGABRT|Abort message|ANR in|EGL_BAD|GL_INVALID|lowmemorykiller.*'"$APP_ID" "$LOG" >"$RUN/crashes.txt" || true
 
 {
