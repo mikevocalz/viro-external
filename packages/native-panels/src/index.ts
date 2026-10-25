@@ -10,3 +10,13 @@ export type { BoardCamera } from "./specs/BoardCamera";
 export type { ListenerSubscription } from "./specs/ListenerSubscription";
 export type { WhiteboardRendererOptions } from "./specs/WhiteboardRendererOptions";
 export type { WhiteboardRendererState } from "./specs/WhiteboardRendererState";
+
+export { resolveWhiteboardRendererFactory } from "./whiteboard/resolveWhiteboardRendererFactory";
+export { createWhiteboardRendererBinding } from "./whiteboard/createWhiteboardRendererBinding";
+export { createInkOutlineEncoder, type InkOutlineEncoder } from "./whiteboard/createInkOutlineEncoder";
+export { useWhiteboardRenderer } from "./whiteboard/useWhiteboardRenderer";
+export type { UseWhiteboardRendererOptions } from "./whiteboard/UseWhiteboardRendererOptions";
+export type { WhiteboardRendererBinding } from "./whiteboard/WhiteboardRendererBinding";
+export type { WhiteboardRendererBindingOptions } from "./whiteboard/WhiteboardRendererBindingOptions";
+export type { WhiteboardRendererStatus } from "./whiteboard/WhiteboardRendererStatus";
+export type { WhiteboardRendererTarget } from "./whiteboard/WhiteboardRendererTarget";
