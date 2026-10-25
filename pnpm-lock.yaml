@@ -296,6 +296,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@quickdrawjs/core':
+        specifier: 0.2.0
+        version: 0.2.0
       '@reactvision/react-viro':
         specifier: link:../../../viro
         version: link:../../../viro
@@ -1296,6 +1299,9 @@ packages:
 
   '@oxc-project/types@0.154.0':
     resolution: {integrity: sha512-KYOUGQFlLWR+s4QMV2Q9ko38TZm7EdO87Qm7rvZLqk/webse/cDjtyxKhg/47l0byCbs/k46LT8qc4PKjAikzA==}
+
+  '@quickdrawjs/core@0.2.0':
+    resolution: {integrity: sha512-87v/ZvyX4KYhCWqlR/js8poD6Pf1NuR4IB9RIkNxQ6g5XTUsH5vSePZkoXufVz0PRMFJv1Tmfv7RlqY9U79wMA==}
 
   '@react-native/asset-utils@0.88.0':
     resolution: {integrity: sha512-Bj1DxQt5f4OrjdlgSVkZT37Z3hx5hUIN5AUDSqL/e99vgtTcqj5vnm067epZL1EF/QiqsniZO8Q1GSkItOakDg==}
@@ -4084,6 +4090,8 @@ snapshots:
     optional: true
 
   '@oxc-project/types@0.154.0': {}
+
+  '@quickdrawjs/core@0.2.0': {}
 
   '@react-native/asset-utils@0.88.0': {}
 

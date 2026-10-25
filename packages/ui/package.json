@@ -33,6 +33,7 @@
     "typescript": "7.0.2"
   },
   "dependencies": {
+    "@quickdrawjs/core": "0.2.0",
     "zustand": "^5.0.16"
   }
 }
