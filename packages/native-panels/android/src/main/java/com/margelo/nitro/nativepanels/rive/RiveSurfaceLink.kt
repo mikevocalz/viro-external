@@ -76,6 +76,11 @@ class RiveSurfaceLink private constructor(private var nativeHandle: Long) : Canv
     /**
      * Subscribes to [surfaceId]. A Surface Viro already provides is delivered
      * before or shortly after this returns, possibly on another thread.
+     *
+     * If this throws, the link is already closed: CanvasSurfaces registers
+     * the listener before delivering, and an Error escaping that delivery
+     * leaves the registration in place, so the C++ caller, which frees its
+     * target when this throws, must never be called through it.
      */
     @JvmStatic
     @DoNotStrip
@@ -83,7 +88,12 @@ class RiveSurfaceLink private constructor(private var nativeHandle: Long) : Canv
     fun subscribe(surfaceId: Int, nativeHandle: Long): RiveSurfaceLink {
       require(nativeHandle != 0L) { "nativeHandle must not be 0" }
       val link = RiveSurfaceLink(nativeHandle)
-      val registration = CanvasSurfaces.addListener(surfaceId, link)
+      val registration = try {
+        CanvasSurfaces.addListener(surfaceId, link)
+      } catch (error: Throwable) {
+        link.close()
+        throw error
+      }
       synchronized(link.lock) {
         if (link.closed) {
           registration.close()

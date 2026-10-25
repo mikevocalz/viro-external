@@ -6,7 +6,6 @@
 
 #include <android/log.h>
 
-#include <exception>
 #include <stdexcept>
 #include <utility>
 
@@ -28,24 +27,36 @@ RiveSurfaceLink::RiveSurfaceLink(int32_t surfaceId, std::unique_ptr<RiveSurfaceT
 }
 
 RiveSurfaceLink::~RiveSurfaceLink() {
-  try {
-    close();
-  } catch (const std::exception& error) {
-    __android_log_print(ANDROID_LOG_ERROR, "NativePanelsRive", "Closing the Surface subscription failed: %s",
-                        error.what());
-  }
+  close();
 }
 
-void RiveSurfaceLink::close() {
+void RiveSurfaceLink::close() noexcept {
   if (_java) {
-    jni::ThreadScope scope;
-    // If this throws, the target is deliberately kept (leaked) rather than
-    // freed while Kotlin may still call into it.
-    _java->close();
-    _java.reset();
+    try {
+      jni::ThreadScope scope;
+      try {
+        _java->close();
+      } catch (const std::exception& error) {
+        leakTarget(error.what());
+      }
+      _java.reset();
+    } catch (const std::exception& error) {
+      // Attaching the thread failed, so Kotlin was not told to stop.
+      leakTarget(error.what());
+    }
   }
-  // Safe only now: the Kotlin side no longer holds or uses the handle.
+  // Reached with a target only when the Kotlin side no longer holds or uses
+  // the handle.
   _target.reset();
+}
+
+void RiveSurfaceLink::leakTarget(const char* reason) noexcept {
+  // Kotlin may still hold the handle and call into the target, so freeing
+  // it here, or letting the member destructor free it, would be a
+  // use-after-free. The leak is the target and the panel it keeps alive.
+  __android_log_print(ANDROID_LOG_ERROR, "NativePanelsRive",
+                      "Closing the Surface subscription failed; leaking its target: %s", reason);
+  (void)_target.release();
 }
 
 } // namespace margelo::nitro::nativepanels::rive
