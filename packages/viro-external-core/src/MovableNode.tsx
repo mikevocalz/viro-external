@@ -6,6 +6,8 @@ import React, {
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
 import { ViroNode } from "@reactvision/react-viro";
+import { createMoveGesture } from "./createMoveGesture";
+import type { MoveGesture } from "./MoveGesture";
 import type { MovableProps, Vec3 } from "./spatialTypes";
 
 export type MovableNodeProps = MovableProps & {
@@ -34,8 +36,9 @@ export function MovableNode(props: MovableNodeProps): React.ReactElement {
   const sy = scale?.[1] ?? 1;
   const sz = scale?.[2] ?? 1;
 
-  const dragStartWorld = useRef<Vec3 | null>(null);
-  const lastDragWorld = useRef<Vec3 | null>(null);
+  const gestureRef = useRef<MoveGesture | null>(null);
+  if (gestureRef.current === null) gestureRef.current = createMoveGesture();
+  const gesture = gestureRef.current;
   const pinchStartScale = useRef<Vec3>([sx, sy, sz]);
   const storeRef = useRef<StoreApi<{ scale: Vec3 }> | null>(null);
   if (storeRef.current === null) {
@@ -48,33 +51,30 @@ export function MovableNode(props: MovableNodeProps): React.ReactElement {
     store.setState({ scale: [sx, sy, sz] });
   }, [store, sx, sy, sz]);
 
+  // Turning movable off or unmounting mid-grip drops the grip: its release
+  // never arrives, and the next drag must start a new move (onMoveStart)
+  // instead of continuing from the old anchor. The cleanup also covers
+  // StrictMode's simulated unmount, which keeps refs. A position change
+  // alone does not drop it: callers may echo onMove into position while the
+  // controller is still held.
+  useEffect(() => {
+    gesture.abort();
+    return () => gesture.abort();
+  }, [gesture, movable]);
+
   const handleDrag = useCallback(
     (dragToPos: Vec3) => {
-      if (dragStartWorld.current === null) {
-        dragStartWorld.current = dragToPos;
-        onMoveStart?.();
-      }
-
-      const anchor = dragStartWorld.current;
-      const clamped: Vec3 = [
-        axisLock?.includes("x") ? anchor[0] : dragToPos[0],
-        axisLock?.includes("y") ? anchor[1] : dragToPos[1],
-        axisLock?.includes("z") ? anchor[2] : dragToPos[2],
-      ];
-
-      lastDragWorld.current = clamped;
+      const { position: clamped, isStart } = gesture.drag(dragToPos, axisLock);
+      if (isStart) onMoveStart?.();
       onMove?.(clamped);
     },
-    [axisLock, onMove, onMoveStart]
+    [axisLock, gesture, onMove, onMoveStart]
   );
 
   const finishDrag = useCallback(() => {
-    if (dragStartWorld.current === null || lastDragWorld.current === null) return;
-    const released = lastDragWorld.current;
-    dragStartWorld.current = null;
-    lastDragWorld.current = null;
-    onMoveEnd?.(released);
-  }, [onMoveEnd]);
+    const released = gesture.release();
+    if (released !== undefined) onMoveEnd?.(released);
+  }, [gesture, onMoveEnd]);
 
   const handleClickState = useCallback((clickState: number) => {
     // onDrag has no end-state flag. Viro CLICK_UP=2 is the controller release.

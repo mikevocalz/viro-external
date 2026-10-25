@@ -61,7 +61,13 @@ export interface BoardInputRouter {
   setSurface(geometry: BoardSurfaceGeometry, boardWorld: Mat4): void;
   /** `false` cancels everything and drops input until set back to `true`. */
   setEnabled(isEnabled: boolean): void;
-  /** Board movement started (grip drag): cancels every gesture and ignores input until {@linkcode BoardInputRouter.endBoardMove}. */
+  /**
+   * Board movement started (grip drag): cancels every gesture and ignores
+   * input until {@linkcode BoardInputRouter.endBoardMove}, or until
+   * {@linkcode BoardInputRouter.cancelAll} or
+   * {@linkcode BoardInputRouter.setSurface} ends the move (an unmount or a
+   * reset during the grip).
+   */
   beginBoardMove(): void;
   /** Board movement ended at `boardWorld`. */
   endBoardMove(boardWorld: Mat4): void;
@@ -79,7 +85,7 @@ export interface BoardInputRouter {
   cancelViroSource(source: number): void;
   /** Cancels the pen's gesture. */
   cancelPen(): void;
-  /** Cancels every captured gesture and ends every hover. */
+  /** Cancels every captured gesture, ends every hover and ends a board move in progress. */
   cancelAll(reason: BoardInputCancelReason): void;
   /** Number of pointers currently captured. */
   readonly capturedCount: number;

@@ -4,6 +4,7 @@ import { composeNodeWorld, transformPoint } from "../src/quickdraw-input/board-g
 import { createBoardInputRouter } from "../src/quickdraw-input/createBoardInputRouter.ts";
 import { createQuickDrawBoardSession } from "../src/quickdraw-input/createQuickDrawBoardSession.ts";
 import { createAdapterHandleSink, toLegacyQuickdrawSpatialPointer } from "../src/quickdraw-input/pointer-sinks.ts";
+import { createMoveGesture } from "../../viro-external-core/src/createMoveGesture.ts";
 
 const geometry = { widthM: 1.2, heightM: 0.75, widthPx: 2016, heightPx: 1260, boardWidth: 1008, boardHeight: 630, cornerRadiusM: 0.0381 };
 const world = composeNodeWorld({ position: [0, 1.4, -2.6], rotation: [0, 20, 0] });
@@ -107,6 +108,64 @@ describe("board input router: Viro rays", () => {
     router.endBoardMove(moved);
     router.handleViroClickState(1, transformPoint(moved, [0, 0, 0]), 2);
     assert.deepEqual(events.at(-1).uv, [0.5, 0.5], "maps through the new pose");
+  });
+
+  test("a paper remounted while a grip was in progress takes input again", () => {
+    const { router, events } = setup();
+    router.beginBoardMove();
+    // useBoardPaperInput's unmount cleanup, then the new mount's effects.
+    router.cancelAll("unmount");
+    router.setEnabled(false);
+    router.setSurface(geometry, world);
+    router.setEnabled(true);
+    router.handleViroClickState(1, at(0, 0), 2);
+    assert.deepEqual(events.map((e) => e.phase), ["down"]);
+  });
+
+  test("a reset key change or a new surface during a grip ends the move", () => {
+    for (const end of [(r) => r.cancelAll("tracking-lost"), (r) => r.setSurface(geometry, world)]) {
+      const { router, events } = setup();
+      router.beginBoardMove();
+      end(router);
+      router.handleViroClickState(1, at(0, 0), 2);
+      assert.deepEqual(events.map((e) => e.phase), ["down"], end.toString());
+    }
+  });
+
+  test("an aborted grip gesture starts over: the next drag begins a new move", () => {
+    const { router, events } = setup();
+    const moves = [];
+    const gesture = createMoveGesture();
+    const drag = (pos) => {
+      const { position, isStart } = gesture.drag(pos, undefined);
+      if (isStart) {
+        moves.push("start");
+        router.beginBoardMove();
+      }
+      return position;
+    };
+    drag([0, 1.4, -2.6]);
+    drag([0.2, 1.4, -2.6]);
+    // MovableNode's position prop was reset, or it unmounted, mid-grip.
+    gesture.abort();
+    assert.equal(gesture.isActive, false);
+    assert.equal(gesture.release(), undefined, "an aborted gesture reports no release");
+    router.cancelAll("unmount");
+    drag([1, 1.4, -2.6]);
+    const released = gesture.release();
+    assert.deepEqual(released, [1, 1.4, -2.6]);
+    assert.deepEqual(moves, ["start", "start"]);
+    router.endBoardMove(composeNodeWorld({ position: released, rotation: [0, 20, 0] }));
+    router.handleViroClickState(1, transformPoint(composeNodeWorld({ position: released, rotation: [0, 20, 0] }), [0, 0, 0]), 2);
+    assert.deepEqual(events.map((e) => e.phase), ["down"]);
+  });
+
+  test("the grip gesture locks axes to the first sample", () => {
+    const gesture = createMoveGesture();
+    gesture.drag([1, 2, 3], ["y"]);
+    assert.deepEqual(gesture.drag([4, 5, 6], ["y"]).position, [4, 2, 6]);
+    assert.deepEqual(gesture.release(), [4, 2, 6]);
+    assert.equal(gesture.release(), undefined, "release is reported once");
   });
 
   test("background, unmount, ownership change and disable cancel deterministically and only once", () => {

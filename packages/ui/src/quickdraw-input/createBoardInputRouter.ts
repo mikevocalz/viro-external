@@ -97,7 +97,11 @@ export function createBoardInputRouter(options: BoardInputRouterOptions = {}): B
     }
   };
 
+  // Also ends a board move: an unmount, reset or new surface during a grip
+  // means the grip's own end (endBoardMove) may never arrive. beginBoardMove
+  // sets the flag again right after its own cancel.
   const cancelAll = (_reason: BoardInputCancelReason) => {
+    isMoving = false;
     const t = now();
     for (const state of pointers.values()) cancelState(state, t);
   };
@@ -125,6 +129,7 @@ export function createBoardInputRouter(options: BoardInputRouterOptions = {}): B
       if (invertAffine(nextWorld) === undefined) throw new RangeError("board world matrix is singular");
       const changed = geometry !== undefined || boardWorld !== undefined;
       if (changed) cancelAll("surface-changed");
+      isMoving = false;
       geometry = nextGeometry;
       boardWorld = nextWorld;
     },
