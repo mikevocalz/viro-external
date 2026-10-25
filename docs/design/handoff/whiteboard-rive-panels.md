@@ -187,3 +187,24 @@ See `../a11y/whiteboard-a11y.md`. Summary for implementers:
 - Tool keys are below every target floor in this repo and in Meta's guidance at 2.6 m. Either move the board closer or enlarge the keys before release.
 - The Rive chrome has no accessible names. Each key needs a name that matches its label in `../copy/whiteboard-copy.md`.
 - `reducedMotion` must come from a system or app setting, not a constant.
+
+## Render-quality defaults
+
+Developer-only build settings, set in the Android manifest through an Expo config plugin. There is no user-facing control and no copy (`../copy/whiteboard-copy.md`, "Render-quality setting").
+
+| Setting | Default | Holds until | Why this value |
+| --- | --- | --- | --- |
+| Eye-buffer scale | 1.3 | R1.4 soak results on both headsets | Board text at QuickDraw `m` subtends 0.56° at 2.6 m (`../system/panel-tokens.md` §4); a sharper eye buffer gives small text more pixels before any type change lands |
+| Foveation | LOW, dynamic | R1.4 soak results on both headsets | The paper and tool strip sit inside the central 21.4° x 13.5°, but the question panel reaches 34° + 15.5° off-centre; LOW keeps its text out of the coarsest foveation tiles, and dynamic lets the runtime raise it under GPU load |
+
+Applies to Quest 3S and PICO 4 Ultra. If R1.4 shows dropped frames or thermal throttling at these values, the engineering lane changes the default and records the soak numbers here; the a11y legibility matrix (`../a11y/device-pass.md`) shows what each step down costs in text.
+
+The config key names belong to the engineering lane's plugin; this file records the values only.
+
+## Device findings
+
+**Not yet run.** No headset capture of the native board or native Rive panel exists. Findings from `../../validation/session-plan.md` land here, one row each.
+
+| # | Headset | Round | Build or flag | Finding | Capture | Severity |
+| --- | --- | --- | --- | --- | --- | --- |
+| | not yet run | | | | | |
