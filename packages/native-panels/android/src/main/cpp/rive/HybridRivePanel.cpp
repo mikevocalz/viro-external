@@ -26,6 +26,11 @@ namespace {
 
 using PanelPromise = Promise<std::shared_ptr<HybridRivePanelSpec>>;
 
+static_assert(static_cast<int32_t>(RivePointerPhase::DOWN) == static_cast<int32_t>(rive::PointerPhase::Down));
+static_assert(static_cast<int32_t>(RivePointerPhase::MOVE) == static_cast<int32_t>(rive::PointerPhase::Move));
+static_assert(static_cast<int32_t>(RivePointerPhase::UP) == static_cast<int32_t>(rive::PointerPhase::Up));
+static_assert(static_cast<int32_t>(RivePointerPhase::CANCEL) == static_cast<int32_t>(rive::PointerPhase::Cancel));
+
 void requireQueued(bool queued) {
   // VRORivePanel rejects commands only after dispose().
   if (!queued) throw std::runtime_error("RivePanel is disposed");
@@ -145,18 +150,19 @@ void HybridRivePanel::selectStateMachine(const std::string& name) {
 }
 
 void HybridRivePanel::dispatchPointer(RivePointerPhase phase, double xPx, double yPx, double pointerId) {
-  rive::checkPointerPosition(xPx, yPx);
   const int32_t id = rive::checkedInt32(pointerId, "pointerId");
-  const auto x = static_cast<float>(xPx);
-  const auto y = static_cast<float>(yPx);
-  switch (phase) {
-    case RivePointerPhase::DOWN: requireQueued(_panel->pointerDown(x, y, id)); return;
-    case RivePointerPhase::MOVE: requireQueued(_panel->pointerMove(x, y, id)); return;
-    // Rive's state machine has no cancel input; end the press where it is.
-    case RivePointerPhase::UP:
-    case RivePointerPhase::CANCEL: requireQueued(_panel->pointerUp(x, y, id)); return;
+  // A cancel becomes a move off the artboard and an up there (see
+  // rive::pointerCommands), so it never fires a click.
+  const rive::PointerCommands commands =
+      rive::pointerCommands(static_cast<rive::PointerPhase>(static_cast<int32_t>(phase)), xPx, yPx);
+  for (size_t i = 0; i < commands.count; ++i) {
+    const rive::PointerCommand& command = commands.commands[i];
+    switch (command.call) {
+      case rive::PointerCall::Down: requireQueued(_panel->pointerDown(command.xPx, command.yPx, id)); break;
+      case rive::PointerCall::Move: requireQueued(_panel->pointerMove(command.xPx, command.yPx, id)); break;
+      case rive::PointerCall::Up: requireQueued(_panel->pointerUp(command.xPx, command.yPx, id)); break;
+    }
   }
-  throw std::invalid_argument("RivePanel pointer phase is not a known value");
 }
 
 void HybridRivePanel::setActive(bool active) {

@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -18,6 +19,21 @@ namespace margelo::nitro::nativepanels::rive {
 enum class FitMode : int32_t { Fill = 0, Contain = 1, Cover = 2, FitWidth = 3, FitHeight = 4, None = 5, ScaleDown = 6 };
 
 enum class PointerPhase : int32_t { Down = 0, Move = 1, Up = 2, Cancel = 3 };
+
+// The VRORivePanel pointer methods.
+enum class PointerCall : int32_t { Down, Move, Up };
+
+struct PointerCommand {
+  PointerCall call = PointerCall::Move;
+  float xPx = 0;
+  float yPx = 0;
+};
+
+// One to two VRORivePanel calls for one pointer event, in order.
+struct PointerCommands {
+  std::array<PointerCommand, 2> commands{};
+  size_t count = 0;
+};
 
 struct RivePanelConfigInput {
   double surfaceId = 0;
@@ -58,6 +74,20 @@ int32_t checkedInt32(double value, const char* field);
 
 // Throws std::invalid_argument unless both coordinates are finite.
 void checkPointerPosition(double xPx, double yPx);
+
+// Where a cancelled press is released, in panel pixels: far enough outside
+// the panel that it maps outside the artboard for every fit, including
+// Cover, whose artboard can overflow the panel.
+inline constexpr float kPointerCancelPx = -1.0e6f;
+
+// Maps a pointer event to VRORivePanel calls. Rive's state machine has no
+// cancel input, and an up over a listener shape fires that shape's click,
+// so Cancel moves the captured pointer to kPointerCancelPx and releases it
+// there. VRORivePointerRouter forwards a captured pointer's moves wherever
+// they land, so the off-panel move is not dropped; Rive sees the pointer
+// leave its shapes and the release hits none. Throws std::invalid_argument
+// for an unknown phase or a non-finite position.
+PointerCommands pointerCommands(PointerPhase phase, double xPx, double yPx);
 
 // Converts a view-model number to the float Rive stores. Throws
 // std::invalid_argument when it is not finite or does not fit in a float.

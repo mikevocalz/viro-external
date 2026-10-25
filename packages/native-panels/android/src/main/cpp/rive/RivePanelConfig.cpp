@@ -96,6 +96,25 @@ void checkPointerPosition(double xPx, double yPx) {
   }
 }
 
+PointerCommands pointerCommands(PointerPhase phase, double xPx, double yPx) {
+  checkPointerPosition(xPx, yPx);
+  const auto x = static_cast<float>(xPx);
+  const auto y = static_cast<float>(yPx);
+  PointerCommands result;
+  switch (phase) {
+    case PointerPhase::Down: result.commands[0] = {PointerCall::Down, x, y}; result.count = 1; return result;
+    case PointerPhase::Move: result.commands[0] = {PointerCall::Move, x, y}; result.count = 1; return result;
+    case PointerPhase::Up: result.commands[0] = {PointerCall::Up, x, y}; result.count = 1; return result;
+    case PointerPhase::Cancel:
+      result.commands[0] = {PointerCall::Move, kPointerCancelPx, kPointerCancelPx};
+      result.commands[1] = {PointerCall::Up, kPointerCancelPx, kPointerCancelPx};
+      result.count = 2;
+      return result;
+  }
+  throw std::invalid_argument("RivePanel pointer phase is not a known value: " +
+                              std::to_string(static_cast<int32_t>(phase)));
+}
+
 float checkedViewModelNumber(const std::string& path, double value) {
   if (!std::isfinite(value) || std::fabs(value) > std::numeric_limits<float>::max()) {
     throw std::invalid_argument("Rive view-model number '" + path + "' must be finite and fit in a float, got " +

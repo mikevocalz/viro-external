@@ -1,10 +1,12 @@
 import type { RivePanel } from "../specs/RivePanel.nitro";
+import type { RivePointerPhase } from "../specs/RivePointerPhase";
 import type { RivePanelPointerEvent } from "./RivePanelPointerEvent";
 
 /**
  * Forwards board input events to {@linkcode RivePanel.dispatchPointer} in
  * panel pixels. `hover` and `leave` have no Rive effect and are dropped;
- * `cancel` ends that pointer's press.
+ * `cancel` releases that pointer's press off the artboard, without a click
+ * (see {@linkcode RivePointerPhase}).
  *
  * @param size The pixel size the panel was created with.
  */

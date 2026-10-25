@@ -110,6 +110,30 @@ int main() {
   expectThrows([] { checkedViewModelNumber("tool", 1e40); }, "tool", "number beyond float");
   check(checkedViewModelNumber("tool", 2) == 2.0f, "number in range converts");
 
+  {
+    const PointerCommands down = pointerCommands(PointerPhase::Down, 10, 20);
+    check(down.count == 1 && down.commands[0].call == PointerCall::Down && down.commands[0].xPx == 10.0f &&
+              down.commands[0].yPx == 20.0f,
+          "down is one pointerDown at the position");
+    const PointerCommands up = pointerCommands(PointerPhase::Up, 10, 20);
+    check(up.count == 1 && up.commands[0].call == PointerCall::Up && up.commands[0].xPx == 10.0f,
+          "up is one pointerUp at the position");
+    // A cancel must not end the press where it is: an up over a Rive
+    // listener shape fires its click. It moves off the artboard, then ups.
+    const PointerCommands cancel = pointerCommands(PointerPhase::Cancel, 10, 20);
+    check(cancel.count == 2, "cancel is two calls");
+    check(cancel.commands[0].call == PointerCall::Move && cancel.commands[1].call == PointerCall::Up,
+          "cancel moves, then releases");
+    const bool offEveryPanel = cancel.commands[0].xPx < -100.0f * kMaxPanelSidePx &&
+                               cancel.commands[0].yPx < -100.0f * kMaxPanelSidePx;
+    check(offEveryPanel, "the cancel point is far outside any panel, so outside the artboard for every fit");
+    check(cancel.commands[1].xPx == cancel.commands[0].xPx && cancel.commands[1].yPx == cancel.commands[0].yPx,
+          "the release happens at the off-artboard point");
+    check(std::isfinite(cancel.commands[0].xPx) && std::isfinite(cancel.commands[0].yPx),
+          "the cancel point passes VRORivePanel's finite check");
+    expectThrows([] { pointerCommands(static_cast<PointerPhase>(9), 0, 0); }, "phase", "unknown phase");
+  }
+
   const uint8_t rive[] = {'R', 'I', 'V', 'E', 7, 0};
   const uint8_t png[] = {0x89, 'P', 'N', 'G'};
   checkRiveFileBytes(rive, sizeof(rive));
