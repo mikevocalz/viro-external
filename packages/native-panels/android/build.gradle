@@ -55,6 +55,35 @@ try {
   logger.warn("[native-panels] Could not resolve @reactvision/react-viro: ${e.message}")
 }
 
+// libviro_renderer.so per ABI for CMake to import (the Rive panel calls
+// VRORivePanel in it). Extracted from the app's viro_renderer AAR, or taken
+// from -PviroRendererLibDir=<dir with one folder per ABI>. Not packaged: the
+// app already ships it through :react_viro.
+def viroRendererLibDir = project.findProperty("viroRendererLibDir")
+if (viroRendererLibDir == null && viroAndroidDir != null) {
+  def rendererAar = new File(viroAndroidDir, "viro_renderer/viro_renderer-release.aar")
+  def extracted = new File(project.buildDir, "viro-renderer-jni")
+  if (rendererAar.exists()) {
+    def stamp = new File(extracted, ".source")
+    def source = rendererAar.absolutePath + ":" + rendererAar.lastModified()
+    if (!stamp.exists() || stamp.text != source) {
+      project.delete(extracted)
+      project.copy {
+        from(zipTree(rendererAar)) {
+          include "jni/*/libviro_renderer.so"
+          eachFile { it.path = it.path.replaceFirst("^jni/", "") }
+          includeEmptyDirs = false
+        }
+        into extracted
+      }
+      stamp.text = source
+    }
+    viroRendererLibDir = extracted.absolutePath
+  } else {
+    logger.warn("[native-panels] ${rendererAar} not found; building without the Rive panel")
+  }
+}
+
 android {
   namespace "com.margelo.nitro.nativepanels"
 
@@ -72,6 +101,9 @@ android {
         // ANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES keeps the .so 16KB page-aligned
         // (PICO 4 Ultra / Quest / Android 15 requirement).
         arguments "-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+        if (viroRendererLibDir != null) {
+          arguments "-DVIRO_RENDERER_LIB_DIR=${viroRendererLibDir}"
+        }
         abiFilters (*reactNativeArchitectures())
 
         buildTypes {
@@ -110,7 +142,8 @@ android {
             "**/libreactnativejni.so",
             "**/libturbomodulejsijni.so",
             "**/libreact_nativemodule_core.so",
-            "**/libjscexecutor.so"
+            "**/libjscexecutor.so",
+            "**/libviro_renderer.so"
     ]
   }
 

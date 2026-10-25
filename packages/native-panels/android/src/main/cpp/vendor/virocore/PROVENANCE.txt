@@ -1,0 +1,16 @@
+Copied unmodified from github.com/mikevocalz/virocore (MIT, see the virocore
+LICENSE), branch feat/panel-corners-compositor, commit d5e219c18490ce8df8b4718e02de4c4516b61077:
+
+  VRORivePanel.h     android/sharedCode/src/main/cpp/VRORivePanel.h
+  VROPanelCoverage.h ViroRenderer/VROPanelCoverage.h
+
+VRORivePanel.h declares the exported C++ API of libviro_renderer.so that the
+Rive HybridObjects call. VROPanelCoverage.h is header-only and gives the
+corner radii the Viro consumer rounds with, so pointer hits use the same ones.
+
+Both must match the libviro_renderer.so the app ships. Check with:
+
+  VIROCORE_ROOT=/path/to/virocore pnpm --filter @viro-external/native-panels test
+
+test/vendored-virocore-headers.test.mjs compares these files byte for byte
+against that checkout.

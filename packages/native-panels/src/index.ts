@@ -4,6 +4,14 @@
 // nitrogen-generated `#nitro/*` modules.
 import "react-native-nitro-modules";
 
+export type { RiveFile } from "./specs/RiveFile.nitro";
+export type { RiveFit } from "./specs/RiveFit";
+export type { RivePanel } from "./specs/RivePanel.nitro";
+export type { RivePanelOptions } from "./specs/RivePanelOptions";
+export type { RivePanelState } from "./specs/RivePanelState";
+export type { RivePointerPhase } from "./specs/RivePointerPhase";
+export type { RiveViewModelInstance } from "./specs/RiveViewModelInstance.nitro";
+export type { RiveViewModelUpdate } from "./specs/RiveViewModelUpdate";
 export type { WhiteboardRenderer } from "./specs/WhiteboardRenderer.nitro";
 export type { WhiteboardRendererFactory } from "./specs/WhiteboardRendererFactory.nitro";
 export type { BoardCamera } from "./specs/BoardCamera";
@@ -20,3 +28,16 @@ export type { WhiteboardRendererBinding } from "./whiteboard/WhiteboardRendererB
 export type { WhiteboardRendererBindingOptions } from "./whiteboard/WhiteboardRendererBindingOptions";
 export type { WhiteboardRendererStatus } from "./whiteboard/WhiteboardRendererStatus";
 export type { WhiteboardRendererTarget } from "./whiteboard/WhiteboardRendererTarget";
+
+export { resolveNativeRive } from "./rive/resolveNativeRive";
+export type { NativeRiveRuntime } from "./rive/NativeRiveRuntime";
+export { createRiveBindingWriter, type RiveBindingDiff, type RiveBindingWriter } from "./rive/createRiveBindingWriter";
+export type { RiveBindingValue } from "./rive/RiveBindingValue";
+export { createRivePanelPointerSink } from "./rive/createRivePanelPointerSink";
+export type { RivePanelPointerEvent } from "./rive/RivePanelPointerEvent";
+export { mountNativeRivePanel } from "./rive/mountNativeRivePanel";
+export type { NativeRivePanelMount } from "./rive/NativeRivePanelMount";
+export type { NativeRivePanelMountOptions } from "./rive/NativeRivePanelMountOptions";
+export { ViroNativeRivePanel } from "./rive/ViroNativeRivePanel";
+export type { ViroNativeRivePanelProps } from "./rive/ViroNativeRivePanelProps";
+export type { NativeRivePanelHandle } from "./rive/NativeRivePanelHandle";
