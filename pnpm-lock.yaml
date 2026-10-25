@@ -64,6 +64,43 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
+  packages/native-panels:
+    dependencies:
+      '@quickdrawjs/core':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@reactvision/react-viro':
+        specifier: link:../../../viro
+        version: link:../../../viro
+      zustand:
+        specifier: ^5.0.16
+        version: 5.0.16(@types/react@19.3.0)(react@19.3.1)
+    devDependencies:
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      '@viro-external/ui':
+        specifier: workspace:*
+        version: link:../ui
+      nitro-core:
+        specifier: 1.0.0-alpha.nightly.100.g107f6fc66597
+        version: 1.0.0-alpha.nightly.100.g107f6fc66597
+      nitrogen:
+        specifier: 1.0.0-alpha.nightly.100.g107f6fc66597
+        version: 1.0.0-alpha.nightly.100.g107f6fc66597
+      react:
+        specifier: 19.3.1
+        version: 19.3.1
+      react-native:
+        specifier: 0.88.0
+        version: 0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1)
+      react-native-nitro-modules:
+        specifier: 1.0.0-alpha.nightly.100.g107f6fc66597
+        version: 1.0.0-alpha.nightly.100.g107f6fc66597(react-native@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1))(react@19.3.1)
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
   packages/openxr:
     devDependencies:
       '@viro-external/xr-contract':
