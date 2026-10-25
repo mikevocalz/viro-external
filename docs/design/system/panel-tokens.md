@@ -187,3 +187,42 @@ Stroke tokens stay in page px so the native board matches the web board exactly 
 | `layer.raster / ink` | 0.0005 / 0.001 m | `boardLayer` |
 | `layer.pointer` | 0.002 m | `POINTER_STANDOFF` |
 | `depth.subtle / standard / strong / hero` edge | scale 1.012-1.05, offset -0.006 to -0.016 m | viro-external `visual-depth.ts` |
+
+## 7. On-device measurement
+
+The radii in §1 are computed. This section is how to check them on a headset capture. Captures come from the sessions in `../../validation/session-plan.md`.
+
+### Set-up
+
+| Panel | Distance | Token | Expected radius |
+| --- | --- | --- | --- |
+| Rive tool strip (own panel, gate 2) | 1.4 m | `radius.toolStrip` (0.840°) | 0.0205 m |
+| Tool key inside the strip | 1.4 m | `radius.toolKey` (0.458°) | 0.0112 m |
+| Board face | 2.6 m | `radius.board` (0.840°) | 0.0381 m |
+| Tool key on the board | 2.6 m | `radius.toolKey` (0.458°) | 0.0208 m |
+
+Place the panel at the listed distance with the placement code, not by hand, and log the head-to-panel distance the scene reports. Stand still, face the panel front-on (yaw 0°, no pitch), passthrough on, and take a still at the largest size the capture tool allows. On Quest 3S that is `metavr capture screenshot --width <w> --height <h>`.
+
+### Procedure
+
+1. Pick the eye image the capture tool gives (Quest captures may be one eye or both side by side). Use the same eye for every measurement in a run.
+2. Measure the panel's full width in pixels along its top edge, edge to edge at 50 % coverage. Divide by the panel's width in metres to get `pxPerM`. This uses the panel itself as the ruler, so no camera calibration is needed. Keep the panel centred in the frame; whether the capture is lens-corrected has not been checked on either headset, and the centre is where any residual distortion is smallest.
+3. For each corner, mark three points on the curved edge at 50 % coverage: the two points where the curve meets the straight edges and one at 45° between them. Fit a circle through the three points. Its radius in pixels divided by `pxPerM` is the measured radius in metres.
+4. Convert to angle: `angle = 2 · atan(radiusM / (2 · d))`, with `d` the logged distance.
+5. Average the four corners. Record the spread too: one corner far off the others points at a coverage or orientation bug, not a token error.
+6. Repeat on the scene panel, the B2 quad, the cylinder layer and the eviction fallback for the same token (critique item 9, DEVICE_VALIDATION C1). For the cylinder, measure along the arc on a front-on capture of the corner; do not use the chord.
+
+Tolerance: a delta under 1 px at the capture size, or under 10 % of the expected radius, whichever is larger, counts as a match. Anything over goes to L4 with the capture file.
+
+### Results
+
+| Headset | Panel | Distance (logged) | Expected | Measured (mean of 4) | Spread | Delta | Capture |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Quest 3S | Tool strip | not yet run | 0.0205 m | | | | |
+| Quest 3S | Tool key (strip) | not yet run | 0.0112 m | | | | |
+| Quest 3S | Board face | not yet run | 0.0381 m | | | | |
+| Quest 3S | Tool key (board) | not yet run | 0.0208 m | | | | |
+| PICO 4 Ultra | Tool strip | not yet run | 0.0205 m | | | | |
+| PICO 4 Ultra | Tool key (strip) | not yet run | 0.0112 m | | | | |
+| PICO 4 Ultra | Board face | not yet run | 0.0381 m | | | | |
+| PICO 4 Ultra | Tool key (board) | not yet run | 0.0208 m | | | | |
