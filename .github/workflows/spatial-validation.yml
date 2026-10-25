@@ -110,6 +110,8 @@ jobs:
           pnpm --filter @viro-external/media typecheck
           pnpm --filter @viro-external/ui typecheck
           pnpm --filter @viro-external/ui test:world-slot
+          pnpm --filter @viro-external/native-panels typecheck
+          pnpm --filter @viro-external/native-panels test
           pnpm --filter @viro-external/premium typecheck
           pnpm --filter @viro-external/pano typecheck
           pnpm --filter @viro-external/meta typecheck

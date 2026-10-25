@@ -142,3 +142,7 @@ The board is 16:10 everywhere it ships: `boardSurfacePixels` 1008×630 (MoyoLear
 
 - Gate 3 approved: corner radii are angle-locked (0.840° board, 0.458° chrome; 0.038 m and 0.021 m at the board's 2.6 m). See `docs/design/system/panel-tokens.md`.
 - The Rive tool strip moves to its own panel nearer the learner (about 1.4 m, within reach) so its keys meet the 4° target floor; the board stays at 2.6 m. This also settles gate 2 in favour of a separate Rive panel.
+
+## Corner ownership, 2026-10-24
+
+Producers draw square content and the shared coverage function (`ViroRenderer/VROPanelCoverage.h` and its GLSL) rounds every panel at the consumer: the scene-panel resolve copy, the compositor finish pass, and the scene fallback. This keeps one implementation and identical corners when a panel moves between routes, per `panel-tokens.md` rule 3. `WhiteboardRendererOptions.cornerRadiusPx` and `VRORivePanelOptions.cornerRadiusPx` therefore default to 0 on these routes; a non-zero value is only for a producer shown outside Viro.
