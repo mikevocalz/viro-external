@@ -78,6 +78,11 @@ export declare class RivePanel extends HybridObject {
    * state change and carries a message when a command failed without
    * changing the state (bad file, unknown artboard, unknown property path).
    * Runs on the panel's render thread; delivered to JS asynchronously.
+   *
+   * If the panel has already reported anything, the new listener first
+   * receives the last `(state, detail)` once, so a report made before JS
+   * subscribed (such as a load error) is not lost. Later reports follow in
+   * order.
    */
   addOnStateChangedListener(listener: (state: RivePanelState, detail: string) => void): ListenerSubscription;
 }

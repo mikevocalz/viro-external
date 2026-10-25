@@ -4,22 +4,23 @@
 //  State listeners of one RivePanel. VRORivePanel reports on its render
 //  thread; listeners are JS callbacks, delivered with callAndForget.
 //
-//  The mutex guards only the map. emit() copies the listeners under it and
-//  calls them after unlocking, so a listener that adds or removes listeners
-//  cannot deadlock, and a removal during an emission may still receive that
-//  one event.
+//  The panel starts loading before JS can subscribe, so a state reported in
+//  that window (a load error, for example) would otherwise be lost. Each
+//  new listener therefore receives the last (state, detail) once when it is
+//  added, then every later report in order. ReplayingListenerSet holds the
+//  locking rules.
 //
 
 #pragma once
+
+#include "ReplayingListenerSet.hpp"
 
 #include <NitroNativePanels/ListenerSubscription.hpp>
 #include <NitroNativePanels/RivePanelState.hpp>
 #include <NitroModules/Callback.hpp>
 
 #include <cstdint>
-#include <map>
 #include <memory>
-#include <mutex>
 #include <string>
 
 namespace margelo::nitro::nativepanels {
@@ -33,11 +34,7 @@ public:
   void clear();
 
 private:
-  void remove(uint64_t id);
-
-  std::mutex _mutex;
-  std::map<uint64_t, Listener> _listeners;
-  uint64_t _nextId = 1;
+  rive::ReplayingListenerSet<Listener, RivePanelState, std::string> _set;
 };
 
 } // namespace margelo::nitro::nativepanels
