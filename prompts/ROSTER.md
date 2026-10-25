@@ -77,13 +77,16 @@ virocore #112 changes eye-buffer size, foveation, eye-buffer alpha, external-tex
 
 ## Hardening lanes
 
-These run alongside L0-L6 and report to V2.
+S0 to S3 start together; S4 starts once Round 1 captures exist; V runs last.
 
 | Lane | Owns | Seats |
 | --- | --- | --- |
-| S0 Stack record | #112 PR body (per-commit behaviour, who is affected, risk, how to dial back), stack heads and baselines, this roster | Pavlik, Rousavy |
-| S1 Render-quality setting | Eye-buffer scale and foveation as a setting on #112: Java setter on the OpenXR renderer class, AndroidManifest meta-data written by an Expo config-plugin option; defaults 1.3 and LOW dynamic | Pavlik, Rousavy |
-| V Device validation | Two A/B rounds on Quest 3S and PICO 4 Ultra against `f5c2a728`, flags off then on; captures and GPU numbers per seat duty above | Every seat in the device-pass table; Callstack and Software Mansion skills |
+| S0 Lead | #112 PR body (per-commit behaviour, who is affected, risk, how to dial back), stack heads and baselines, this roster | Pavlik, Rousavy |
+| S1 Render quality | Eye-buffer scale and foveation as a setting on #112 (Java setter on the OpenXR renderer class, AndroidManifest meta-data from an Expo config-plugin option; defaults 1.3 and LOW dynamic), its host test, the rebase of #113 | Pavlik |
+| S2 CI | Shader compile job with a pinned NDK, Rive host-test job with a cached rive-runtime build, recorded results | Callstack skills |
+| S3 Device | Baseline and Candidate builds, install, log and metric capture scripts, results template, analysis | Dalton, Falch, Candillon |
+| S4 Design | Design and review sequence on device captures; Mobbin passes | Ruiz, Barry, Riquelme Sánchez, Andersson |
+| V Review | Independent review of the diffs and the evidence, not the summaries; runs last | Whole roster |
 
 ## Standing review rules
 
