@@ -2,26 +2,34 @@ package com.margelo.nitro.nativepanels.whiteboard
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.net.Uri
 import android.util.Base64
 import android.util.Log
 import kotlin.math.max
 
 /**
- * Decoded image assets keyed by asset id and `src`. Decodes `data:` URLs
- * (base64) and local files (`file://` or an absolute path). Remote URLs are
- * not fetched; their image shapes draw QuickDraw's placeholder. Decoding runs
- * on the render thread, downsampled so the longest side is at most
- * [MAX_SIDE_PX]. Render thread only.
+ * Decoded image assets keyed by asset id and `src`. [resolver] decides which
+ * sources may be read: base64 `data:` URLs and files inside the app's own
+ * directories. Remote URLs are not fetched; refused, undecodable and
+ * over-[budget] assets draw QuickDraw's placeholder. Decoding runs on the
+ * render thread, downsampled so the longest side is at most [MAX_SIDE_PX].
+ * Render thread only.
  */
-internal class AssetBitmaps {
+internal class AssetBitmaps(
+  private val resolver: AssetSourceResolver,
+  private val budget: BitmapBudget = BitmapBudget(),
+) {
   private class Entry(val src: String, val bitmap: Bitmap?)
 
   private val entries = HashMap<String, Entry>()
 
   /** @return the bitmap, or null when the asset cannot be decoded here. */
   fun bitmapFor(asset: BoardAsset): Bitmap? {
-    entries[asset.id]?.let { if (it.src == asset.src) return it.bitmap else it.bitmap?.recycle() }
+    entries[asset.id]?.let { previous ->
+      if (previous.src == asset.src) return previous.bitmap
+      // Out of the map before decoding, so the budget does not count it.
+      entries.remove(asset.id)
+      previous.bitmap?.recycle()
+    }
     val bitmap = decode(asset.src)
     entries[asset.id] = Entry(asset.src, bitmap)
     return bitmap
@@ -46,30 +54,44 @@ internal class AssetBitmaps {
   }
 
   private fun decode(src: String): Bitmap? {
+    val source = resolver.resolve(src) ?: return null
     try {
-      if (src.startsWith("data:")) {
-        val comma = src.indexOf(',')
-        if (comma < 0 || !src.substring(0, comma).endsWith(";base64")) return null
-        val bytes = Base64.decode(src.substring(comma + 1), Base64.DEFAULT)
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, sampled(bounds))
+      return when (source) {
+        is Base64AssetSource -> {
+          val bytes = Base64.decode(source.payload, Base64.DEFAULT)
+          val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+          BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+          val options = withinBudget(bounds) ?: return null
+          BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+        }
+        is FileAssetSource -> {
+          val path = source.file.path
+          val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+          BitmapFactory.decodeFile(path, bounds)
+          val options = withinBudget(bounds) ?: return null
+          BitmapFactory.decodeFile(path, options)
+        }
       }
-      val path = when {
-        src.startsWith("file://") -> Uri.parse(src).path ?: return null
-        src.startsWith("/") -> src
-        else -> return null
-      }
-      val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-      BitmapFactory.decodeFile(path, bounds)
-      return BitmapFactory.decodeFile(path, sampled(bounds))
     } catch (error: IllegalArgumentException) {
+      // Bad base64, among others.
       Log.w(TAG, "Could not decode image asset", error)
       return null
     } catch (error: OutOfMemoryError) {
+      // Covers the base64 decode as well as the bitmap.
       Log.w(TAG, "Image asset too large to decode", error)
       return null
     }
+  }
+
+  /** Decode options for [bounds], or null when the result would exceed the budget. */
+  private fun withinBudget(bounds: BitmapFactory.Options): BitmapFactory.Options? {
+    val options = sampled(bounds)
+    val nextBytes = BitmapBudget.estimatedBytes(bounds.outWidth, bounds.outHeight, options.inSampleSize)
+    if (!budget.fits(byteCount(), nextBytes)) {
+      Log.w(TAG, "Skipping an image asset: $nextBytes bytes would exceed the renderer's bitmap budget")
+      return null
+    }
+    return options
   }
 
   private fun sampled(bounds: BitmapFactory.Options): BitmapFactory.Options {

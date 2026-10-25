@@ -17,7 +17,7 @@ internal class BoardFrameRenderer(private val config: RendererConfig) {
   private val layouts = TextLayoutEngine(PaintTextMeasurer())
   private val bounds = ShapeBounds(layouts)
   private val pathCache = ShapePathCache()
-  private val assets = AssetBitmaps()
+  private val assets = AssetBitmaps(AssetSourceResolver(AppFileRoots.current()))
   private val shapes = ShapePainter(layouts, bounds, pathCache, assets, HatchShaders())
   private val overlays = OverlayPainter(bounds)
   private val paperPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
