@@ -20,7 +20,9 @@ const sameCamera = (a: Camera | undefined, b: Camera): boolean =>
  * per call, so the renderer can reject anything out of order.
  *
  * When the renderer rejects a call, or reports `lost`, the binding drops the
- * pending diff and sends a fresh snapshot on the next frame. If that
+ * pending diff and sends a fresh snapshot on the next frame. A rejected
+ * camera or overlay is sent again with the next frame, and `lost` resends
+ * both with the snapshot. If that
  * snapshot is rejected too, it waits for the next store change before trying
  * again, so a renderer that rejects everything does not spin.
  */
@@ -88,6 +90,8 @@ export function createWhiteboardRendererBinding(options: WhiteboardRendererBindi
       // A rejected diff is answered with a snapshot in this same flush.
       if (needsSnapshot) sendSnapshot();
     }
+    // A rejected camera or overlay stays pending, unless a newer value
+    // arrived meanwhile, so the next frame sends it again.
     if (pendingCamera !== undefined && !sameCamera(sentCamera, pendingCamera)) {
       const camera = pendingCamera;
       pendingCamera = undefined;
@@ -95,6 +99,7 @@ export function createWhiteboardRendererBinding(options: WhiteboardRendererBindi
         renderer.setCamera(camera);
         sentCamera = camera;
       } catch (error) {
+        if (pendingCamera === undefined) pendingCamera = camera;
         report(error);
       }
     }
@@ -104,6 +109,7 @@ export function createWhiteboardRendererBinding(options: WhiteboardRendererBindi
       try {
         renderer.setOverlay(JSON.stringify(overlay));
       } catch (error) {
+        if (pendingOverlay === undefined) pendingOverlay = overlay;
         report(error);
       }
     }
@@ -145,10 +151,16 @@ export function createWhiteboardRendererBinding(options: WhiteboardRendererBindi
     schedule();
   });
 
+  // A lost renderer may have lost its camera and overlay with the document.
   const stateSubscription = renderer.addOnStateChangedListener((state) => {
     if (state !== "lost") return;
     needsSnapshot = true;
     isResyncBlocked = false;
+    if (board !== undefined) {
+      sentCamera = undefined;
+      pendingCamera = board.getEditorState().camera;
+      pendingOverlay = board.getOverlay();
+    }
     schedule();
   });
 

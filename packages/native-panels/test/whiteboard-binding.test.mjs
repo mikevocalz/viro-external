@@ -15,13 +15,17 @@ function createFakeRenderer() {
   const doc = new Map();
   const listeners = new Set();
   let lastRevision = -Infinity;
-  let failNext = { applyDiff: 0, loadSnapshot: 0 };
+  let failNext = { applyDiff: 0, loadSnapshot: 0, setCamera: 0, setOverlay: 0 };
 
-  const gate = (method, revision) => {
+  const maybeFail = (method) => {
     if (failNext[method] > 0) {
       failNext[method] -= 1;
       throw new Error(`${method} rejected by test`);
     }
+  };
+
+  const gate = (method, revision) => {
+    maybeFail(method);
     if (!(revision > lastRevision)) throw new Error(`Revision ${revision} is not newer than ${lastRevision}`);
     lastRevision = revision;
   };
@@ -51,9 +55,11 @@ function createFakeRenderer() {
       for (const id of Object.keys(parsed.removed)) doc.delete(id);
     },
     setCamera(camera) {
+      maybeFail("setCamera");
       calls.push({ method: "setCamera", camera });
     },
     setOverlay(json) {
+      maybeFail("setOverlay");
       calls.push({ method: "setOverlay", payload: JSON.parse(json) });
     },
     addOnStateChangedListener(listener) {
@@ -276,6 +282,49 @@ describe("createWhiteboardRendererBinding with a headless board", () => {
       { x: 0, y: 0, z: 1 },
       { x: -5, y: 3, z: 2 },
     ]);
+  });
+
+  test("a rejected camera is sent again with the next frame", () => {
+    const { board, store, renderer, frames, errors } = boardSetup();
+    frames.run();
+    renderer.calls.length = 0;
+    renderer.failNext("setCamera");
+    board.setCamera({ x: 7, y: 8, z: 1.5 });
+    frames.run();
+    assert.equal(errors.length, 1, "the rejection is reported");
+    assert.equal(renderer.calls.filter((c) => c.method === "setCamera").length, 0);
+    store.put(geoRecord("shape:a"), "remote");
+    frames.run();
+    assert.deepEqual(renderer.calls.filter((c) => c.method === "setCamera").map((c) => c.camera), [{ x: 7, y: 8, z: 1.5 }]);
+  });
+
+  test("a rejected overlay is sent again with the next frame", () => {
+    const { board, store, renderer, frames, errors, binding } = boardSetup();
+    store.put(geoRecord("shape:a"), "remote");
+    frames.run();
+    renderer.calls.length = 0;
+    renderer.failNext("setOverlay");
+    board.setSelection(["shape:a"]);
+    frames.run();
+    assert.equal(errors.length, 1, "the rejection is reported");
+    assert.equal(renderer.calls.filter((c) => c.method === "setOverlay").length, 0);
+    // A flush with no new overlay emitted since the rejection.
+    binding.flush();
+    const overlays = renderer.calls.filter((c) => c.method === "setOverlay").map((c) => c.payload);
+    assert.equal(overlays.length, 1);
+    assert.deepEqual(overlays[0].selection?.ids, ["shape:a"]);
+  });
+
+  test("lost resends the camera and overlay with the snapshot", () => {
+    const { board, renderer, frames } = boardSetup();
+    board.setCamera({ x: -5, y: 3, z: 2 });
+    frames.run();
+    renderer.calls.length = 0;
+    renderer.emitState("lost");
+    frames.run();
+    const methods = renderer.calls.map((c) => c.method);
+    assert.deepEqual(methods, ["loadSnapshot", "setCamera", "setOverlay"]);
+    assert.deepEqual(renderer.calls[1].camera, { x: -5, y: 3, z: 2 });
   });
 
   test("strokes reach the renderer as one diff per frame and laser trails fade out", () => {
