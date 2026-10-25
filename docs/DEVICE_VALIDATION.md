@@ -2,7 +2,7 @@
 
 [Handbook](README.md) · [Performance](PERFORMANCE.md) · [API](API_WHITEBOARD_RIVE_PANELS.md) · [ADR 0001](adr/0001-native-whiteboard-rive-panels.md)
 
-This is the V1 lane procedure (`prompts/ROSTER.md`). It lists every check that the source, the host tests and the compilers cannot settle and that needs a Quest 3 and a PICO 4 Ultra. Until a row below has a recorded result, that feature is unverified on that headset. A passing typecheck, a non-null handle or a rising frame counter does not pass a row (`ROSTER.md` rule 5); a capture or a log line does.
+This is the V1 lane procedure (`prompts/ROSTER.md`). It lists every check that the source, the host tests and the compilers cannot settle and that needs a Quest 3S and a PICO 4 Ultra, the supported headsets decided on 2026-10-25. Until a row below has a recorded result, that feature is unverified on that headset. A passing typecheck, a non-null handle or a rising frame counter does not pass a row (`ROSTER.md` rule 5); a capture or a log line does.
 
 Every result table on this page says **not yet run**.
 
@@ -14,7 +14,7 @@ The consuming app is MoyoLearn. Its `apps/mobile/android/app/build.gradle` (read
 
 | Flavor | `minSdkVersion` | `targetSdkVersion` | ABI filter | Install on |
 | --- | --- | --- | --- | --- |
-| `quest` | 29 | 34 | `arm64-v8a` | Quest 3 only |
+| `quest` | 29 | 34 | `arm64-v8a` | Quest 3S only |
 | `pico` | 32 | 34 | `arm64-v8a` | PICO 4 Ultra only |
 | `mobile` | app default | app default | none | phones; never a headset |
 
@@ -151,7 +151,7 @@ I1 tests the shared JS input router with the WebView board, since neither native
 
 ## 5. Results
 
-### Quest 3
+### Quest 3S
 
 Run fields (section 2): not yet run.
 
