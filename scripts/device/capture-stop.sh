@@ -54,6 +54,8 @@ record_device_info "$RUN/device-after.txt"
 #     virocore 70e95fd8+ VROSceneRendererOpenXR.cpp:1052 (b73d919); absent at
 #     f5c2a728, which logs only "Eye %u: swapchain ..." at VERBOSE (line 1054).
 #   VRORendererOpenXR "[XR-DIAG] display refresh rate ..." (b73d919 :1189-1199)
+#   VRORendererOpenXR "[XR-QUALITY] display refresh rate: requested X, chosen Y,
+#     current Z, ... result=R" and "... changed: A Hz -> B Hz" (e55b4894+)
 #   VRORendererOpenXR "[XR-PANEL] compositor maxLayers=..." (:538) and
 #     "compositor panel %s: %s (%s)" presentation/eviction (:1819)
 #   ViroRivePanel "EGL ready..." (VRORivePanelEGL.cpp:194), ViroOpenXRRivePanel
@@ -68,7 +70,7 @@ record_device_info "$RUN/device-after.txt"
 #     packages/native-panels and packages/spatial-panels
 LOG="$RUN/logcat.txt"
 grep -E 'Eye [0-9]+: (recommended|swapchain)' "$LOG" >"$RUN/eye-buffer.txt" || true
-grep -E 'XR-DIAG\] display refresh rate' "$LOG" >"$RUN/refresh-rate.txt" || true
+grep -E 'XR-DIAG\] display refresh rate|XR-QUALITY\] display refresh rate' "$LOG" >"$RUN/refresh-rate.txt" || true
 grep -E 'ViroRivePanel|ViroOpenXRRivePanel|NativePanelsRive' "$LOG" >"$RUN/rive.txt" || true
 grep -E 'XR-PANEL|compositor panel|addRiveCompositorPanel|ViroSpatialPanels' "$LOG" >"$RUN/compositor.txt" || true
 grep -E 'WhiteboardRenderer' "$LOG" >"$RUN/whiteboard.txt" || true
