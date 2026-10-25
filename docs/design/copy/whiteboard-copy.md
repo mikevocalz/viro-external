@@ -118,7 +118,7 @@ All **new**. No product names: the code path is `MusePenInput`, but the learner 
 | Pairing failed | **Couldn't find your pen. Check it's turned on, then try again.** Button: **Try again** |
 | Disconnected mid-session | **Pen disconnected. Keep drawing with your controller or hand.** |
 | Pressure not available | **This pen doesn't send pressure, so lines stay one width.** |
-| Handedness row | **I write with my** — options **Left hand** / **Right hand** |
+| Handedness row | **I write with my**, with options **Left hand** / **Right hand** |
 | Handedness helper | **We'll put the tools on the other side so your arm doesn't cover them.** |
 
 The handedness helper describes a behaviour that does not exist yet. Ship the copy only with the mirrored strip (see `../research/whiteboard-xr-research.md`, question 3).
