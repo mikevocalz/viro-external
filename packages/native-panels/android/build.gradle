@@ -1,0 +1,160 @@
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+  }
+
+  dependencies {
+    classpath "com.android.tools.build:gradle:9.3.1"
+  }
+}
+
+def reactNativeArchitectures() {
+  def value = rootProject.getProperties().get("reactNativeArchitectures")
+  return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
+}
+
+def isNewArchitectureEnabled() {
+  return rootProject.hasProperty("newArchEnabled") && rootProject.getProperty("newArchEnabled") == "true"
+}
+
+apply plugin: "com.android.library"
+apply plugin: 'org.jetbrains.kotlin.android'
+apply from: '../nitrogen/generated/android/NitroNativePanels+autolinking.gradle'
+apply from: "./fix-prefab.gradle"
+
+// Intentionally do not apply `com.facebook.react` here, although the Nitro V1
+// template does. Nitro generates the Kotlin/C++ bindings via nitrogen; the RN
+// plugin would codegen ViewManagerDelegates for every package in the
+// consumer's node_modules and collide at dex merge time. (Same rationale as
+// react-native-viro-mux.)
+
+def getExtOrDefault(name) {
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties["NativePanels_" + name]
+}
+
+def getExtOrIntegerDefault(name) {
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["NativePanels_" + name]).toInteger()
+}
+
+// Resolve the consumer's @reactvision/react-viro package so the whiteboard
+// renderer compiles against com.viromedia.bridge.canvas.CanvasSurfaces.
+// compileOnly: the consumer app links the real react_viro AAR.
+// WhiteboardRendererAvailability reports false at runtime when the app's Viro
+// build predates CanvasSurfaces.
+def viroAndroidDir = null
+try {
+  viroAndroidDir = new File(
+    providers.exec {
+      workingDir(rootProject.projectDir)
+      commandLine("node", "--print",
+        "require('path').dirname(require.resolve('@reactvision/react-viro/package.json')) + '/android'")
+    }.standardOutput.asText.get().trim()
+  )
+} catch (Exception e) {
+  logger.warn("[native-panels] Could not resolve @reactvision/react-viro: ${e.message}")
+}
+
+android {
+  namespace "com.margelo.nitro.nativepanels"
+
+  ndkVersion getExtOrDefault("ndkVersion")
+  compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
+
+  defaultConfig {
+    minSdkVersion Math.max(getExtOrIntegerDefault("minSdkVersion"), 26)
+    targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
+    buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
+
+    externalNativeBuild {
+      cmake {
+        cppFlags "-frtti -fexceptions -Wall -Wextra -fstack-protector-all"
+        // ANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES keeps the .so 16KB page-aligned
+        // (PICO 4 Ultra / Quest / Android 15 requirement).
+        arguments "-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+        abiFilters (*reactNativeArchitectures())
+
+        buildTypes {
+          debug {
+            cppFlags "-O1 -g"
+          }
+          release {
+            cppFlags "-O2"
+          }
+        }
+      }
+    }
+  }
+
+  externalNativeBuild {
+    cmake {
+      path "CMakeLists.txt"
+    }
+  }
+
+  packagingOptions {
+    excludes = [
+            "META-INF",
+            "META-INF/**",
+            "**/libc++_shared.so",
+            "**/libNitroModules.so",
+            "**/libfbjni.so",
+            "**/libjsi.so",
+            "**/libfolly_json.so",
+            "**/libfolly_runtime.so",
+            "**/libglog.so",
+            "**/libhermes.so",
+            "**/libhermes-executor-debug.so",
+            "**/libhermes_executor.so",
+            "**/libreactnative.so",
+            "**/libreactnativejni.so",
+            "**/libturbomodulejsijni.so",
+            "**/libreact_nativemodule_core.so",
+            "**/libjscexecutor.so"
+    ]
+  }
+
+  buildFeatures {
+    buildConfig true
+    prefab true
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+    }
+  }
+
+  lintOptions {
+    disable "GradleCompatible"
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+}
+
+repositories {
+  mavenCentral()
+  google()
+}
+
+dependencies {
+  // Version comes from the consuming app's React Native Gradle plugin, which
+  // pins react-android across every project in the build.
+  implementation "com.facebook.react:react-android"
+
+  // Nitro core (prefab + Kotlin base classes)
+  implementation project(":react-native-nitro-modules")
+
+  // Viro bridge classes (com.viromedia.bridge.canvas.CanvasSurfaces):
+  // compile-time only; the consumer app bundles the real AAR via :react_viro.
+  // classes.jar is extracted from the AAR because AGP rejects direct local
+  // .aar dependencies in library modules.
+  if (viroAndroidDir != null && viroAndroidDir.exists()) {
+    compileOnly files(zipTree(new File(viroAndroidDir, "react_viro/react_viro-release.aar")).matching { include "classes.jar" })
+  } else {
+    logger.warn("[native-panels] @reactvision/react-viro not found — Kotlin compile will fail without it")
+  }
+}
