@@ -15,6 +15,18 @@ Lane L6 of `docs/adr/0001-native-whiteboard-rive-panels.md`. Reviewers: `prompts
 | 7 code-review | n/a here | Runs per PR |
 | 8 frontend-design | this file | **Not applicable**: no 2D or web surface changed in this lane |
 
+Device validation (lane S4, §4.1/§4.2), added 2026-10-25. Nothing below has run on a headset yet; supported headsets are Quest 3S and PICO 4 Ultra.
+
+| Step | File | State |
+| --- | --- | --- |
+| user-research | [../validation/session-plan.md](../validation/session-plan.md) | Round 1 (flags off, blind Baseline vs Candidate) and Round 2 (flags on) session plan; not yet run |
+| design-handoff | [handoff/whiteboard-rive-panels.md](handoff/whiteboard-rive-panels.md) "Render-quality defaults", "Device findings" | Defaults recorded (eye-buffer 1.3, foveation LOW dynamic, developer-only); findings not yet run |
+| design-system | [system/panel-tokens.md](system/panel-tokens.md) §7 "On-device measurement" | Procedure written; delta table not yet run |
+| ux-copy | [copy/whiteboard-copy.md](copy/whiteboard-copy.md) "Render-quality setting", "Wording for the validation report" | Setting is developer-only, no copy; report wording rules |
+| accessibility-review | [a11y/device-pass.md](a11y/device-pass.md) | Plan and empty results; not yet run |
+| design-critique | [critique/device-round-1.md](critique/device-round-1.md) | Every item blocked: no captures yet; blocks the merge recommendation |
+| frontend-design | this file | **Not applicable**: the device lane changes no 2D or web surface |
+
 Mobbin passes (§3.2), all run through the Mobbin MCP on 2026-10-24:
 
 | Screen | File |
@@ -26,6 +38,8 @@ Mobbin passes (§3.2), all run through the Mobbin MCP on 2026-10-24:
 | Pages / board navigator and export | [mobbin/pages-navigator-export.md](mobbin/pages-navigator-export.md) |
 | Panel states | [mobbin/panel-states.md](mobbin/panel-states.md) |
 | Pen and input settings | [mobbin/pen-input-settings.md](mobbin/pen-input-settings.md) |
+
+Pass 2 on 2026-10-25 re-ran the board panel, tool strip and panel states queries and added a "Held up on device?" section to each (not yet run). The render-quality setting has no Mobbin pass: it is a developer-only build setting with no screen.
 
 ## Findings that need a decision
 
