@@ -1,103 +1,93 @@
-# Spatial Panels API — review contract (not implemented)
+# Spatial Panels API
 
-**Companion:** [ViroCore #111](https://github.com/mikevocalz/virocore/pull/111). The existing `SpatialPanel` on this branch is a Viro **scene mesh**, even when `curved` and `snapTo` are set. This document is a design gate for a future Expo Modules 2.0 host; it is not a claim of working compositor surfaces.
+**Companions:** [ViroCore #111](https://github.com/mikevocalz/virocore/pull/111) (compositor engine) and virocore `feat/compositor-panel-jni` (Java API). The `SpatialPanel` component in `@viro-external/ui` is a Viro **scene mesh**, even when `curved` and `snapTo` are set. Compositor panels live in `@viro-external/spatial-panels`.
 
-## Call-site-first contract
+## What exists
+
+`@viro-external/spatial-panels` is an Expo Modules API 2.0 module (`ViroSpatialPanels`) with one shared object class (`CompositorPanel`). It shows **Rive content only**: the Rive finish pass is the only compositor producer in virocore. React Native roots, Android Surface swapchains and OS windows are not implemented.
 
 ```tsx
-// Existing API (works with Viro scene geometry; current behavior).
-<SpatialWorkspaceFrame headPosition={settledHead.position} headYawDeg={settledHead.yawDeg}>
-  <SpatialPanel curved snapTo="left" title="Navigation" />
-  <SpatialPanel snapTo="center" title="Workspace" />
-  <SpatialPanel curved snapTo="right" title="Inspector" />
-</SpatialWorkspaceFrame>
-```
+import { CompositorPanelFallback, spatialPanels, SpatialPanelsError } from "@viro-external/spatial-panels";
 
-```ts
-// Proposed API only; SpatialPanelsHost is a type sketch, not a runtime import.
-// 1. Happy path + resource cleanup:
-import type { SpatialPanelsHost } from "../packages/ui/src/SpatialPanels.types";
-declare const host: SpatialPanelsHost;
-const panel = await host.createCompositorPanel({
-  id: "navigation",
-  widthM: 1.2, heightM: 0.8, widthPx: 1536, heightPx: 1024,
-  curved: true,
-  pose: { position: [-1.0, 1.4, -2.0], orientation: [0, 0, 0, 1] },
+// 1. Happy path and cleanup.
+const capabilities = await spatialPanels.getCapabilities();
+const panel = await spatialPanels.createCompositorPanel({
+  id: "board-tools",
+  pose: { position: [0, 1.2, -1.4], orientation: [0, 0, 0, 1] },
+  widthM: 0.6, heightM: 0.375, widthPx: 1248, heightPx: 780,
+  cornerRadiusM: tokens.chrome.radiusM,
+  content: { kind: "rive", file: rivBytes, artboard: "BoardChrome", stateMachine: "BoardChrome" },
 });
-const eviction = panel.addOnEvictedListener((event) => {
-  // Future resolver moves this panel to a real Viro scene mesh.
-  onPanelEvicted(event.reason);
-});
-try {
-  panel.setVisible(true);
-  panel.setPose(nextPose);
-} finally {
-  eviction.remove();
-  panel.dispose();
-}
-```
+panel.setNumber("tool", 2);
+// Inside the Viro scene, at the root, so the pose is world space:
+<CompositorPanelFallback panel={panel} />;
+// On unmount:
+panel.dispose();
 
-```ts
-// 2. Capability unavailable: explicit, coded failure instead of silently
-//    rendering a scene panel when the compositor is mandatory.
-if (!host.capabilities.supportsCompositorPanels) {
-  throw new Error("COMPOSITOR_UNAVAILABLE");
-}
-const requiredPresentation = ["compositor"] as const;
-// resolver(requiredPresentation) must reject if the host lacks that backend.
-```
+// 2. Capability unavailable (iOS, visionOS, no OpenXR view): explicit failure.
+if (!spatialPanels.isAvailable || !capabilities.supportsRive) renderRiveSceneFallback();
 
-```ts
-// 3. Invalid argument: typed rejection from native, not swallowed by JS.
+// 3. Invalid argument: typed rejection.
 try {
-  await host.createCompositorPanel({
-    id: "bad", widthM: -1, heightM: 0.8, widthPx: 1536, heightPx: 1024,
-    pose: { position: [0, 1.4, -2], orientation: [0, 0, 0, 1] },
-  });
+  await spatialPanels.createCompositorPanel({ ...options, widthPx: 8 });
 } catch (error) {
-  // Expected future code: PANEL_INVALID_ARGUMENT
-  reportPanelFailure(error);
+  if (error instanceof SpatialPanelsError && error.code === "PANEL_INVALID_ARGUMENT") report(error.message);
 }
 ```
 
-These call sites are API examples, not runnable product tests. `onPanelEvicted`, `nextPose`, and `reportPanelFailure` stand for app callbacks.
+`tokens`, `rivBytes`, `renderRiveSceneFallback`, `options` and `report` stand for app code.
 
 ## Public contract
 
-Source sketch: `packages/ui/src/SpatialPanels.types.ts`. The type file is **not exported from @viro-external/ui** until implementation.
-
-| Concern | Proposed shape | Guarantees |
+| Concern | Shape | Guarantees |
 | --- | --- | --- |
-| Curvature | `curved?: boolean` | Preference; compositor cylinder when extension supported, otherwise quad/scene |
-| Placement | `snapTo?: 'left' \| 'center' \| 'right'` | Workspace captures head pose once; dragging after release may snap or remain freely world-locked |
-| Ranked intent | `presentation?: readonly ('compositor' \| 'scene' \| 'system-window')[]` | Omitted means `['compositor', 'scene']`; singleton forbids silent fallback |
-| Resolution | `onPresentationChange(ResolvedPanelPresentation)` | Discriminated `compositor` (quad/cylinder + depth fact), `scene`, `system-window` |
-| Capabilities | `SpatialPanelsHost.capabilities` | Facts from native OpenXR/OS, never optimistic JS feature flags |
-| Factory | `createCompositorPanel(options): Promise<CompositorPanelHandle>` | Resolves only after a usable native backing swapchain exists |
-| Lifetime | `setPose`, `setVisible`, `resize`, `dispose` | Renderer thread owns XR calls, one native handle owns teardown |
-| Events | `addOnEvictedListener(cb)`, `addOnPointerListener(cb)` | Subscription owns `remove()`; loss of capture emits cancel |
-| Errors | `COMPOSITOR_UNAVAILABLE`, `PANEL_INVALID_ARGUMENT`, `PANEL_DUPLICATE_ID` | Specific, observable failures; messages name missing capability or invalid value |
+| Factory | `createCompositorPanel(options): Promise<CompositorPanelHandle>` | Resolves after the layer is registered on the XR render thread and the .riv is queued |
+| Shape | `shape?: "quad" \| "cylinder"` | A requirement: `cylinder` rejects with `CYLINDER_UNAVAILABLE` when the runtime lacks it, never degrades silently |
+| Ranked intent | `presentation?: readonly ("compositor" \| "scene")[]` | Default `["compositor", "scene"]`. `["compositor"]` forbids the scene fallback |
+| Corners | `cornerRadiusM` | Applied by the finish pass and by the fallback texture through the same coverage function |
+| Presentation | `addOnPresentationChangeListener`, `getPresentation()` | `pending`, `compositor`, `evicted` with reason `layer-budget` or `layer-limit-exceeded`. An evicted panel returns to `compositor` by itself; the handle stays usable |
+| Scene fallback | `CompositorPanelFallback` | Shown while `evicted` and the fallback texture is bound; hidden on `compositor` |
+| Rive | `setNumber`, `setBoolean`, `setString`, `fireTrigger`, `dispatchPointer`, `setActive`, `addOnStatusChangeListener` | Queued to the Rive worker; a press in a transparent corner is dropped |
+| Lifetime | `setPose`, `setVisible`, `dispose` | Pose and visibility move both the layer and the fallback mesh. `dispose` is idempotent and deletes the fallback material |
+| Errors | `SpatialPanelsError.code` | `COMPOSITOR_UNAVAILABLE`, `CYLINDER_UNAVAILABLE`, `PANEL_INVALID_ARGUMENT`, `PANEL_DUPLICATE_ID`, `PANEL_LAYER_BUDGET_EXCEEDED`, `PANEL_SWAPCHAIN_FAILED`, `PANEL_INVALID_RIVE_FILE` |
 
-## Design and implementation rules
+Differences from the PR #58 sketch (`packages/ui/src/SpatialPanels.types.ts`, still a sketch):
 
-- **Expo Modules 2.0 only.** Proposed package: `packages/spatial-panels` as `@viro-external/spatial-panels`. Check the installed SDK 58 annotation implementation, real Android discovery and release startup before committing Kotlin syntax. Do not introduce Nitro or the Expo Modules 1.0 `definition()` DSL.
-- The module is a native companion, not a JS-only texture adapter. Native class owns the `Surface`, `VirtualDisplay` / `Presentation`, React root and renderer-queue handoff.
-- GLES texture-producer swapchains follow acquire → successful wait → draw → release. `XR_KHR_android_surface_swapchain` swapchains have a **different** lifecycle: no acquire/wait/release calls. Only `xrDestroySwapchain` applies to that kind.
-- Meta SpatialWindow and PICO WindowContainer are OS-managed **shared-space** windows. Present `system-window` only in non-immersive mode until coexistence has been demonstrated on headsets; never conflate an OS window with an OpenXR layer.
-- A compositor panel may render over scene geometry. Occluding panels should stay scene meshes unless runtime depth-tested composition is supported.
-- Runtime layer budget is a ceiling. When an actual compositor slot is evicted, display the scene fallback and emit `onPresentationChange` so the caller knows which backend won.
-- Keep scene/compositor duplicates out of the display simultaneously. Controller and hand rays must hit quad/cylinder pixel coordinates and send cancel/up when capture is lost.
-- Native resources must release on unmount, JS refresh, app background, session STOPPING, or XR loss. Include memory-pressure reporting and leak assertions.
+- Options carry `content: { kind: "rive", ... }`; there is no producer for other content.
+- No `resize`: the compositor cannot resize a swapchain in place. Dispose and create.
+- No `addOnPointerListener`: native code does not ray-cast compositor layers. Callers map their own hits to panel pixels and call `dispatchPointer`.
+- Eviction does not end the handle, and the reasons are the two the engine reports. `session-stopped` is not produced (see gaps).
+- `capabilities` is a promise (`getCapabilities()`), because the facts come from the session on the render thread. There is no `supportsDepthTestedPanels` or `supportsSystemWindows`: neither exists.
 
-## Skills and design review
+## How the fallback reaches a Viro material
 
-Applied disciplines: [Margelo API Design](https://github.com/margelo/react-native-skills/tree/main/skills/api-design) (types and call sites before implementation), [C++](https://github.com/margelo/react-native-skills/tree/main/skills/cpp) (swapchain ownership), [Kotlin](https://github.com/margelo/react-native-skills/tree/main/skills/kotlin) (planned module threading), and [petergyang/no-ai-slop](https://github.com/petergyang/no-ai-slop) (no fake implementation or unsupported completion claims).
+No Viro API registers a native texture under a material name (`ViroMaterials.ts` and `MaterialManager.java` on `feat/canvas-surfaces-registry` have none; `CanvasSurfaces` hands out Surfaces, not textures). The package uses public API only:
 
-**Blocking gates:** Expo 58 Modules 2.0 Android discovery + release load; verified Kotlin annotation signatures; native Android Surface extension on Quest/PICO; RN ReactHost/ReactSurface API inspection; Fabric-to-Surface frame proof; pointer injection; fallback; NDK and TypeScript checks; device evidence. Tests and screenshots are not implied by committing this proposal.
+1. JS registers `viro-external.spatial-panels.<id>.fallback` with `ViroMaterials.createMaterials`: `PremultiplyAlpha`, `Constant` lighting, white diffuse colour, no depth writes, no culling.
+2. JS calls `CompositorPanel.bindFallbackMaterial(name)`.
+3. On the main thread, when the renderer first evicts the panel and hands Java the fallback `Texture`, Kotlin calls `MaterialManager.getMaterial(name).setDiffuseTexture(texture)` and `VRTNode.refreshNodesUsingMaterial(name)`, then emits `presentationChange` with `hasFallback: true`.
 
-## Scope decisions for v1
+The material registration (a React Native bridge call) and the bind (an Expo v2 call posted to the main thread) do not share a queue. If the bind runs first it finds no material; the next eviction retries, and JS asks again when it sees `evicted` without `hasFallback`.
 
-- Keep `@reactvision/react-viro` fork until a tested upstream release supports the required Expo/RN versions.
-- `system-window` only in shared-space/2D mode pending explicit coexistence evidence.
-- GLES Android first; Metal/Vulkan are separate backends, not pretend portability.
-- Quest 3 and PICO 4 Ultra: **device availability not confirmed**; do not waive hardware gates.
+## Threads
+
+| Work | Thread |
+| --- | --- |
+| Layer add, pose, visibility, remove, capabilities, fallback texture | XR render thread (posted; waits while the render loop is paused) |
+| Rive file, view-model writes, pointers, `setActive` | Rive worker (queued from any thread) |
+| Native callbacks, fallback binding, `MaterialManager` and `VRTNode` access | Android main thread |
+| `@JS` members | JS thread; they read volatile snapshots and post the rest |
+
+## Rules
+
+- **Expo Modules API 2.0 only** (`@ExpoModule`, `@ExpoSharedObject`, `@JS`, `@Event`, `@Record` from `io.github.expo.modules.v2`, `expoModule { v2 true }`). No Nitro and no `definition()` DSL. API source read: `expo-modules-core` 58.0.26 (`android/src/main/java/expo/modules/v2/ExpoModulesV2Host.kt`, `android/build.gradle` pinning `expo-modules-v2-react` 0.2.5, `expo-module-gradle-plugin/.../ExpoModuleExtension.kt` `v2`) and the `expo-modules-v2-react` 0.2.5 sources jar from Maven Central (`ExpoModule.kt`, `ExpoSharedObject.kt`, `JS.kt`, `Event.kt`, `SharedObject.kt`, `async/Promise.kt`, `JavaScriptThrowable.kt`). Layout mirrors `expo-crypto` 58.0.7's v2 `CryptoModule`.
+- A compositor panel renders over scene geometry. Panels that must be occluded stay scene meshes.
+- Keep the scene and compositor copies off screen at the same time: the fallback is hidden whenever the presentation is not `evicted`.
+- iOS and visionOS: unavailable. The compositor is GLES-only in v1.
+
+## Gaps
+
+- Never built with Gradle, never autolinked into an app, never run on a headset. The Kotlin compiles with kotlinc 2.2.21 without the v2 compiler plugin, so the generated bindings (`@Event` binding, shared-class registration) are unchecked.
+- Fallback orientation (`uvCoordinates` `[0, 1, 1, 0]`, arc `v = 1` at the top) follows virocore's statement that panel textures are bottom-up; not seen on a device.
+- Session STOPPING or loss destroys the layers with no event; the handle then stops receiving presentation changes and should be disposed.
+- Other agents' `packages/ui` sketch is unchanged and still marked as a sketch.
