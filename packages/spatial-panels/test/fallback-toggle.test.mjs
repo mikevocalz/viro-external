@@ -175,10 +175,24 @@ test("invalid options are rejected before reaching native", async () => {
     [{ shape: "cylinder" }, "PANEL_INVALID_ARGUMENT"],
     [{ presentation: ["scene"] }, "PANEL_INVALID_ARGUMENT"],
     [{ content: { kind: "rive", file: new Uint8Array(0) } }, "PANEL_INVALID_RIVE_FILE"],
+    [{ content: { kind: "rive", file: new Uint8Array([0x89, 0x50, 0x4e, 0x47]) } }, "PANEL_INVALID_RIVE_FILE"],
+    [{ content: { kind: "rive", file: new Uint8Array([0x52, 0x49, 0x56]) } }, "PANEL_INVALID_RIVE_FILE"],
   ];
   for (const [overrides, code] of cases) {
     await assert.rejects(host.createCompositorPanel(options(overrides)), { code }, JSON.stringify(overrides));
   }
+  assert.equal(module.created.length, 0);
+});
+
+test("a .riv over 64 MiB is rejected before reaching native", async () => {
+  const module = createFakeModule();
+  const host = createSpatialPanelsHost(module, createFakeMaterials());
+  const file = new Uint8Array(64 * 1024 * 1024 + 1);
+  file.set(RIV);
+  await assert.rejects(host.createCompositorPanel(options({ content: { kind: "rive", file } })), {
+    code: "PANEL_INVALID_RIVE_FILE",
+    message: /64 MiB/,
+  });
   assert.equal(module.created.length, 0);
 });
 

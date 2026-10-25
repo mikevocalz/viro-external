@@ -42,6 +42,7 @@ android {
 
 dependencies {
   compileOnly "com.facebook.react:react-android"
+  testImplementation "junit:junit:4.13.2"
   if (viroAndroidDir != null && viroAndroidDir.exists()) {
     // Classes extracted from the AARs: AGP rejects local .aar dependencies in
     // library modules.

@@ -44,8 +44,16 @@ class SpatialPanelsModule : Module() {
    */
   @JS
   fun createRiveCompositorPanel(options: CompositorPanelOptions, riveFile: TypedArray): Promise<CompositorPanel> {
+    // Checked before any copy, so an oversized or foreign buffer allocates nothing.
+    val byteLength = riveFile.byteLength
+    val sizeProblem = RiveFileCheck.sizeProblem(byteLength)
+    if (sizeProblem != null) return rejectedInvalidRiveFile(sizeProblem)
+    val header = ByteArray(minOf(byteLength, RiveFileCheck.SIGNATURE_BYTES))
+    riveFile.read(header, 0, header.size)
+    val signatureProblem = RiveFileCheck.signatureProblem(header)
+    if (signatureProblem != null) return rejectedInvalidRiveFile(signatureProblem)
     // Copied now, on the JS thread: the typed array is JS memory.
-    val bytes = ByteArray(riveFile.byteLength)
+    val bytes = ByteArray(byteLength)
     riveFile.read(bytes, 0, bytes.size)
     return Promise { resolve, reject ->
       if (options.position.size != 3 || options.orientation.size != 4) {
@@ -75,5 +83,9 @@ class SpatialPanelsModule : Module() {
         throw SpatialPanelsException("COMPOSITOR_UNAVAILABLE", error.message ?: "OpenXR renderer unavailable", error)
       }
     }
+  }
+
+  private fun rejectedInvalidRiveFile(message: String): Promise<CompositorPanel> = Promise { _, _ ->
+    throw SpatialPanelsException("PANEL_INVALID_RIVE_FILE", message)
   }
 }

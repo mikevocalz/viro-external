@@ -31,6 +31,14 @@ const UNAVAILABLE_CAPABILITIES: PanelHostCapabilities = {
   supportsRive: false,
 };
 
+// Same limit and signature as the native producer (VRORivePanel::loadFile).
+const MAX_RIVE_FILE_BYTES = 64 * 1024 * 1024;
+const RIVE_SIGNATURE = [0x52, 0x49, 0x56, 0x45];
+
+function startsWithRiveSignature(file: Uint8Array): boolean {
+  return file.byteLength >= RIVE_SIGNATURE.length && RIVE_SIGNATURE.every((byte, i) => file[i] === byte);
+}
+
 function invalid(message: string): SpatialPanelsError {
   return new SpatialPanelsError("PANEL_INVALID_ARGUMENT", message);
 }
@@ -58,8 +66,18 @@ function validate(options: CompositorPanelOptions): void {
   if (order[0] !== "compositor") {
     throw invalid('presentation must start with "compositor"; a scene-only panel is a SpatialPanel, not a compositor panel');
   }
-  if (options.content.file.byteLength === 0) {
+  const file = options.content.file;
+  if (file.byteLength === 0) {
     throw new SpatialPanelsError("PANEL_INVALID_RIVE_FILE", "the .riv file is empty");
+  }
+  if (file.byteLength > MAX_RIVE_FILE_BYTES) {
+    throw new SpatialPanelsError(
+      "PANEL_INVALID_RIVE_FILE",
+      `the .riv file is ${file.byteLength} bytes; the limit is 64 MiB (${MAX_RIVE_FILE_BYTES} bytes)`,
+    );
+  }
+  if (!startsWithRiveSignature(file)) {
+    throw new SpatialPanelsError("PANEL_INVALID_RIVE_FILE", "the file does not start with the RIVE signature; is it a .riv file?");
   }
 }
 

@@ -9,7 +9,7 @@ import type { RiveFit } from "./RiveFit";
  */
 export interface RivePanelContent {
   readonly kind: "rive";
-  /** The .riv file, up to 64 MiB. Copied when the panel is created. */
+  /** The .riv file, up to 64 MiB, starting with the `RIVE` signature. Copied when the panel is created. */
   readonly file: Uint8Array;
   /** Artboard name. @default the file's default artboard */
   readonly artboard?: string;
