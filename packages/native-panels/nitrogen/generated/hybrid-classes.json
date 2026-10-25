@@ -1,6 +1,33 @@
 {
   "version": 2,
   "classes": {
+    "RiveFile": {
+      "android": {
+        "implementation": {
+          "className": "HybridRiveFile",
+          "include": "\"HybridRiveFile.hpp\""
+        },
+        "language": "c++"
+      }
+    },
+    "RivePanel": {
+      "android": {
+        "implementation": {
+          "className": "HybridRivePanel",
+          "include": "\"HybridRivePanel.hpp\""
+        },
+        "language": "c++"
+      }
+    },
+    "RiveViewModelInstance": {
+      "android": {
+        "implementation": {
+          "className": "HybridRiveViewModelInstance",
+          "include": "\"HybridRiveViewModelInstance.hpp\""
+        },
+        "language": "c++"
+      }
+    },
     "WhiteboardRenderer": {
       "android": {
         "implementation": {

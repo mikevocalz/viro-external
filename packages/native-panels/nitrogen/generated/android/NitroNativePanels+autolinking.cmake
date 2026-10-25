@@ -13,6 +13,9 @@ target_include_directories(NitroNativePanels PRIVATE
 )
 target_sources(NitroNativePanels PRIVATE
   "${CMAKE_CURRENT_LIST_DIR}/NitroNativePanelsOnLoad.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/HybridRiveFileSpecClass.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/HybridRivePanelSpecClass.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/HybridRiveViewModelInstanceSpecClass.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JBoardCamera.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JCallback_void.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JCallback_void_WhiteboardRendererState.cpp"
@@ -21,6 +24,12 @@ target_sources(NitroNativePanels PRIVATE
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JListenerSubscription.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JWhiteboardRendererOptions.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JWhiteboardRendererState.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../shared/c++/HybridRiveFileSpec.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../shared/c++/HybridRivePanelSpec.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../shared/c++/HybridRiveViewModelInstanceSpec.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../shared/c++/ListenerSubscription.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../shared/c++/RivePanelOptions.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../shared/c++/RiveViewModelUpdate.cpp"
 )
 
 find_package(fbjni REQUIRED CONFIG)

@@ -11,6 +11,9 @@
 #include <NitroNativePanels/private/JCallback_void.hpp>
 #include <NitroNativePanels/private/JCallback_void_WhiteboardRendererState.hpp>
 #include <NitroNativePanels/private/JHybridWhiteboardRendererFactorySpec.hpp>
+#include <NitroNativePanels/HybridRiveFileSpec.hpp>
+#include <NitroNativePanels/HybridRivePanelSpec.hpp>
+#include <NitroNativePanels/HybridRiveViewModelInstanceSpec.hpp>
 
 namespace margelo::nitro::nativepanels {
   void registerAllNatives() {
@@ -19,6 +22,9 @@ namespace margelo::nitro::nativepanels {
     margelo::nitro::nativepanels::JCallback_void_WhiteboardRendererState::registerNatives();
     margelo::nitro::nativepanels::JHybridWhiteboardRendererFactorySpec::CxxPart::registerNatives();
 
+    HybridClassRegistry::registerHybridClass("nativepanels.RiveFile", HybridRiveFileSpec::Class::get());
+    HybridClassRegistry::registerHybridClass("nativepanels.RivePanel", HybridRivePanelSpec::Class::get());
+    HybridClassRegistry::registerHybridClass("nativepanels.RiveViewModelInstance", HybridRiveViewModelInstanceSpec::Class::get());
     HybridClassRegistry::registerHybridClass("nativepanels.WhiteboardRenderer", JHybridWhiteboardRendererSpec::Class::get());
     HybridClassRegistry::registerHybridClass("nativepanels.WhiteboardRendererFactory", JHybridWhiteboardRendererFactorySpec::Class::get());
   }
