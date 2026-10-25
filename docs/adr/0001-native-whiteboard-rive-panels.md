@@ -104,7 +104,7 @@ Call sites:
 
 ```ts
 // Happy path
-const renderer = await Whiteboard.createRenderer({ surfaceId, widthPx: 2048, heightPx: 2867, cornerRadiusM: tokens.board.radius })
+const renderer = await Whiteboard.createRenderer({ surfaceId, widthPx: 2016, heightPx: 1260, cornerRadiusM: tokens.board.radius })
 renderer.loadSnapshot(store.revision, JSON.stringify(store.getSnapshot()))
 const off = store.listen((diff) => renderer.applyDiff(store.revision, JSON.stringify(diff)))
 
@@ -116,6 +116,10 @@ renderer.addOnStateChangedListener((s) => { if (s === 'lost') rebuildFromSnapsho
 ```
 
 JSON strings are deliberate: QuickDraw records are already JSON-shaped and heterogeneous, Nitro structs convert eagerly, and a diff during a stroke carries one changed record. Ceiling: a full-snapshot reload re-parses the board; if that shows up in traces on large boards, move snapshots to an `ArrayBuffer` encoding.
+
+## Board aspect
+
+The board is 16:10 everywhere it ships: `boardSurfacePixels` 1008×630 (MoyoLearn `packages/ui/xr/spatial-tokens.ts:419`), the chrome artboard 1248×780 (`board-chrome-layout.ts:26`), and the Rive panel at 2496×1560 (`rive-board-panel.tsx:259`). The master prompt mentions a 5:7 board "where that is the consuming app's configuration"; no consumer uses 5:7, so the native renderer keeps 16:10 and the call site above uses 2× the board surface.
 
 ## Ownership
 
