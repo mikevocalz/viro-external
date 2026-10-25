@@ -140,3 +140,15 @@ export type {
   BoardInputSubscription,
 } from "./quickdraw-input/BoardInputRouter";
 export type { QuickDrawBoardSession, QuickDrawBoardSessionOptions } from "./quickdraw-input/QuickDrawBoardSession";
+export { QuickDrawNativeBoard } from "./quickdraw-input/QuickDrawNativeBoard";
+export type {
+  BoardRendererHookOptions,
+  BoardRendererHookStatus,
+  QuickDrawBoardSurface,
+  QuickDrawNativeBoardProps,
+  UseBoardRenderer,
+} from "./quickdraw-input/QuickDrawNativeBoard.types";
+export { useBoardPaperInput } from "./quickdraw-input/useBoardPaperInput";
+export type { BoardPaperInputOptions, BoardPaperInputProps } from "./quickdraw-input/useBoardPaperInput";
+export { useMovableBoardPose } from "./quickdraw-input/useMovableBoardPose";
+export type { MovableBoardPoseOptions } from "./quickdraw-input/useMovableBoardPose";
