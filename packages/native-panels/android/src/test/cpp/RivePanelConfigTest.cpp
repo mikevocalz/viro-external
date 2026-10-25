@@ -16,6 +16,7 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <sys/stat.h>
 #include <unistd.h>
 
 using namespace margelo::nitro::nativepanels::rive;
@@ -147,6 +148,27 @@ int main() {
   expectThrows([] { localPathFromFileURL("file://host/y.riv"); }, "absolute", "file host rejected");
   expectThrows([] { localPathFromFileURL("rel/y.riv"); }, "absolute", "relative rejected");
 
+  expectThrows([] { localPathFromFileURL("file:///data/a%00.riv"); }, "NUL", "decoded NUL rejected");
+  expectThrows([] { localPathFromFileURL(std::string("/data/a\0.riv", 12)); }, "NUL", "raw NUL rejected");
+  expectThrows([] { localPathFromFileURL("/data/app/../../etc/x.riv"); }, "..", "dot-dot segment rejected");
+  expectThrows([] { localPathFromFileURL("file:///data/%2E%2E/x.riv"); }, "..", "encoded dot-dot rejected");
+  check(localPathFromFileURL("/data/a..b/x.riv") == "/data/a..b/x.riv", "dots inside a name are fine");
+  {
+    char dir[] = "/tmp/rive-host-dir-XXXXXX";
+    check(mkdtemp(dir) != nullptr, "temp dir");
+    expectThrows([&] { readRiveFile(dir); }, "regular file", "a directory is not read");
+    rmdir(dir);
+  }
+  {
+    char fifoDir[] = "/tmp/rive-host-fifo-XXXXXX";
+    check(mkdtemp(fifoDir) != nullptr, "temp fifo dir");
+    const std::string fifo = std::string(fifoDir) + "/pipe.riv";
+    check(mkfifo(fifo.c_str(), 0600) == 0, "mkfifo");
+    // Opening a FIFO for reading would block until a writer appears.
+    expectThrows([&] { readRiveFile(fifo); }, "regular file", "a FIFO is refused without blocking");
+    std::remove(fifo.c_str());
+    rmdir(fifoDir);
+  }
   {
     char path[] = "/tmp/rive-host-test-XXXXXX";
     const int fd = mkstemp(path);

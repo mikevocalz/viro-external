@@ -28,10 +28,16 @@ export declare class RiveFile extends HybridObject {
   static fromBytes(bytes: ArrayBuffer): Promise<RiveFile>;
 
   /**
-   * Reads a local file, given as a `file://` URL or an absolute path. To load
-   * from `http(s)`, fetch the bytes in JS and call
-   * {@linkcode RiveFile.fromBytes}. Rejects under the same conditions as
-   * `fromBytes`, or when the file cannot be read.
+   * Reads a local file, given as a `file:///` URL or an absolute path. Any
+   * regular file the app process can read is accepted; in practice that is
+   * the app's own files and cache directories and files bundled or
+   * downloaded there. To load from `http(s)`, fetch the bytes in JS and call
+   * {@linkcode RiveFile.fromBytes}; `content://` and `asset://` URLs are not
+   * read either.
+   *
+   * Rejects under the same conditions as `fromBytes`, for a path with a NUL
+   * byte or a `..` segment (escaped or not), for a directory, FIFO or
+   * device, and when the file cannot be read.
    */
   static fromFileURL(fileURL: string): Promise<RiveFile>;
 
