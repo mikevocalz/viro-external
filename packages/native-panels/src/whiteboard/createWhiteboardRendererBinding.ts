@@ -36,6 +36,7 @@ export function createWhiteboardRendererBinding(options: WhiteboardRendererBindi
   let sentCamera: Camera | undefined;
   let pendingCamera: Camera | undefined = board?.getEditorState().camera;
   let frameHandle: number | undefined;
+  let isInFrame = false;
   let isDisposed = false;
 
   const report = (error: unknown) => {
@@ -46,18 +47,22 @@ export function createWhiteboardRendererBinding(options: WhiteboardRendererBindi
     overlay.laserStrokes.some((stroke) => stroke.endedAtMs !== undefined);
 
   const schedule = () => {
-    if (isDisposed || frameHandle !== undefined) return;
+    // Changes made while a frame runs are sent by that frame's flush.
+    if (isDisposed || isInFrame || frameHandle !== undefined) return;
     frameHandle = requestFrame(onFrame);
   };
 
   const sendSnapshot = () => {
-    needsSnapshot = false;
     pendingDiff = undefined;
     try {
       revision += 1;
       renderer.loadSnapshot(revision, encoder.encodeSnapshot(store.getSnapshot()));
+      needsSnapshot = false;
       isResyncBlocked = false;
     } catch (error) {
+      // Keep needing a snapshot: a diff on top of a document the renderer
+      // never accepted would leave it incomplete.
+      needsSnapshot = true;
       isResyncBlocked = true;
       report(error);
     }
@@ -107,11 +112,16 @@ export function createWhiteboardRendererBinding(options: WhiteboardRendererBindi
   function onFrame(timestampMs: number) {
     frameHandle = undefined;
     if (isDisposed) return;
-    if (board !== undefined && hasFadingLaser(board.getOverlay())) {
-      // Emits an overlay change, which lands in pendingOverlay below.
-      board.expireOverlay(timestampMs);
+    isInFrame = true;
+    try {
+      if (board !== undefined && hasFadingLaser(board.getOverlay())) {
+        // Emits an overlay change, which lands in pendingOverlay before flush.
+        board.expireOverlay(timestampMs);
+      }
+      flush();
+    } finally {
+      isInFrame = false;
     }
-    flush();
     if (board !== undefined && hasFadingLaser(board.getOverlay())) schedule();
   }
 

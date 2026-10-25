@@ -18,7 +18,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "specs": "nitrogen",
-    "test": "node --experimental-strip-types --conditions=react-native --import ../../test/support/metro-like-resolve.mjs --test test/*.test.mjs"
+    "test": "node --experimental-strip-types --conditions=react-native --import ../../test/support/metro-like-resolve.mjs --import ./test/support/fake-nitro-modules.mjs --test test/*.test.mjs"
   },
   "peerDependencies": {
     "@reactvision/react-viro": ">=3.0.3-moyo.1 <4.0.0",

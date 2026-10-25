@@ -148,6 +148,11 @@ dependencies {
   // Nitro core (prefab + Kotlin base classes)
   implementation project(":react-native-nitro-modules")
 
+  // JVM unit tests for the pure whiteboard pieces (geometry, parsing,
+  // revision gate, lifecycle). org.json replaces the android.jar stub.
+  testImplementation "junit:junit:4.13.2"
+  testImplementation "org.json:json:20250517"
+
   // Viro bridge classes (com.viromedia.bridge.canvas.CanvasSurfaces):
   // compile-time only; the consumer app bundles the real AAR via :react_viro.
   // classes.jar is extracted from the AAR because AGP rejects direct local
