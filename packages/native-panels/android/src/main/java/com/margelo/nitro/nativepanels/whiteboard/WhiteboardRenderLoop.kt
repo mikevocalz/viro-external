@@ -21,8 +21,6 @@ internal class WhiteboardRenderLoop(
   private val config: RendererConfig,
   private val onStateChanged: (WhiteboardRendererState) -> Unit,
 ) : CanvasSurfaces.Listener {
-  private val thread = HandlerThread("WhiteboardRenderer-${config.surfaceId}").apply { start() }
-  private val handler = Handler(thread.looper)
   private val slot = SurfaceSlot()
   private val gate = RevisionGate()
   private val disposeLock = Any()
@@ -35,6 +33,10 @@ internal class WhiteboardRenderLoop(
   private var camera = BoardCamera(0.0, 0.0, 1.0)
   private var overlay = BoardOverlayState.EMPTY
   private var isFrameQueued = false
+
+  // Started last, so a constructor that throws leaves no thread behind.
+  private val thread = HandlerThread("WhiteboardRenderer-${config.surfaceId}").apply { start() }
+  private val handler = Handler(thread.looper)
 
   @Volatile
   var state: WhiteboardRendererState = WhiteboardRendererState.INITIALIZING

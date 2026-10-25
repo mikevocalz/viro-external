@@ -18,13 +18,23 @@ class HybridWhiteboardRendererFactory : HybridWhiteboardRendererFactorySpec() {
       if (!WhiteboardRendererAvailability.isAvailable) {
         return Promise.rejected(UnsupportedOperationException(WhiteboardRendererAvailability.unavailableReason()))
       }
-      try {
-        val renderer = HybridWhiteboardRenderer(options.toRendererConfig())
-        renderer.start()
-        return Promise.resolved(renderer)
+      val renderer = try {
+        HybridWhiteboardRenderer(options.toRendererConfig())
       } catch (error: IllegalArgumentException) {
         return Promise.rejected(error)
       }
+      try {
+        renderer.start()
+      } catch (error: Throwable) {
+        // The renderer already runs its HandlerThread; stop it before rejecting.
+        try {
+          renderer.dispose()
+        } catch (disposeError: Throwable) {
+          error.addSuppressed(disposeError)
+        }
+        return Promise.rejected(error)
+      }
+      return Promise.resolved(renderer)
     }
   }
 }
