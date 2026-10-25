@@ -15,6 +15,19 @@ Read [getting started](GETTING_STARTED.md), then [layouts](LAYOUTS.md). Use the 
 | Implementation and verification limits | [Capabilities](CAPABILITIES.md) | [Compositor inventory](PANELS_STATUS.md) |
 | Integration examples | [Examples](examples/README.md) | Source-backed examples and lifecycle tests |
 
+## Native whiteboard, native Rive and rounded panels
+
+Work from [ADR 0001](adr/0001-native-whiteboard-rive-panels.md). Both native producers sit behind flags that default off, and neither has run on a headset.
+
+| Topic | Guide |
+| --- | --- |
+| Adopting the native QuickDraw board (`nativeBoard`) | [Native whiteboard](guides/native-whiteboard.md) |
+| Adopting ViroCore's Rive producer (`nativeRive`) | [Native Rive panels](guides/native-rive-panels.md) |
+| Corner radii, angle-locked tokens and hit testing | [Rounded panels](guides/rounded-panels.md) |
+| Exported TypeScript with happy, unavailable and error call sites | [API reference](API_WHITEBOARD_RIVE_PANELS.md) |
+| Measured sizes, budgets and the measurement plan | [Performance](PERFORMANCE.md) |
+| Quest 3 and PICO 4 Ultra procedure and results | [Device validation](DEVICE_VALIDATION.md) |
+
 ## Deeper existing references
 
 These references are retained rather than replaced. Historical PR links and platform assumptions in older notes may reflect when they were written; use the capability matrix and actual source for the documented baseline.
