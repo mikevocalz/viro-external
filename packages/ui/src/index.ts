@@ -91,3 +91,20 @@ export { QuickdrawSpatialPanel } from "./QuickdrawSpatialPanel";
 export type { QuickdrawSpatialPanelProps, QuickdrawSpatialPointer } from "./QuickdrawSpatialPanel.types";
 
 export { MetaWorkspaceHost, type MetaWorkspaceHostProps } from "./MetaWorkspaceHost";
+
+export { createHeadlessBoard } from "./quickdraw-headless/createHeadlessBoard";
+export { getInkOutline } from "./quickdraw-headless/ink-outline";
+export { laserOpacity } from "./quickdraw-headless/laser-layer";
+export type { HeadlessBoard, BoardListenerSubscription } from "./quickdraw-headless/HeadlessBoard";
+export type { HeadlessBoardOptions, MeasureTextWidth } from "./quickdraw-headless/HeadlessBoardOptions";
+export type { BoardPointerSample, BoardPointerSource } from "./quickdraw-headless/BoardPointerSample";
+export type { BoardEditorState, BoardTextEdit } from "./quickdraw-headless/BoardEditorState";
+export type {
+  BoardBoxSelection,
+  BoardEraserTrail,
+  BoardLaserStroke,
+  BoardLineSelection,
+  BoardOverlay,
+  BoardPoint,
+  BoardSelectionOverlay,
+} from "./quickdraw-headless/BoardOverlay";
