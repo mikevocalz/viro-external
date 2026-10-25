@@ -137,3 +137,8 @@ The board is 16:10 everywhere it ships: `boardSurfacePixels` 1008×630 (MoyoLear
 
 - Gate 2 (Rive tool strip as its own panel vs drawn into the board): decided after B3 is measured. Under D2 the board is not Skia-on-our-context, so B3 means drawing Rive through `rive-runtime`'s Skia renderer is not available without the D2 upgrade; the default is its own panel.
 - Gate 3 (corner radius tokens): needs approval of `docs/design/system/panel-tokens.md` before Workstream C locks values.
+
+## Gate outcomes, 2026-10-24
+
+- Gate 3 approved: corner radii are angle-locked (0.840° board, 0.458° chrome; 0.038 m and 0.021 m at the board's 2.6 m). See `docs/design/system/panel-tokens.md`.
+- The Rive tool strip moves to its own panel nearer the learner (about 1.4 m, within reach) so its keys meet the 4° target floor; the board stays at 2.6 m. This also settles gate 2 in favour of a separate Rive panel.

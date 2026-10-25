@@ -13,7 +13,7 @@ Sources are cited per table. "Code" means a value read from a file on 2026-10-24
 
 ## 1. Corner radius
 
-> **PROPOSED — awaiting approval (gate 3).** L4 must not lock these values until gate 3 approves this table.
+> **Approved 2026-10-24 (gate 3): angle-locked radii.** Radii hold their angle (0.840° board, 0.458° chrome) and convert to meters at each panel's distance. L4 reads these values.
 
 ### What exists today
 
