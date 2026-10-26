@@ -302,7 +302,9 @@ APK_SO_BUILDID="$(build_id "$APK_SO")"
   || die "APK libviro_renderer.so build ID $APK_SO_BUILDID != built renderer $AAR_SO_BUILDID (stale .so)"
 # Second, independent check: #112 added the eye-buffer log line, so its format
 # string is present in the candidate and absent in the baseline.
-if strings "$APK_SO" | grep -q "Eye %u: recommended"; then EYE_LINE=present; else EYE_LINE=absent; fi
+# grep the file directly: `strings | grep -q` under pipefail reports a match as
+# a failure (grep exits early, strings gets SIGPIPE), so "present" read "absent".
+if grep -a -q "Eye %u: recommended" "$APK_SO"; then EYE_LINE=present; else EYE_LINE=absent; fi
 if [[ "$STACK" == candidate && "$EYE_LINE" != present ]] || [[ "$STACK" == baseline && "$EYE_LINE" != absent ]]; then
   die "eye-buffer log string is $EYE_LINE in a $STACK APK; wrong renderer"
 fi
@@ -317,7 +319,7 @@ MANIFEST_KEYS="$(node -e '
     if (!m) continue;
     for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
       const v = lines[j].match(/:value\([^)]*\)=(.*)$/);
-      if (v) { out[m[1]] = v[1].replace(/^"|"$/g, "").replace(/ \(Raw: .*\)$/, ""); break; }
+      if (v) { out[m[1]] = v[1].replace(/ \(Raw: .*\)$/, "").replace(/^"|"$/g, ""); break; }
     }
   }
   process.stdout.write(JSON.stringify(out));
