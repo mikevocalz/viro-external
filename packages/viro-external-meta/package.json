@@ -5,7 +5,13 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "sideEffects": false,
-  "files": ["src", "doc", "AGENTS.md", "CLAUDE.md", "README.md"],
+  "files": [
+    "src",
+    "doc",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "README.md"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
@@ -42,8 +48,8 @@
     "@types/react": "19.3.0",
     "@viro-external/core": "workspace:*",
     "@viro-external/gui": "workspace:*",
-    "react": "19.3.0",
-    "react-native": "0.88.0-rc.3",
+    "react": "19.3.1",
+    "react-native": "0.88.0",
     "react-native-viro-mux": "workspace:*",
     "typescript": "7.0.2"
   }

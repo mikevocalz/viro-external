@@ -1,21 +1,21 @@
 # viro-external — DECISIONS.md (workspace-level)
 
-## 2026-10-01 — Viro 3 / Expo SDK 58 baseline
+## 2026-10-01 — Viro 3 / Expo SDK 58 baseline (versions refreshed 2026-10-24)
 
 The July 2026 dependency matrix is historical. The active workspace baseline is now:
 
 | Package / tool | Active baseline |
 |---|---|
-| `@reactvision/react-viro` | **3.0.1** upstream; local Moyo fork is **3.0.1-moyo.0** |
+| `@reactvision/react-viro` | **3.0.3** upstream; local Moyo fork is **3.0.3-moyo.1** |
 | `expo` | **SDK 58 / 58.x** |
-| `react-native` | **0.88.0-rc.3** (SDK 58 line) |
-| `react` | **19.3.0** |
+| `react-native` | **0.88.0** (SDK 58 line) |
+| `react` | **19.3.1** |
 | `react-native-nitro-modules` / `nitrogen` | **0.37.1 / 0.37.1** |
-| `@expo/config-plugins` | **58.0.4** |
-| `expo-modules-core` | **58.0.9** |
-| `zustand` | **5.0.15** |
-| `sharp` | **0.35.4** |
-| `lucide-static` | **1.49.0** |
+| `@expo/config-plugins` | **58.0.10** |
+| `expo-modules-core` | **58.0.26** |
+| `zustand` | **5.0.16** |
+| `sharp` | **0.35.5** |
+| `lucide-static` | **1.61.0** |
 | `typescript` | **7.0.2** |
 | `pnpm` | **12.8.1** |
 

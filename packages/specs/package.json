@@ -36,7 +36,7 @@
     "typescript": "7.0.2"
   },
   "dependencies": {
-    "smol-toml": "1.9.0"
+    "smol-toml": "1.9.1"
   },
   "type": "module",
   "module": "./dist/index.js",

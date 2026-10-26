@@ -25,11 +25,11 @@
     "react-native": ">=0.88.0-rc.0 <0.89.0"
   },
   "devDependencies": {
-    "@expo/config-plugins": "^58.0.4",
+    "@expo/config-plugins": "^58.0.10",
     "@viro-external/xr-contract": "workspace:*",
-    "expo": "58.0.0",
-    "expo-modules-core": "^58.0.0",
-    "react-native": "0.88.0-rc.3",
+    "expo": "58.0.19",
+    "expo-modules-core": "^58.0.26",
+    "react-native": "0.88.0",
     "typescript": "7.0.2"
   }
 }

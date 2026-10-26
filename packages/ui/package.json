@@ -28,11 +28,11 @@
     "@viro-external/core": "workspace:*",
     "@viro-external/media": "workspace:*",
     "@viro-external/xr-contract": "workspace:*",
-    "react": "19.3.0",
-    "react-native": "0.88.0-rc.3",
+    "react": "19.3.1",
+    "react-native": "0.88.0",
     "typescript": "7.0.2"
   },
   "dependencies": {
-    "zustand": "^5.0.15"
+    "zustand": "^5.0.16"
   }
 }

@@ -4,12 +4,12 @@ Runtime policy for putting heavy spatial work in the right place without duplica
 
 ## Baseline
 
-Peer versions pinned on 2026-10-03 (published on npm; not yet run together on a device):
+Peer versions pinned on 2026-10-24 (published on npm; not yet run together on a device):
 
 - `react-native-worklets` 0.13.0
-- `react-native-webgpu` 0.10.4
-- `typegpu` 0.12.6
-- `@typegpu/react` 0.12.x
+- `react-native-webgpu` 0.19.0 (its own peers add `react-native-reanimated` >= 4.2.1)
+- `typegpu` 0.12.9
+- `@typegpu/react` 0.12.3
 
 ## The rule
 
