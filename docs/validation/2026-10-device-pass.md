@@ -24,7 +24,7 @@ SHAs read on 2026-10-25 with `gh pr view <n> -R mikevocalz/<repo> --json headRef
 | viro (mikevocalz fork) | `main` `99b1d87c55ca9f43a6452144183a0b32a2bfb3c9` | #70 `feat/canvas-surfaces-registry` `98babbc1dc8b4e1357a6ab9283691025b2a3413c` |
 | viro-external | `main` `bbd4c617c4e98c2edfe2e55aed65bab867fa18c5` | #73 `feat/native-whiteboard-rive-panels` `4dc2775d3a07a3f9267b9e8db201fe3edda51287` |
 | rive-runtime | none (Baseline has no Rive runtime) | read from virocore `android/rive/RIVE_RUNTIME_COMMIT` at build time; recorded per APK in `out/manifest.json` |
-| MoyoLearn (consumer app) | `9411dc816d9e7c5df2dd6667d4114d723feeede8` (PR #125 commit A, adds `moyo://device-validation-probe`) | same commit |
+| MoyoLearn (consumer app) | `0e9a1693b19909bd14568791172dc51a6ce0a4a4` (branch `chore/device-validation-one-tile`: PR #125 commit A `9411dc81`, which adds `moyo://device-validation-probe`, plus the one-tile fix, §3 "Round 1 rebuild") | same commit |
 
 The SHAs above replaced the first plan's Candidate heads (`b73d9196` / `fa238896` / `30a2848c`, app `a6afe659`) on 2026-10-25, when the PRs moved; the line numbers quoted below were read at those earlier heads.
 
@@ -98,6 +98,43 @@ Renderer AAR sha256: Baseline `c691cabf…8835f`, Candidate `a03fee59…017a9d5`
 Cold app release build: 38 to 49 minutes per flavor; the virocore renderer: 3.5 minutes (Baseline), 5.5 minutes with rive-runtime (Candidate).
 
 Problems found and fixed in the script on the way (commits `4a441d9`, `33075b7`): the global pnpm 12.8.1 tool copy was broken; lint vital fails on the react_viro shim (a viro bug, see step 7); the eye-buffer check reported a present string as absent under `pipefail`; the manifest check misread aapt2's `(Raw: ...)` suffix.
+
+### Round 1 rebuild, 2026-10-26
+
+The four APKs above are void. All four crash at launch: `ReactNativeJS` logs `API_URL: neither NEXT_PUBLIC_APP_URL nor EXPO_PUBLIC_APP_URL is set`, then `TypeError: Cannot read property 'ErrorBoundary' of undefined`. The app's `apps/mobile/.env` is git-ignored, so the clone at `9411dc81` had none and Expo inlined no app URL. `out/manifest.json` marks the three that have not been rebuilt `"knownBroken": "no app URL in bundle"`; do not install them.
+
+The PICO 4 Ultra also showed two MoyoLearn tiles. The second was `.VRActivity`, whose intent-filter answered `MAIN` with `com.oculus.intent.category.VR`, `com.pico.intent.category.VR`, `com.picovr.intent.category.VR` and `org.khronos.openxr.intent.category.IMMERSIVE_HMD`.
+
+Fixes:
+
+- `build-stack.sh` (`3e365e6`) copies `APP_ENV_FILE` (default: `$APP_REPO/apps/mobile/.env`) into the app clone and, after the build, greps the APK's `assets/index.android.bundle` for the origin read from that file. A bundle without it deletes the APK and fails the build. Neither the file nor the value is printed; `out/manifest.json` records `bundleAppUrl`. Checked against the void Round 1 Baseline PICO APK: `absent`.
+- MoyoLearn `0e9a1693` on `9411dc81`: both committed manifests drop the filter from `.VRActivity`, and `plugins/with-viro-android-linkage.js` strips every filter from it at prebuild instead of adding PICO categories. `VRActivity` is `exported="false"` and starts only by explicit intent from Viro's `VRLauncher`.
+
+Whether PICO needs the categories was decided on the headset (PICO 4 Ultra, OS 5.15.7), not assumed. With no filter, `VRActivity` started by explicit intent, PICO classified it as immersive, and its session reached FOCUSED and submitted frames:
+
+```
+ActivityTaskManager: START u0 {flg=0x10000000 cmp=com.moyolearn.app/.VRActivity} with LAUNCH_SINGLE_TASK from uid 10145 (BAL_ALLOW_VISIBLE_WINDOW) result code=0
+SYSTEM_EXT: updateSubType id [3], subtype [10] top app : ComponentInfo{com.moyolearn.app/com.moyolearn.app.VRActivity}
+xrt_session: oxr_session_manage_state, client: com.moyolearn.app, action=7, state=XR_SESSION_STATE_FOCUSED
+PxrCompositor: report openxr action = Session_info message = {..."begin_frame_count":3,"end_frame_count":3,"eyebuf_h":1920,"eyebuf_w":1920,...}
+```
+
+A control APK (the same APK with the original `MAIN` + four-category filter put back by apktool and re-signed with the app's debug key) behaved the same way: FOCUSED, `begin_frame_count` 6. In both runs the session then dropped to STOPPING within about 200 ms because nobody was wearing the headset and no boundary was set (`sys.pxr.boundary.ready=0`), so PICO's BoundaryService opened `com.pvr.seethrough.setting` over the app (`isBoundaryStateReady() is false`). That is environmental and independent of the filter. A sustained immersive session needs the headset worn with a boundary set.
+
+| APK | APK sha256 | `libviro_renderer.so` GNU build ID (APK = AAR) | Bundle app URL |
+| --- | --- | --- | --- |
+| `baseline-pico-s1.0-MEDIUM.apk` (app `0e9a1693`) | `831af9f054b2419aedc2fc388bc36ca0826a75523a43e3394d74253526b77500` | `c6195daf3de6ebfc5351c5f81bce02d3b8fce44f` | present |
+
+Verified on the PICO 4 Ultra with that APK installed by `install.sh --clean` (on-device sha256 matches):
+
+- `cmd package query-activities -a android.intent.action.MAIN` lists only `com.moyolearn.app.MainActivity` (the control lists `VRActivity` too).
+- `am start -W -n com.moyolearn.app/.MainActivity`: `Running "main"`, no `API_URL` or ErrorBoundary error, and the Today screen renders over passthrough. The one JS error is VisionCamera finding 0 cameras (`CameraUnavailableException ... Available cameras: 0`), which does not stop the app.
+- The Library (`com.pvr.appmanager/.AllAppActivity`) view tree from `uiautomator dump` has one `Moyo` tile among 18 apps.
+- `PERF_TUNER_OFF=yes scripts/device/check-overrides.sh`: `RESULT clean`, exit 0.
+
+Captures are in `~/viro-device-runs/r1-pico/`: `launch-2d.png`, `immersive-nofilter.png`, `library.png`, `library-uiautomator.xml`, `launch-2d.log`, `immersive-nofilter.log`, `immersive-control-filter.log`, `check-overrides.txt`. `screencap` shows black while the headset sleeps (proximity sensor off); send `input keyevent KEYCODE_WAKEUP` first.
+
+**Candidate PICO is not rebuilt.** The Baseline clones (`~/viro-device-builds/baseline`, 23 GiB) were kept with `KEEP_SOURCES=1` in case a manifest variant was needed, and their deletion was refused by the agent permission check. With 18 GiB free the script's 30 GiB floor stops the Candidate build. Delete that directory, then run `scripts/device/build-stack.sh candidate pico`; the default `APP_SHA` is now `0e9a1693`. Quest APKs are rebuilt later; Quest needs its own check that `VRActivity` still reaches an immersive session with no filter.
 
 **R1.4 Candidate variant cells are not built.** `s1.0-LOW` and `s1.3-MEDIUM` for Quest were built once but failed the manifest check because of the parser bug above, and were deleted unverified. With the clones gone, each further variant needs a fresh Candidate quest stack (about 24 GiB, about 45 minutes cold), and the disk had 36 GiB free after cleanup, so the 30 GiB floor allows one cell at most. Build them in one run once more disk is free:
 
@@ -179,10 +216,10 @@ Columns for every row: SHAs (virocore / viro / viro-external / app), device, OS/
 
 | Row | Stack | Device | SHAs (vc / viro / vx / app) | OS/runtime | Refresh | Scale | Foveation | Build | Workload | Duration | Numbers | Captures | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| R1.1 Existing scenes | Baseline | Quest 3S | f5c2a728 / 99b1d87c / bbd4c617 / 9411dc81 | not yet run | default | not yet run | not yet run | questRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
-| R1.1 Existing scenes | Candidate | Quest 3S | 79f9fd89 / 98babbc1 / 4dc2775d / 9411dc81 | not yet run | default | not yet run | not yet run | questRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
-| R1.1 Existing scenes | Baseline | PICO 4 Ultra | f5c2a728 / 99b1d87c / bbd4c617 / 9411dc81 | not yet run | default | not yet run | not yet run | picoRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
-| R1.1 Existing scenes | Candidate | PICO 4 Ultra | 79f9fd89 / 98babbc1 / 4dc2775d / 9411dc81 | not yet run | default | not yet run | not yet run | picoRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
+| R1.1 Existing scenes | Baseline | Quest 3S | f5c2a728 / 99b1d87c / bbd4c617 / 0e9a1693 | not yet run | default | not yet run | not yet run | questRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
+| R1.1 Existing scenes | Candidate | Quest 3S | 79f9fd89 / 98babbc1 / 4dc2775d / 0e9a1693 | not yet run | default | not yet run | not yet run | questRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
+| R1.1 Existing scenes | Baseline | PICO 4 Ultra | f5c2a728 / 99b1d87c / bbd4c617 / 0e9a1693 | not yet run | default | not yet run | not yet run | picoRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
+| R1.1 Existing scenes | Candidate | PICO 4 Ultra | 79f9fd89 / 98babbc1 / 4dc2775d / 0e9a1693 | not yet run | default | not yet run | not yet run | picoRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
 | R1.2 Video | Baseline | Quest 3S | as R1.1 | not yet run | default | not yet run | not yet run | questRelease | clip (blocked) | not yet run | lifted/crushed blacks: not yet run | not yet run | not yet run |
 | R1.2 Video | Candidate | Quest 3S | as R1.1 | not yet run | default | not yet run | not yet run | questRelease | clip (blocked) | not yet run | lifted/crushed blacks: not yet run | not yet run | not yet run |
 | R1.2 Video | Baseline | PICO 4 Ultra | as R1.1 | not yet run | default | not yet run | not yet run | picoRelease | clip (blocked) | not yet run | lifted/crushed blacks: not yet run | not yet run | not yet run |
