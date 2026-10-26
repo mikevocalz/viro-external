@@ -36,8 +36,15 @@ INFO="$INFO_DIR/$(date -u +%Y%m%dT%H%M%SZ)-$PLATFORM.txt"
 record_device_info "$INFO"
 echo "local_apk=$APK" >>"$INFO"
 echo "local_apk_sha256=$LOCAL_SHA" >>"$INFO"
-MANIFEST="$(dirname "$APK")/build-$PLATFORM.txt"
-[[ -f "$MANIFEST" ]] && sed 's/^/build:/' "$MANIFEST" >>"$INFO"
+# build-stack.sh records every APK in out/manifest.json, keyed by file name.
+MANIFEST="$(dirname "$APK")/manifest.json"
+if [[ -f "$MANIFEST" ]]; then
+  node -e '
+    const e = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))
+      .find((x) => x.apk === process.argv[2]);
+    if (e) process.stdout.write("build:" + JSON.stringify(e) + "\n");
+  ' "$MANIFEST" "$(basename "$APK")" >>"$INFO" || true
+fi
 
 DEVICE_SHA="$(awk -F= '/^app_apk_sha256_on_device=/ { print $2 }' "$INFO")"
 [[ "$DEVICE_SHA" == "$LOCAL_SHA" ]] || die "installed APK sha256 $DEVICE_SHA != $LOCAL_SHA"

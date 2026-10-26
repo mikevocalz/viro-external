@@ -20,11 +20,13 @@ SHAs read on 2026-10-25 with `gh pr view <n> -R mikevocalz/<repo> --json headRef
 
 | Repo | Baseline | Candidate |
 | --- | --- | --- |
-| virocore | `main` `f5c2a7289c1665ec83740339ddc4464680d31d6b` (before #112) | #113 `b73d91962dbe97c9ccd31f4d18df932fd1c2e296`, built on #112 `70e95fd8c13b8209d70a792a1ae4e7741102da96` |
-| viro (mikevocalz fork) | `main` `99b1d87c55ca9f43a6452144183a0b32a2bfb3c9` | #70 `fa238896674c743db1719e4ad03882725ca4a29b`, on #69 `fe417ad87c76b5643d74d0b51881ab926865b47f` |
-| viro-external | `main` `bbd4c617c4e98c2edfe2e55aed65bab867fa18c5` | #73 `30a2848cd44c394e8ebb6168028e32235080df8b`, on #72 `7e962577c612042a27235a213f2a02d8632c9d59` |
-| rive-runtime | none (Baseline has no Rive runtime) | `8b3ca41b12bfd8ac9454444102c1fb130b3e7e11` (virocore `android/rive/RIVE_RUNTIME_COMMIT`) |
-| MoyoLearn (consumer app) | `a6afe6593060b73c8fc7b61d2ee0e0800204f1f3` | same commit |
+| virocore | `main` `f5c2a7289c1665ec83740339ddc4464680d31d6b` (before #112) | #113 `feat/compositor-panel-jni` `79f9fd89a0540281d473a57efd1590fb5642febd`, on #112 `fix/moyo-right-eye-depth-clear` |
+| viro (mikevocalz fork) | `main` `99b1d87c55ca9f43a6452144183a0b32a2bfb3c9` | #70 `feat/canvas-surfaces-registry` `98babbc1dc8b4e1357a6ab9283691025b2a3413c` |
+| viro-external | `main` `bbd4c617c4e98c2edfe2e55aed65bab867fa18c5` | #73 `feat/native-whiteboard-rive-panels` `4dc2775d3a07a3f9267b9e8db201fe3edda51287` |
+| rive-runtime | none (Baseline has no Rive runtime) | read from virocore `android/rive/RIVE_RUNTIME_COMMIT` at build time; recorded per APK in `out/manifest.json` |
+| MoyoLearn (consumer app) | `9411dc816d9e7c5df2dd6667d4114d723feeede8` (PR #125 commit A, adds `moyo://device-validation-probe`) | same commit |
+
+The SHAs above replaced the first plan's Candidate heads (`b73d9196` / `fa238896` / `30a2848c`, app `a6afe659`) on 2026-10-25, when the PRs moved; the line numbers quoted below were read at those earlier heads.
 
 What differs between the stacks for every app, flags off (from the prompt §2, checked against the virocore source at the SHAs above):
 
@@ -49,38 +51,40 @@ What differs between the stacks for every app, flags off (from the prompt §2, c
 ### `scripts/device/build-stack.sh`
 
 ```sh
-scripts/device/build-stack.sh baseline quest
-scripts/device/build-stack.sh candidate quest
-scripts/device/build-stack.sh baseline pico
-scripts/device/build-stack.sh candidate pico
+KEEP_SOURCES=1 scripts/device/build-stack.sh baseline quest
+scripts/device/build-stack.sh baseline pico          # last baseline cell: deletes the baseline clones
+KEEP_SOURCES=1 scripts/device/build-stack.sh candidate quest
+KEEP_SOURCES=1 scripts/device/build-stack.sh candidate pico
+# R1.4 quest cells (render quality baked into the manifest):
+KEEP_SOURCES=1 SCALE=1.0 FOVEATION=low    scripts/device/build-stack.sh candidate quest
+KEEP_SOURCES=1 SCALE=1.3 FOVEATION=medium scripts/device/build-stack.sh candidate quest
+KEEP_SOURCES=1 SCALE=1.0 FOVEATION=medium scripts/device/build-stack.sh candidate quest
+#   ...and each of those three again with REFRESH=highest, plus REFRESH=highest alone.
+#   Drop KEEP_SOURCES on the last candidate cell.
 ```
 
-For each stack the script:
+For each cell the script:
 
-1. Clones virocore, viro, viro-external and MoyoLearn at the SHAs above into `$WORK_DIR/<stack>/` (default `~/viro-device-builds`). Your own checkouts are never touched, so a dirty virocore tree cannot leak into a build.
-2. Builds the renderer AAR from the clean virocore clone: `scripts/build-rive-runtime.sh` (Candidate only; needs network on first run), then `cd android && ./gradlew :viroreact:assembleRelease --no-daemon`.
-3. Builds and packs viro (`npm install --ignore-scripts && npm run build && npm pack`), and packs the four viro-external packages the app uses (`pnpm pack`).
-4. Installs MoyoLearn exactly as committed (`pnpm install --frozen-lockfile`), then overlays the packed viro and viro-external package bodies into `node_modules`, keeping the app's patched `viro_renderer/build.gradle` line.
-5. Replaces `vendors/viro-renderer-034d3b9.aar` with the stack's renderer AAR and updates the pinned SHA-256 in `apps/mobile/android/build.gradle`. The diff is saved as `app-<platform>-gradle.diff`.
-6. Runs `ORG_GRADLE_PROJECT_reactNativeArchitectures=arm64-v8a ./gradlew :app:assemble{Quest,Pico}Release --no-daemon` and records the real exit code.
-7. Verifies the APK: the GNU build ID of `lib/arm64-v8a/libviro_renderer.so` inside the APK must equal the build ID of the `.so` in the renderer AAR it just built (build IDs survive AGP's strip; raw SHA-256 may not). As a second check, the `Eye %u: recommended` format string must be present in a Candidate APK and absent in a Baseline APK.
-8. Writes `build-<platform>.txt` with every SHA, the renderer AAR SHA-256, the APK and AAR `.so` SHA-256 and build IDs, and the APK SHA-256.
+1. Clones virocore, viro, viro-external and MoyoLearn at the SHAs above into `$WORK_DIR/<stack>/` (default `~/viro-device-builds`). Your own checkouts are never touched, so a dirty virocore tree cannot leak into a build. A clone already at the right SHA keeps its ignored build outputs, so later cells of the same stack build incrementally; tracked files are reset every time.
+2. Builds the renderer AAR from the clean virocore clone: `scripts/build-rive-runtime.sh` (Candidate only), then `./gradlew :viroreact:assembleRelease --no-daemon`.
+3. Builds and packs viro (`npm install --ignore-scripts && npm run build && npm pack`), and packs the four viro-external packages the app uses.
+4. Installs MoyoLearn exactly as committed (`pnpm install --frozen-lockfile`), then overlays the packed viro and viro-external package bodies into `node_modules`, keeping the app's patched `viro_renderer/build.gradle` line. pnpm runs at each repo's `packageManager` version through `npx`, with pnpm's own version switch off (the global `~/Library/pnpm/.tools` copy of 12.8.1 was broken on 2026-10-25).
+5. Replaces `vendors/viro-renderer-034d3b9.aar` with the stack's renderer AAR and updates the pinned SHA-256 in `apps/mobile/android/build.gradle`.
+6. Candidate R1.4 cells only: adds the `com.viro.openxr.*` meta-data to the flavor manifest (`SCALE` → `eyeBufferScale`, `FOVEATION` → `foveationLevel` plus `foveationDynamic=true`, `REFRESH` → `displayRefreshRate`). These are the keys the viro config plugin writes from `android.openxr` (viro `plugins/util/openxrRenderQuality.ts`) and that virocore reads (`OpenXRRenderQualityManifest.java`). The app commits `android/` and has no prebuild step, so the script writes them directly. With none set, no key is written and the renderer's defaults apply: Candidate 1.3, LOW dynamic, no refresh request (`OpenXRRenderQuality.java`). Baseline refuses these variables; its renderer has no such keys.
+7. Deletes old APK outputs, then runs `./gradlew :app:assemble{Quest,Pico}Release -x :app:lintVitalAnalyze{Quest,Pico}Release --no-daemon` for arm64-v8a and records the real exit code. Lint vital is skipped because the react_viro shim's AGP 8.12 guard disables every `bundle*Aar` task, including `bundle<Variant>LocalLintAar`, so lint fails on a missing `local_aar_for_lint/out.aar`. The guard is the same at viro `99b1d87c` and in the app's vendored `3.0.1-moyo.1`; it is a viro bug to fix there. Lint does not change the APK.
+8. Verifies the APK. The GNU build ID of `lib/arm64-v8a/libviro_renderer.so` must equal the build ID of the `.so` in the renderer AAR it just built. The `Eye %u: recommended` format string must be present in Candidate and absent in Baseline. The merged manifest (`aapt2 dump xmltree`) must carry exactly the cell's `com.viro.openxr.*` keys and values, and none for a default cell.
+9. Copies the APK to `$WORK_DIR/out/<stack>-<flavor>-s<scale>-<fov>[-hi].apk` and writes its entry in `$WORK_DIR/out/manifest.json`: every SHA, the render-quality meta-data, the renderer AAR SHA-256, the AAR and APK `.so` SHA-256 and build IDs, the bridge AAR SHA-256, the APK SHA-256, Gradle time and tool versions. Logs go to `$WORK_DIR/out/logs/<name>/`.
+10. Deletes `$WORK_DIR/<stack>/` (every clone and build dir) once the APK is verified, unless `KEEP_SOURCES=1`. Only `out/` stays on disk. A failed build keeps its clones for debugging.
 
 Known risks the script cannot settle:
 
-- The app commit was written against react-viro `3.0.1-moyo.1`; Baseline viro is `3.0.2-moyo.2` and Candidate is `3.0.3-moyo.1`. The overlay keeps the app's lockfile, so any new dependency those versions need is missing. A JS bundle error at build or launch is a finding for the build plan, not for #112.
-- Baseline pairs the viro fork's committed `react_viro-release.aar` at `99b1d87c` with a renderer built from virocore `f5c2a728`. That pairing has not been built before; a JNI mismatch shows up as `UnsatisfiedLinkError` at launch.
-- `MIN_FREE_GB=25` is a margin I set, not a measured footprint.
+- The app commit was written against react-viro `3.0.1-moyo.1`; Baseline viro is `3.0.2-moyo.2` and Candidate is `3.0.3-moyo.1`. The overlay keeps the app's lockfile, so any new dependency those versions need is missing. A JS bundle error at launch is a finding for the build plan, not for #112.
+- Baseline pairs the viro fork's committed `react_viro-release.aar` at `99b1d87c` with a renderer built from virocore `f5c2a728`. A JNI mismatch shows up as `UnsatisfiedLinkError` at launch.
+- `MIN_FREE_GB=30` is a margin, not a measured footprint. Measured on 2026-10-25: one stack with one app clone built is 24 GiB under `$WORK_DIR/<stack>/`; a cold app release build takes about 49 minutes, an incremental one about 1 minute.
 
-### Build attempt, 2026-10-25
+### Builds, 2026-10-25
 
-One Candidate `questRelease` attempt, run as `scripts/device/build-stack.sh candidate quest`:
-
-```text
-build-stack: only 0 GiB free under /Users/mikevocalz; need 25. Free space first.
-```
-
-`df -h /System/Volumes/Data` at the same time: 460 GiB volume, 415 GiB used, 240 MiB available, 100%. A release build of this app plus a virocore build needs several GiB, so the build did not start. **No APK exists for either stack.** Free disk space, then run the four commands above.
+BUILD_RESULTS_PLACEHOLDER
 
 ## 4. Capture scripts
 
@@ -219,7 +223,7 @@ Round 2 cannot run on MoyoLearn `a6afe659` as it stands: the app does not depend
 
 ## 8. Gates and open decisions for Mike
 
-1. Free disk space so the four builds can run (§3).
+1. Builds: see §3 "Builds, 2026-10-25" for which APKs exist.
 2. Refresh-rate cells: the request API is approved and in Candidate (§5). Candidate "highest" cells need one Candidate APK per cell built with `displayRefreshRate: "highest"`. Baseline "highest" cells stay n/a unless Mike approves a labelled override run.
 3. R1.2 and R1.5 need an app-side probe route and a test clip, added in one app commit used by both stacks.
 4. Round 2 needs an app commit that adds `@viro-external/native-panels` and `@viro-external/spatial-panels`.
