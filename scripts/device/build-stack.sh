@@ -34,6 +34,10 @@
 #   APP_SHA             consumer-app commit (default: 9411dc81, PR #125 commit A)
 #   VIROCORE_REPO / VIRO_REPO / VIRO_EXTERNAL_REPO   local clones to clone from
 #   VIROCORE_SHA / VIRO_SHA / VIRO_EXTERNAL_SHA      override the stack's SHAs
+#   APP_ENV_FILE        the app's untracked env file, copied into the app clone
+#                       (default: $APP_REPO/apps/mobile/.env). A release bundle
+#                       without its app URL throws at startup, so the build
+#                       fails if the exported bundle does not contain it.
 #   MIN_FREE_GB         refuse to start below this much free disk (default: 30)
 #   KEEP_SOURCES=1      keep $WORK_DIR/<stack>/ after a verified build
 set -euo pipefail
@@ -58,6 +62,7 @@ fi
 : "${VIROCORE_REPO:=$HOME/virocore}"
 : "${VIRO_REPO:=$HOME/viro}"
 : "${VIRO_EXTERNAL_REPO:=$HOME/viro-external}"
+: "${APP_ENV_FILE:=$APP_REPO/apps/mobile/.env}"
 : "${MIN_FREE_GB:=30}"
 : "${ANDROID_HOME:=$HOME/Library/Android/sdk}"
 : "${SCALE:=}" "${FOVEATION:=}" "${REFRESH:=}" "${KEEP_SOURCES:=}"
@@ -101,6 +106,13 @@ AAPT2="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name aapt2 2>/dev/null | 
 [[ -n "$AAPT2" ]] || die "no aapt2 under \$ANDROID_HOME/build-tools"
 mkdir -p "$OUT" "$LOG_DIR" "$DIST"
 rm -f "$FINAL"
+
+# The app reads its API origin from an untracked env file that Expo inlines
+# into the release bundle. Read the origin here so step 6 can look for it in
+# the APK. Neither the file nor the value is ever echoed.
+[[ -f "$APP_ENV_FILE" ]] || die "no app env file at $APP_ENV_FILE; a bundle without the app URL crashes at launch"
+APP_ORIGIN="$(awk -F= '/^[A-Z_]*APP_URL=/ { sub(/^[^=]*=/, ""); gsub(/^["'\'']|["'\'']$/, ""); sub(/\/+$/, ""); print; exit }' "$APP_ENV_FILE")"
+[[ "$APP_ORIGIN" =~ ^https?://[^[:space:]]+$ ]] || die "$APP_ENV_FILE has no usable app URL line"
 build_id() { "$NDK_READELF" -n "$1" | awk '/Build ID/ { print $3 }'; }
 
 # Run the pnpm a repo pins in package.json "packageManager", fetched by npx.
@@ -143,6 +155,8 @@ clone_at "$VIROCORE_REPO" "$OUT/virocore" "$VIROCORE_SHA"
 clone_at "$VIRO_REPO" "$OUT/viro" "$VIRO_SHA"
 clone_at "$VIRO_EXTERNAL_REPO" "$OUT/viro-external" "$VIRO_EXTERNAL_SHA"
 clone_at "$APP_REPO" "$OUT/app-$PLATFORM" "$APP_SHA"
+# Ignored by git, so the clone never has it; Expo loads it at bundle time.
+cp "$APP_ENV_FILE" "$OUT/app-$PLATFORM/apps/mobile/.env"
 
 # 1. Renderer AAR from virocore, clean tree only. The candidate links the
 # vendored rive-runtime, which has its own build step (virocore
@@ -292,6 +306,19 @@ APK="$APP/apps/mobile/android/app/build/outputs/apk/$PLATFORM/release/app-$PLATF
 [[ -f "$APK" ]] || die "no APK at $APK; check the path Gradle printed in $LOG_DIR/app-$PLATFORM.log"
 cp "$APK" "$FINAL"
 
+# The release bundle must carry the app origin, or the app throws at startup
+# ("API_URL: neither ... is set") and React tears the tree down. Hermes keeps
+# string literals as plain bytes, so a fixed-string grep finds it.
+BUNDLE="$OUT/bundle-$PLATFORM.hbc"
+unzip -p "$FINAL" assets/index.android.bundle >"$BUNDLE" || die "no assets/index.android.bundle in $FINAL"
+[[ -s "$BUNDLE" ]] || die "empty JS bundle in $FINAL"
+if grep -a -q -F -- "$APP_ORIGIN" "$BUNDLE"; then BUNDLE_APP_URL=present; else BUNDLE_APP_URL=absent; fi
+rm -f "$BUNDLE"
+if [[ "$BUNDLE_APP_URL" != present ]]; then
+  rm -f "$FINAL"
+  die "the JS bundle has no app URL from $APP_ENV_FILE; this APK would crash at launch"
+fi
+
 # 6. Prove the APK carries this stack's renderer. AGP may strip the .so again,
 # so the bytes can differ; the GNU build ID survives stripping and must match.
 APK_SO="$OUT/apk-$PLATFORM.so"
@@ -357,7 +384,7 @@ PNPM_V="viro-external $(node -p 'require(process.argv[1]).packageManager' "$OUT/
 JAVA_V="$(java -version 2>&1 | head -1)"
 export APP_SHA VIROCORE_SHA VIRO_SHA VIRO_EXTERNAL_SHA RIVE_COMMIT VIRO_TGZ_NAME RENDERER_AAR_SHA \
   AAR_SO_SHA AAR_SO_BUILDID APK_SO_SHA APK_SO_BUILDID EYE_LINE BRIDGE_SHA APK_SHA APP_BUILD_S \
-  PNPM_V JAVA_V NDK_READELF AAPT2
+  PNPM_V JAVA_V NDK_READELF AAPT2 BUNDLE_APP_URL
 ENTRY="$(node -e '
   const [name, stack, platform, cell, metaJson] = process.argv.slice(1, 6);
   const e = process.env;
@@ -371,6 +398,7 @@ ENTRY="$(node -e '
     aarLibViroRenderer: { sha256: e.AAR_SO_SHA, gnuBuildId: e.AAR_SO_BUILDID },
     apkLibViroRenderer: { sha256: e.APK_SO_SHA, gnuBuildId: e.APK_SO_BUILDID },
     eyeBufferLogString: e.EYE_LINE,
+    bundleAppUrl: e.BUNDLE_APP_URL,
     reactViroBridgeAarSha256: e.BRIDGE_SHA,
     apkSha256: e.APK_SHA,
     appGradleSeconds: Number(e.APP_BUILD_S),
