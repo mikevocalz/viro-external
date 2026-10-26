@@ -31,9 +31,9 @@
 # Environment (all optional):
 #   WORK_DIR            scratch root (default: $HOME/viro-device-builds)
 #   APP_REPO            MoyoLearn clone to clone from (default: $HOME/MoyoLearn)
-#   APP_SHA             consumer-app commit (default: 0e9a1693, PR #125 commit A
-#                       9411dc81 plus the one-tile fix, branch
-#                       chore/device-validation-one-tile)
+#   APP_SHA             consumer-app commit (default: edad9fd5, the one-tile
+#                       branch plus the spatial menu layout, branch
+#                       chore/device-validation-spatial-layout, PR #128)
 #   VIROCORE_REPO / VIRO_REPO / VIRO_EXTERNAL_REPO   local clones to clone from
 #   VIROCORE_SHA / VIRO_SHA / VIRO_EXTERNAL_SHA      override the stack's SHAs
 #   APP_ENV_FILE        the app's untracked env file, copied into the app clone
@@ -58,7 +58,7 @@ else
   : "${VIRO_SHA:=98babbc1dc8b4e1357a6ab9283691025b2a3413c}"          # viro #70 feat/canvas-surfaces-registry
   : "${VIRO_EXTERNAL_SHA:=4dc2775d3a07a3f9267b9e8db201fe3edda51287}" # viro-external #73
 fi
-: "${APP_SHA:=0e9a1693b19909bd14568791172dc51a6ce0a4a4}"
+: "${APP_SHA:=edad9fd596dfe63eb8c265bb1069afc19fd4f353}"
 : "${WORK_DIR:=$HOME/viro-device-builds}"
 : "${APP_REPO:=$HOME/MoyoLearn}"
 : "${VIROCORE_REPO:=$HOME/virocore}"
@@ -255,10 +255,16 @@ else
 fi
 grep -q "moyoViroRendererAar" "$RV/android/viro_renderer/build.gradle" || die "renderer property hook lost in overlay"
 
-# apps/mobile/android/build.gradle pins vendors/viro-renderer-034d3b9.aar and
-# fails on any other SHA-256. Swap the file and its digest; nothing else in
-# the Gradle files changes. The diff is saved next to the logs.
-PINNED="$APP/vendors/viro-renderer-034d3b9.aar"
+# apps/mobile/android/build.gradle pins one vendors/viro-renderer-<sha>.aar
+# (ext.moyoViroRendererAar) and fails on any other SHA-256. The pinned file
+# differs between app commits (034d3b9 up to 0e9a1693, 73c6a92 once the
+# spatial layout landed), so read it from the Gradle file. Swap the file and
+# its digest; nothing else in the Gradle files changes. The diff is saved next
+# to the logs.
+PINNED_NAME="$(sed -n "s|^ext.moyoViroRendererAar = rootProject.file('../../../vendors/\(viro-renderer-[0-9a-f]*\.aar\)')|\1|p" "$APP/apps/mobile/android/build.gradle")"
+[[ -n "$PINNED_NAME" ]] || die "no ext.moyoViroRendererAar pin in apps/mobile/android/build.gradle"
+PINNED="$APP/vendors/$PINNED_NAME"
+[[ -f "$PINNED" ]] || die "pinned renderer $PINNED_NAME is not in the app commit"
 OLD_DIGEST="$(sha256 "$PINNED")"
 cp "$RENDERER_AAR" "$PINNED"
 NEW_DIGEST="$(sha256 "$PINNED")"
