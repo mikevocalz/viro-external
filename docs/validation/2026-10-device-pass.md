@@ -84,7 +84,30 @@ Known risks the script cannot settle:
 
 ### Builds, 2026-10-25
 
-BUILD_RESULTS_PLACEHOLDER
+All four default cells built and verified on 2026-10-25/26 with the script at `33075b7`. Files are in `~/viro-device-builds/out/`; every SHA, tool version and hash is in `out/manifest.json`. After each stack's last cell the script deleted that stack's clones and build dirs (baseline 38 GiB, candidate 38 GiB), so only `out/` is on disk.
+
+| APK | APK sha256 | `libviro_renderer.so` GNU build ID (APK = AAR) | Eye-buffer string | `com.viro.openxr.*` keys |
+| --- | --- | --- | --- | --- |
+| `baseline-quest-s1.0-MEDIUM.apk` | `b4362ae4e9f066f05b2484b34c4db2420fce689a9c8833f4daa5f291ab8d13c8` | `c6195daf3de6ebfc5351c5f81bce02d3b8fce44f` | absent | none |
+| `baseline-pico-s1.0-MEDIUM.apk` | `a8364f56fa125380a1f40918ea375ada701a857509d785400f0ced0aa496b92b` | `c6195daf3de6ebfc5351c5f81bce02d3b8fce44f` | absent | none |
+| `candidate-quest-s1.3-LOW.apk` | `c6120c684a995c159e882025efd39a5a1306a0329a01d6847522ce0109fe85de` | `6ecf0100a05b57621fe456dbcb4570630643cd26` | present | none (renderer defaults: 1.3, LOW dynamic, no refresh request) |
+| `candidate-pico-s1.3-LOW.apk` | `6cfe8d830c909b897d17f3e1c3a4a78dab288f9b3c9e7068cec18e607a71c647` | `6ecf0100a05b57621fe456dbcb4570630643cd26` | present | none (as above) |
+
+Renderer AAR sha256: Baseline `c691cabf…8835f`, Candidate `a03fee59…017a9d5`. react_viro bridge AAR sha256: Baseline `2957c73b…290ab1`, Candidate `c3b4defc…cfa959d`. Candidate rive-runtime `8b3ca41b12bfd8ac9454444102c1fb130b3e7e11`. All four are signed with the app's committed debug keystore.
+
+Cold app release build: 38 to 49 minutes per flavor; the virocore renderer: 3.5 minutes (Baseline), 5.5 minutes with rive-runtime (Candidate).
+
+Problems found and fixed in the script on the way (commits `4a441d9`, `33075b7`): the global pnpm 12.8.1 tool copy was broken; lint vital fails on the react_viro shim (a viro bug, see step 7); the eye-buffer check reported a present string as absent under `pipefail`; the manifest check misread aapt2's `(Raw: ...)` suffix.
+
+**R1.4 Candidate variant cells are not built.** `s1.0-LOW` and `s1.3-MEDIUM` for Quest were built once but failed the manifest check because of the parser bug above, and were deleted unverified. With the clones gone, each further variant needs a fresh Candidate quest stack (about 24 GiB, about 45 minutes cold), and the disk had 36 GiB free after cleanup, so the 30 GiB floor allows one cell at most. Build them in one run once more disk is free:
+
+```sh
+for c in "1.0 low" "1.3 medium" "1.0 medium"; do set -- $c
+  KEEP_SOURCES=1 SCALE=$1 FOVEATION=$2 scripts/device/build-stack.sh candidate quest
+  KEEP_SOURCES=1 SCALE=$1 FOVEATION=$2 REFRESH=highest scripts/device/build-stack.sh candidate quest
+done
+REFRESH=highest scripts/device/build-stack.sh candidate quest   # s1.3-LOW-hi; last cell, cleans up
+```
 
 ## 4. Capture scripts
 
@@ -156,10 +179,10 @@ Columns for every row: SHAs (virocore / viro / viro-external / app), device, OS/
 
 | Row | Stack | Device | SHAs (vc / viro / vx / app) | OS/runtime | Refresh | Scale | Foveation | Build | Workload | Duration | Numbers | Captures | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| R1.1 Existing scenes | Baseline | Quest 3S | f5c2a728 / 99b1d87c / bbd4c617 / a6afe659 | not yet run | default | not yet run | not yet run | questRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
-| R1.1 Existing scenes | Candidate | Quest 3S | b73d9196 / fa238896 / 30a2848c / a6afe659 | not yet run | default | not yet run | not yet run | questRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
-| R1.1 Existing scenes | Baseline | PICO 4 Ultra | f5c2a728 / 99b1d87c / bbd4c617 / a6afe659 | not yet run | default | not yet run | not yet run | picoRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
-| R1.1 Existing scenes | Candidate | PICO 4 Ultra | b73d9196 / fa238896 / 30a2848c / a6afe659 | not yet run | default | not yet run | not yet run | picoRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
+| R1.1 Existing scenes | Baseline | Quest 3S | f5c2a728 / 99b1d87c / bbd4c617 / 9411dc81 | not yet run | default | not yet run | not yet run | questRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
+| R1.1 Existing scenes | Candidate | Quest 3S | 79f9fd89 / 98babbc1 / 4dc2775d / 9411dc81 | not yet run | default | not yet run | not yet run | questRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
+| R1.1 Existing scenes | Baseline | PICO 4 Ultra | f5c2a728 / 99b1d87c / bbd4c617 / 9411dc81 | not yet run | default | not yet run | not yet run | picoRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
+| R1.1 Existing scenes | Candidate | PICO 4 Ultra | 79f9fd89 / 98babbc1 / 4dc2775d / 9411dc81 | not yet run | default | not yet run | not yet run | picoRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
 | R1.2 Video | Baseline | Quest 3S | as R1.1 | not yet run | default | not yet run | not yet run | questRelease | clip (blocked) | not yet run | lifted/crushed blacks: not yet run | not yet run | not yet run |
 | R1.2 Video | Candidate | Quest 3S | as R1.1 | not yet run | default | not yet run | not yet run | questRelease | clip (blocked) | not yet run | lifted/crushed blacks: not yet run | not yet run | not yet run |
 | R1.2 Video | Baseline | PICO 4 Ultra | as R1.1 | not yet run | default | not yet run | not yet run | picoRelease | clip (blocked) | not yet run | lifted/crushed blacks: not yet run | not yet run | not yet run |
