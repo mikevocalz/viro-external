@@ -36,4 +36,3 @@ export interface BoardPointerSample {
   /** Sample time in milliseconds on a monotonic clock. Must not go backwards per pointer. */
   timestampMs: number;
 }
-
