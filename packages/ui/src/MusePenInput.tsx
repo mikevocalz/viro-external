@@ -55,6 +55,7 @@ function toMuseSample(
     secondaryPressed: sample.secondaryPressed,
     pressure: sample.pressure,
     timestamp: Date.now(),
+    timestampMs: performance.now(),
   };
 }
 

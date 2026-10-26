@@ -4,17 +4,18 @@
   "description": "Legacy Nitro external-texture bridge for older Viro apps. New video uses @viro-external/media.",
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "imports": {
+    "#nitro/*": "./nitrogen/generated/shared/javascript/*.cjs"
+  },
   "files": [
     "src",
     "assets",
-    "ios",
     "android",
     "nitrogen",
     "nitro.json",
     "react-native.config.js",
     "config",
     "doc",
-    "react-native-viro-mux.podspec",
     "AGENTS.md",
     "CLAUDE.md"
   ],
@@ -24,17 +25,27 @@
   },
   "peerDependencies": {
     "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
+    "nitro-core": "*",
     "react": ">=19.3.0 <20.0.0",
     "react-native": ">=0.88.0-rc.0 <0.89.0",
-    "react-native-nitro-modules": "^0.37.1"
+    "react-native-nitro-modules": "*"
+  },
+  "peerDependenciesMeta": {
+    "nitro-core": {
+      "optional": true
+    },
+    "react-native-nitro-modules": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
     "@types/react": "19.3.0",
-    "nitrogen": "0.37.1",
+    "nitro-core": "1.0.0-alpha.nightly.100.g107f6fc66597",
+    "nitrogen": "1.0.0-alpha.nightly.100.g107f6fc66597",
     "react": "19.3.1",
     "react-native": "0.88.0",
-    "react-native-nitro-modules": "0.37.1",
+    "react-native-nitro-modules": "1.0.0-alpha.nightly.100.g107f6fc66597",
     "typescript": "7.0.2"
   }
 }

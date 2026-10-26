@@ -1,0 +1,54 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.spatialpanels'
+version = '0.1.0'
+
+// Expo Modules API 2.0: the v2 compiler plugin generates the bindings for the
+// @ExpoModule and @ExpoSharedObject classes, and autolinking discovers the
+// module from the compile classpath. expo-module.config.json therefore lists
+// no legacy module classes.
+expoModule {
+  v2 true
+}
+
+// The consumer's @reactvision/react-viro checkout. Its Android directory holds
+// the virocore renderer (com.viro.core.RiveCompositorPanel) and the bridge
+// (MaterialManager, PerfMonitor, VRTNode). compileOnly: the app links both
+// through its :react_viro and :viro_renderer projects.
+def viroAndroidDir = null
+try {
+  viroAndroidDir = new File(
+    providers.exec {
+      workingDir(rootProject.projectDir)
+      commandLine("node", "--print",
+        "require('path').dirname(require.resolve('@reactvision/react-viro/package.json')) + '/android'")
+    }.standardOutput.asText.get().trim()
+  )
+} catch (Exception e) {
+  logger.warn("[spatial-panels] Could not resolve @reactvision/react-viro: ${e.message}")
+}
+
+android {
+  namespace "expo.modules.spatialpanels"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+    minSdkVersion Math.max(rootProject.ext.has("minSdkVersion") ? rootProject.ext.minSdkVersion : 26, 26)
+  }
+}
+
+dependencies {
+  compileOnly "com.facebook.react:react-android"
+  testImplementation "junit:junit:4.13.2"
+  if (viroAndroidDir != null && viroAndroidDir.exists()) {
+    // Classes extracted from the AARs: AGP rejects local .aar dependencies in
+    // library modules.
+    compileOnly files(new File(viroAndroidDir, "viro_renderer/main-classes/viro-renderer-main-classes.jar"))
+    compileOnly files(zipTree(new File(viroAndroidDir, "react_viro/react_viro-release.aar")).matching { include "classes.jar" })
+  } else {
+    logger.warn("[spatial-panels] @reactvision/react-viro not found; the Kotlin compile will fail without it")
+  }
+}

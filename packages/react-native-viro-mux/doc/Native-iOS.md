@@ -21,9 +21,11 @@
 
 Spec lives in `src/spec/ViroGPUTextureModule.nitro.ts` (declarative TS, codegen target).
 
-Native impl files (`ios/HybridViroGPUTextureModule.{h,mm}`) are tracked in `TASKS.md` — they require the virocore fork to land the C++ `registerExternalTexture` entry point per `TextureBridge.md`. Not shipped as a stub.
+The spec declares only `@Android`. The iOS implementation is tracked in `TASKS.md`; it requires the virocore fork to land the C++ `registerExternalTexture` entry point per `TextureBridge.md`. Not shipped as a stub.
+
+Under Nitro V1, adding iOS means: an `@Apple` decorator on the spec, Swift or C++ sources under `apple/` (V1's default `swiftSources`), a `Package.swift` calling `addNitrogenTargets(to:)`, `swiftpmConfig` in `package.json`, and a metadata-only podspec. V1 needs Swift 6.4 and SwiftPM integration through `npx react-native spm`.
 
 ## Build
 
-- `react-native-viro-mux.podspec` declares the dependency on `ViroReact` (peer) and `NitroModules` (peer).
-- The podspec is **not** in this scaffold yet; it is a Phase 2-native deliverable tracked in `TASKS.md`.
+- iOS builds through SwiftPM (`Package.swift`) under Nitro V1. The podspec, when added, is discovery metadata only (no `source_files`).
+- Neither file is in this package yet; both are Phase 2-native deliverables tracked in `TASKS.md`.

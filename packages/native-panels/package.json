@@ -1,0 +1,53 @@
+{
+  "name": "@viro-external/native-panels",
+  "version": "0.1.0",
+  "description": "Native Viro panel producers: the QuickDraw whiteboard renderer on the Viro-owned Surface (Android).",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "imports": {
+    "#nitro/*": "./nitrogen/generated/shared/javascript/*.cjs"
+  },
+  "files": [
+    "src",
+    "android",
+    "nitrogen",
+    "nitro.json",
+    "react-native.config.js"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "specs": "nitrogen",
+    "test": "node --experimental-strip-types --conditions=react-native --import ../../test/support/metro-like-resolve.mjs --import ./test/support/fake-nitro-modules.mjs --test test/*.test.mjs"
+  },
+  "peerDependencies": {
+    "@reactvision/react-viro": ">=3.0.3-moyo.1 <4.0.0",
+    "@viro-external/ui": "workspace:*",
+    "nitro-core": "*",
+    "react": ">=19.3.0 <20.0.0",
+    "react-native": ">=0.88.0-rc.0 <0.89.0",
+    "react-native-nitro-modules": "*"
+  },
+  "peerDependenciesMeta": {
+    "nitro-core": {
+      "optional": true
+    },
+    "react-native-nitro-modules": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@quickdrawjs/core": "0.2.0",
+    "zustand": "^5.0.16"
+  },
+  "devDependencies": {
+    "@reactvision/react-viro": ">=3.0.3-moyo.1 <4.0.0",
+    "@types/react": "19.3.0",
+    "@viro-external/ui": "workspace:*",
+    "nitro-core": "1.0.0-alpha.nightly.100.g107f6fc66597",
+    "nitrogen": "1.0.0-alpha.nightly.100.g107f6fc66597",
+    "react": "19.3.1",
+    "react-native": "0.88.0",
+    "react-native-nitro-modules": "1.0.0-alpha.nightly.100.g107f6fc66597",
+    "typescript": "7.0.2"
+  }
+}

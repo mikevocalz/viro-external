@@ -1,26 +1,13 @@
 {
   "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "environment": "react-native",
   "cxxNamespace": ["viromux"],
-  "ios": {
-    "iosModuleName": "NitroViroMux"
+  "apple": {
+    "moduleName": "NitroViroMux"
   },
   "android": {
-    "androidNamespace": ["viromux"],
-    "androidCxxLibName": "NitroViroMux"
-  },
-  "autolinking": {
-    "ViroGPUTextureModule": {
-      "android": {
-        "language": "kotlin",
-        "implementationClassName": "HybridViroGPUTextureModule"
-      }
-    },
-    "MuxPlayer": {
-      "android": {
-        "language": "kotlin",
-        "implementationClassName": "HybridMuxPlayer"
-      }
-    }
+    "namespace": ["viromux"],
+    "cxxLibName": "NitroViroMux"
   },
   "ignorePaths": ["**/node_modules"]
 }

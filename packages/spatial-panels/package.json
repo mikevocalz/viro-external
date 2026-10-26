@@ -1,0 +1,36 @@
+{
+  "name": "@viro-external/spatial-panels",
+  "version": "0.1.0",
+  "description": "OpenXR compositor panels for Viro on Android (Expo Modules API 2.0): Rive panels as quad or cylinder layers, with a matching scene quad while a panel is evicted.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "files": [
+    "src",
+    "android",
+    "expo-module.config.json"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --conditions=react-native --import ../../test/support/metro-like-resolve.mjs --test test/*.test.mjs"
+  },
+  "peerDependencies": {
+    "@reactvision/react-viro": ">=3.0.3-moyo.1 <4.0.0",
+    "expo": ">=58.0.0 <59.0.0",
+    "expo-modules-core": ">=58.0.26 <59.0.0",
+    "react": ">=19.3.0 <20.0.0",
+    "react-native": ">=0.88.0-rc.0 <0.89.0"
+  },
+  "dependencies": {
+    "zustand": "^5.0.16"
+  },
+  "devDependencies": {
+    "@reactvision/react-viro": ">=3.0.3-moyo.1 <4.0.0",
+    "@types/react": "19.3.0",
+    "expo": "58.0.19",
+    "expo-modules-core": "58.0.26",
+    "react": "19.3.1",
+    "react-native": "0.88.0",
+    "typescript": "7.0.2"
+  }
+}

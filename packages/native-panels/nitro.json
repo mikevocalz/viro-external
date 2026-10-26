@@ -1,0 +1,13 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "environment": "react-native",
+  "cxxNamespace": ["nativepanels"],
+  "apple": {
+    "moduleName": "NitroNativePanels"
+  },
+  "android": {
+    "namespace": ["nativepanels"],
+    "cxxLibName": "NitroNativePanels"
+  },
+  "ignorePaths": ["**/node_modules"]
+}

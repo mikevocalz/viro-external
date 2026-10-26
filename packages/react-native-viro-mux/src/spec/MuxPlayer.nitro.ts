@@ -1,5 +1,7 @@
-import type { HybridObject } from "react-native-nitro-modules";
+import { Android, type HybridObject } from "nitro-core";
 import type { NitroExternalTextureHandle } from "./ViroGPUTextureModule.nitro";
+
+export * from "#nitro/MuxPlayer";
 
 /**
  * Nitro spec for the Mux player control plane (PROMPT 21 §4.1).
@@ -14,6 +16,14 @@ import type { NitroExternalTextureHandle } from "./ViroGPUTextureModule.nitro";
  * `getTextureHandle()` returns the workspace's struct handle (Mode B,
  * GL_TEXTURE_EXTERNAL_OES) — same registry as ViroGPUTextureModule; the
  * pano sphere or any quad material consumes it.
+ *
+ * No native class implements this spec yet. Playback today runs through the
+ * classic `ViroMuxPlayer` React Native module (android/.../ViroMuxPlayerModule.kt,
+ * used by ViroMuxBridgeSurface). The spec therefore declares no concrete
+ * implementation and no public constructor: JS cannot construct it, and the
+ * generated bindings reference no missing Kotlin class. When `HybridMuxPlayer`
+ * lands, switch to `implementation: { className: "HybridMuxPlayer" }` and add
+ * `constructor()`.
  */
 
 export type MuxSink = "sceneTexture" | "equirect2Layer" | "quadLayer";
@@ -37,8 +47,11 @@ export interface MuxSource {
   startPositionMs?: number;
 }
 
-export interface MuxPlayer
-  extends HybridObject<{ ios: "swift", android: "kotlin" }> {
+@Android({
+  language: "kotlin",
+  allowMultipleImplementations: true,
+})
+export declare class MuxPlayer extends HybridObject {
   load(source: MuxSource): Promise<void>;
   play(): void;
   pause(): void;

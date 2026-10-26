@@ -91,3 +91,64 @@ export { QuickdrawSpatialPanel } from "./QuickdrawSpatialPanel";
 export type { QuickdrawSpatialPanelProps, QuickdrawSpatialPointer } from "./QuickdrawSpatialPanel.types";
 
 export { MetaWorkspaceHost, type MetaWorkspaceHostProps } from "./MetaWorkspaceHost";
+
+export { createHeadlessBoard } from "./quickdraw-headless/createHeadlessBoard";
+export { getInkOutline } from "./quickdraw-headless/ink-outline";
+export { laserOpacity } from "./quickdraw-headless/laser-layer";
+export type { HeadlessBoard, BoardListenerSubscription } from "./quickdraw-headless/HeadlessBoard";
+export type { HeadlessBoardOptions, MeasureTextWidth } from "./quickdraw-headless/HeadlessBoardOptions";
+export type { BoardPointerSample, BoardPointerSource } from "./quickdraw-headless/BoardPointerSample";
+export type { BoardEditorState, BoardTextEdit } from "./quickdraw-headless/BoardEditorState";
+export type {
+  BoardBoxSelection,
+  BoardEraserTrail,
+  BoardLaserStroke,
+  BoardLineSelection,
+  BoardOverlay,
+  BoardPoint,
+  BoardSelectionOverlay,
+} from "./quickdraw-headless/BoardOverlay";
+
+export { createBoardInputRouter } from "./quickdraw-input/createBoardInputRouter";
+export { createQuickDrawBoardSession } from "./quickdraw-input/createQuickDrawBoardSession";
+export {
+  createAdapterHandleSink,
+  createHeadlessBoardSink,
+  toLegacyQuickdrawSpatialPointer,
+} from "./quickdraw-input/pointer-sinks";
+export {
+  assertFlatBoard,
+  boardDragPlane,
+  boardToPage,
+  composeNodeWorld,
+  IDENTITY_MAT4,
+  invertAffine,
+  mapWorldPointToBoard,
+  multiplyMat4,
+  paperRectInQuad,
+  paperUvToBoard,
+  planeHitFromDrag,
+  transformPoint,
+} from "./quickdraw-input/board-geometry";
+export type { BoardHit, BoardSurfaceGeometry, Mat4, NodePose } from "./quickdraw-input/board-geometry";
+export { isInsideRoundedPanel, panelCornerRadiiPx, panelCoverage } from "./quickdraw-input/panel-coverage";
+export type { PanelCornerRadiiPx } from "./quickdraw-input/panel-coverage";
+export type {
+  BoardInputCancelReason,
+  BoardInputRouter,
+  BoardInputRouterOptions,
+  BoardInputSubscription,
+} from "./quickdraw-input/BoardInputRouter";
+export type { QuickDrawBoardSession, QuickDrawBoardSessionOptions } from "./quickdraw-input/QuickDrawBoardSession";
+export { QuickDrawNativeBoard } from "./quickdraw-input/QuickDrawNativeBoard";
+export type {
+  BoardRendererHookOptions,
+  BoardRendererHookStatus,
+  QuickDrawBoardSurface,
+  QuickDrawNativeBoardProps,
+  UseBoardRenderer,
+} from "./quickdraw-input/QuickDrawNativeBoard.types";
+export { useBoardPaperInput } from "./quickdraw-input/useBoardPaperInput";
+export type { BoardPaperInputOptions, BoardPaperInputProps } from "./quickdraw-input/useBoardPaperInput";
+export { useMovableBoardPose } from "./quickdraw-input/useMovableBoardPose";
+export type { MovableBoardPoseOptions } from "./quickdraw-input/useMovableBoardPose";

@@ -242,6 +242,7 @@ export * from "./interaction";
 export * from "./rive";
 
 export * from "./quickdraw";
+export * from "./quickdrawIdentity";
 
 export * from "./muse";
 

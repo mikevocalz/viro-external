@@ -8,7 +8,7 @@ import com.facebook.react.module.model.ReactModuleInfoProvider
 
 /**
  * Autolinking entry point. Loads libNitroViroMux.so (whose JNI_OnLoad
- * registers the `ViroGPUTextureModule` Hybrid Object with Nitro) and exposes
+ * registers the `viromux.ViroGPUTextureModule` hybrid class with Nitro) and exposes
  * the classic [ViroMuxPlayerModule] (ExoPlayer → surface-producer bridge).
  */
 class ViroMuxPackage : BaseReactPackage() {

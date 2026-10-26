@@ -2,7 +2,47 @@
 
 [Handbook](README.md) · [Host-lifecycle example](examples/rive-session.ts) · [Native responsibilities](../packages/ui/doc/RiveNativeHost.md)
 
-## What is available
+## Native Rive panel (`@viro-external/native-panels`, ADR 0001 route B1)
+
+`@viro-external/native-panels` drives ViroCore's own Rive producer, `VRORivePanel` in `libviro_renderer.so`, from JS. Android arm64-v8a only. It is behind a flag and off by default; nothing changes for existing `ViroRivePanel` users until they opt in.
+
+```tsx
+import { ViroNativeRivePanel } from "@viro-external/native-panels";
+
+<ViroNativeRivePanel
+  nativeRive            // default false: renders ViroRivePanel unchanged
+  source={{ rivBytes, artboard: "BoardChrome", stateMachine: "BoardChrome", fit: "contain" }}
+  width={0.6} height={0.375} resolution={{ width: 2496, height: 1560 }}
+  cornerRadius={0.021}  // meters, from docs/design/system/panel-tokens.md
+  bindings={{ tool: 2, canUndo: true, status: "ready" }}
+  onError={report}
+/>
+```
+
+With `nativeRive` on, `source` set, and `RivePanel.isAvailable` true, the component creates a `canvasSource` material with `blendMode: "PremultiplyAlpha"` and the corner radius, then a `RiveFile` and a `RivePanel` for that surface id. Otherwise it renders `ViroRivePanel` with the same props. **Rollback: set `nativeRive` back to false** (or leave it unset).
+
+The imperative objects are Nitro V1 C++ HybridObjects. Their shape follows `@rive-app/react-native` 0.5.5 (file, artboard and state-machine selection, a view-model instance with typed writes), cut down to what `VRORivePanel` can do today:
+
+| Object | Members |
+| --- | --- |
+| `RiveFile` | `static fromBytes(ArrayBuffer)`, `static fromFileURL(fileURL)` (local `file://` or absolute path; fetch `http(s)` in JS), `byteLength` |
+| `RivePanel` | `static isAvailable`, `static create(options)`, `state`, `viewModelInstance`, `setFile`, `selectArtboard`, `selectStateMachine`, `dispatchPointer(phase, xPx, yPx, pointerId)`, `setActive`, `addOnStateChangedListener((state, detail) => …)`, `dispose()` |
+| `RiveViewModelInstance` | `setNumber`, `setBoolean`, `setString`, `fireTrigger`, `applyUpdate({ numbers, booleans, strings, triggers })` |
+
+Every write is queued for the panel's render thread and returns at once; the component sends one `applyUpdate` per change of `bindings`, never per frame. A settled state machine draws nothing. Pointer input comes from the board input path: `createRivePanelPointerSink(panel, { widthPx, heightPx })` turns `QuickDrawPointerEvent` paper UVs into panel pixels, and the component's ref exposes the same as `dispatchPointer(event)`. Presses that start in a transparent corner are dropped natively, using the radii from virocore's `VROPanelCornerRadiiPx`. The producer draws square; Viro rounds the corners in the material copy.
+
+Surface lifecycle: a small Kotlin class subscribes to viro's `CanvasSurfaces` registry for the surface id. When Viro provides the Surface, C++ creates an `ANativeWindow`, attaches it, and releases its own reference. On revoke, `surfaceLost()` returns only after the render thread has dropped the window, before Viro may release the Surface. `dispose()` ends the subscription first, then stops the render thread.
+
+Gaps before the flag can default on:
+
+- `init` (custom nitro-canvas adapter) and `input` (nitro-canvas input hook) are ignored on the native route; `onRuntimeReady` is not called (use `onNativePanelReady`).
+- `enum` and `color` bindings: `VRORivePanel` has no writer for them. Each is reported once through `onError` and skipped.
+- No view-model or artboard enumeration, no listeners on view-model properties, and no referenced (out-of-band) assets. Embedded fonts work; embedded images do not decode, because the ViroCore build has Rive's image decoders off (virocore `docs/RIVE_RUNTIME.md`).
+- iOS: no implementation; `resolveNativeRive()` returns `undefined` and the component renders `ViroRivePanel`.
+
+Verification so far: NDK 27.1 clang compiles every C++ file for arm64 with and without the renderer; the 18 `VRORivePanel` symbols the objects reference are all exported by the shipped arm64 `libviro_renderer.so`; a host test covers option validation, corner radii, the `RIVE` signature check and file reading; `RiveSurfaceLink.kt` compiles with kotlinc 2.2.21 and its JNI descriptors match the fbjni registration; 15 node tests cover the mount order, bindings diff, pointer mapping and resolver. It has not been built with Gradle or CMake, linked, or run in an app or on a headset.
+
+## Host adapter contract
 
 `@viro-external/ui` exports `createRiveSpatialSurface`, `disposeRiveSpatialSurface`, `ViroCoreRiveSpatialAdapter`, and the `ViroCoreRiveNativeHost` type. The factory is a controller boundary: it calls the supplied adapter's `mount`. It is not a JSX `RiveView` component and does not discover a native module automatically.
 

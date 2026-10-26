@@ -1,0 +1,290 @@
+# Device pass, October 2026: Baseline vs Candidate
+
+[Performance procedure](PERFORMANCE.md) · [First session checklist](first-session-checklist.md) · [Round 2 procedure](../DEVICE_VALIDATION.md)
+
+This is the §6.4 deliverable of the "Viro PR Stack: Device Validation and #112 Hardening" prompt (2026-10-25). It holds the build plan, the scripts that run the pass, and the results matrix. No row has run. Every result cell says **not yet run**, and a row with no capture stays unverified, never "pass".
+
+Supported matrix (gate 1, decided by Mike): **Quest 3S** and **PICO 4 Ultra**. Quest 3 and Quest 2 are out. `docs/DEVICE_VALIDATION.md` still names Quest 3 in its Round 2 tables; for this pass, read every "Quest 3" there as Quest 3S.
+
+## 1. Who does what
+
+| Who | Does |
+| --- | --- |
+| Agent | Builds both stacks, installs over adb, runs `check-overrides.sh`, starts and stops capture, pulls files, fills in numbers from CSVs, traces and logs |
+| Mike | Wears the headset, runs each workload, records the headset view, and writes what he sees for every visual row |
+| Rule | No visual row (R1.1, R1.2, R1.3 and the Round 2 colour, corner and eviction rows) passes without Mike's capture or written observation. Numbers alone never pass a visual row |
+
+## 2. Stacks
+
+SHAs read on 2026-10-25 with `gh pr view <n> -R mikevocalz/<repo> --json headRefOid` and `gh api repos/mikevocalz/<repo>/commits/main`. If a PR head moves (the §6.2 render-quality commit will move #112 and #113), rebuild Candidate and record the new SHAs in the matrix; never compare against an APK whose SHAs are not in its row.
+
+| Repo | Baseline | Candidate |
+| --- | --- | --- |
+| virocore | `main` `f5c2a7289c1665ec83740339ddc4464680d31d6b` (before #112) | #113 `feat/compositor-panel-jni` `79f9fd89a0540281d473a57efd1590fb5642febd`, on #112 `fix/moyo-right-eye-depth-clear` |
+| viro (mikevocalz fork) | `main` `99b1d87c55ca9f43a6452144183a0b32a2bfb3c9` | #70 `feat/canvas-surfaces-registry` `98babbc1dc8b4e1357a6ab9283691025b2a3413c` |
+| viro-external | `main` `bbd4c617c4e98c2edfe2e55aed65bab867fa18c5` | #73 `feat/native-whiteboard-rive-panels` `4dc2775d3a07a3f9267b9e8db201fe3edda51287` |
+| rive-runtime | none (Baseline has no Rive runtime) | read from virocore `android/rive/RIVE_RUNTIME_COMMIT` at build time; recorded per APK in `out/manifest.json` |
+| MoyoLearn (consumer app) | `0e9a1693b19909bd14568791172dc51a6ce0a4a4` (branch `chore/device-validation-one-tile`: PR #125 commit A `9411dc81`, which adds `moyo://device-validation-probe`, plus the one-tile fix, §3 "Round 1 rebuild") | same commit |
+
+The SHAs above replaced the first plan's Candidate heads (`b73d9196` / `fa238896` / `30a2848c`, app `a6afe659`) on 2026-10-25, when the PRs moved; the line numbers quoted below were read at those earlier heads.
+
+What differs between the stacks for every app, flags off (from the prompt §2, checked against the virocore source at the SHAs above):
+
+| Setting | Baseline (`f5c2a728`) | Candidate (`b73d919`) |
+| --- | --- | --- |
+| Eye-buffer size | runtime's recommended size | 1.3 × recommended per axis, clamped to max (`VROSceneRendererOpenXR.cpp:1047-1051`) |
+| Default foveation | MEDIUM, dynamic (`:1062`) | LOW, dynamic (`:1085`) |
+| Eye-buffer log line | `Eye %u: swapchain ...` at VERBOSE only (`:1054`) | `Eye %u: recommended %ux%u, max %ux%u, rendering %ux%u` at INFO (`:1052`) |
+
+## 3. Builds
+
+### How MoyoLearn consumes Viro (read at `a6afe659`)
+
+- `@reactvision/react-viro` comes from `vendors/reactvision-react-viro-3.0.1-moyo.1.tgz` through a root `pnpm.overrides` entry, plus `patches/@reactvision__react-viro@3.0.1-moyo.1.patch`. The patch's only Android hunk rewrites `android/viro_renderer/build.gradle` line 20 to `api files(rootProject.findProperty('moyoViroRendererAar') ?: 'viro_renderer-release.aar')`.
+- `apps/mobile/android/build.gradle:59-71` sets `ext.moyoViroRendererAar` to `vendors/viro-renderer-034d3b9.aar` and fails the build unless its SHA-256 is `08c22843…506a3b`. So `libviro_renderer.so` in the APK comes from that vendored AAR, not from the react-viro tarball's `viro_renderer-release.aar`.
+- There is no `VIROCORE_LIB_DIR` and no app CMake that imports `libviro_renderer.so` (searched `apps/mobile/android` and every `CMakeLists.txt`/`build.gradle` in `node_modules`). The stale-`.so` trap in decax9 does not apply here, but the vendored-AAR pin is the same trap in another form: swapping the viro checkout alone changes nothing native.
+- `@viro-external/{core,media,ui,xr-contract}` come from `vendors/viro-external-*.tgz` overrides. The app does not depend on `@viro-external/native-panels` or `@viro-external/spatial-panels`.
+- Flavors (`apps/mobile/android/app/build.gradle:93-111`): one dimension `device`; `quest` and `pico` are `arm64-v8a` only. All flavors keep `applicationId com.moyolearn.app`.
+- Signing (`:128-151`): `release` uses `signingConfigs.debug` with the committed `app/debug.keystore`. No secret is needed, and Baseline and Candidate share one signature, so `adb install -r` swaps them in place.
+- `android/` is committed, so there is no prebuild step.
+
+### `scripts/device/build-stack.sh`
+
+```sh
+KEEP_SOURCES=1 scripts/device/build-stack.sh baseline quest
+scripts/device/build-stack.sh baseline pico          # last baseline cell: deletes the baseline clones
+KEEP_SOURCES=1 scripts/device/build-stack.sh candidate quest
+KEEP_SOURCES=1 scripts/device/build-stack.sh candidate pico
+# R1.4 quest cells (render quality baked into the manifest):
+KEEP_SOURCES=1 SCALE=1.0 FOVEATION=low    scripts/device/build-stack.sh candidate quest
+KEEP_SOURCES=1 SCALE=1.3 FOVEATION=medium scripts/device/build-stack.sh candidate quest
+KEEP_SOURCES=1 SCALE=1.0 FOVEATION=medium scripts/device/build-stack.sh candidate quest
+#   ...and each of those three again with REFRESH=highest, plus REFRESH=highest alone.
+#   Drop KEEP_SOURCES on the last candidate cell.
+```
+
+For each cell the script:
+
+1. Clones virocore, viro, viro-external and MoyoLearn at the SHAs above into `$WORK_DIR/<stack>/` (default `~/viro-device-builds`). Your own checkouts are never touched, so a dirty virocore tree cannot leak into a build. A clone already at the right SHA keeps its ignored build outputs, so later cells of the same stack build incrementally; tracked files are reset every time.
+2. Builds the renderer AAR from the clean virocore clone: `scripts/build-rive-runtime.sh` (Candidate only), then `./gradlew :viroreact:assembleRelease --no-daemon`.
+3. Builds and packs viro (`npm install --ignore-scripts && npm run build && npm pack`), and packs the four viro-external packages the app uses.
+4. Installs MoyoLearn exactly as committed (`pnpm install --frozen-lockfile`), then overlays the packed viro and viro-external package bodies into `node_modules`, keeping the app's patched `viro_renderer/build.gradle` line. pnpm runs at each repo's `packageManager` version through `npx`, with pnpm's own version switch off (the global `~/Library/pnpm/.tools` copy of 12.8.1 was broken on 2026-10-25).
+5. Replaces `vendors/viro-renderer-034d3b9.aar` with the stack's renderer AAR and updates the pinned SHA-256 in `apps/mobile/android/build.gradle`.
+6. Candidate R1.4 cells only: adds the `com.viro.openxr.*` meta-data to the flavor manifest (`SCALE` → `eyeBufferScale`, `FOVEATION` → `foveationLevel` plus `foveationDynamic=true`, `REFRESH` → `displayRefreshRate`). These are the keys the viro config plugin writes from `android.openxr` (viro `plugins/util/openxrRenderQuality.ts`) and that virocore reads (`OpenXRRenderQualityManifest.java`). The app commits `android/` and has no prebuild step, so the script writes them directly. With none set, no key is written and the renderer's defaults apply: Candidate 1.3, LOW dynamic, no refresh request (`OpenXRRenderQuality.java`). Baseline refuses these variables; its renderer has no such keys.
+7. Deletes old APK outputs, then runs `./gradlew :app:assemble{Quest,Pico}Release -x :app:lintVitalAnalyze{Quest,Pico}Release --no-daemon` for arm64-v8a and records the real exit code. Lint vital is skipped because the react_viro shim's AGP 8.12 guard disables every `bundle*Aar` task, including `bundle<Variant>LocalLintAar`, so lint fails on a missing `local_aar_for_lint/out.aar`. The guard is the same at viro `99b1d87c` and in the app's vendored `3.0.1-moyo.1`; it is a viro bug to fix there. Lint does not change the APK.
+8. Verifies the APK. The GNU build ID of `lib/arm64-v8a/libviro_renderer.so` must equal the build ID of the `.so` in the renderer AAR it just built. The `Eye %u: recommended` format string must be present in Candidate and absent in Baseline. The merged manifest (`aapt2 dump xmltree`) must carry exactly the cell's `com.viro.openxr.*` keys and values, and none for a default cell.
+9. Copies the APK to `$WORK_DIR/out/<stack>-<flavor>-s<scale>-<fov>[-hi].apk` and writes its entry in `$WORK_DIR/out/manifest.json`: every SHA, the render-quality meta-data, the renderer AAR SHA-256, the AAR and APK `.so` SHA-256 and build IDs, the bridge AAR SHA-256, the APK SHA-256, Gradle time and tool versions. Logs go to `$WORK_DIR/out/logs/<name>/`.
+10. Deletes `$WORK_DIR/<stack>/` (every clone and build dir) once the APK is verified, unless `KEEP_SOURCES=1`. Only `out/` stays on disk. A failed build keeps its clones for debugging.
+
+Known risks the script cannot settle:
+
+- The app commit was written against react-viro `3.0.1-moyo.1`; Baseline viro is `3.0.2-moyo.2` and Candidate is `3.0.3-moyo.1`. The overlay keeps the app's lockfile, so any new dependency those versions need is missing. A JS bundle error at launch is a finding for the build plan, not for #112.
+- Baseline pairs the viro fork's committed `react_viro-release.aar` at `99b1d87c` with a renderer built from virocore `f5c2a728`. A JNI mismatch shows up as `UnsatisfiedLinkError` at launch.
+- `MIN_FREE_GB=30` is a margin, not a measured footprint. Measured on 2026-10-25: one stack with one app clone built is 24 GiB under `$WORK_DIR/<stack>/`; a cold app release build takes about 49 minutes, an incremental one about 1 minute.
+
+### Builds, 2026-10-25
+
+All four default cells built and verified on 2026-10-25/26 with the script at `33075b7`. Files are in `~/viro-device-builds/out/`; every SHA, tool version and hash is in `out/manifest.json`. After each stack's last cell the script deleted that stack's clones and build dirs (baseline 38 GiB, candidate 38 GiB), so only `out/` is on disk.
+
+| APK | APK sha256 | `libviro_renderer.so` GNU build ID (APK = AAR) | Eye-buffer string | `com.viro.openxr.*` keys |
+| --- | --- | --- | --- | --- |
+| `baseline-quest-s1.0-MEDIUM.apk` | `b4362ae4e9f066f05b2484b34c4db2420fce689a9c8833f4daa5f291ab8d13c8` | `c6195daf3de6ebfc5351c5f81bce02d3b8fce44f` | absent | none |
+| `baseline-pico-s1.0-MEDIUM.apk` | `a8364f56fa125380a1f40918ea375ada701a857509d785400f0ced0aa496b92b` | `c6195daf3de6ebfc5351c5f81bce02d3b8fce44f` | absent | none |
+| `candidate-quest-s1.3-LOW.apk` | `c6120c684a995c159e882025efd39a5a1306a0329a01d6847522ce0109fe85de` | `6ecf0100a05b57621fe456dbcb4570630643cd26` | present | none (renderer defaults: 1.3, LOW dynamic, no refresh request) |
+| `candidate-pico-s1.3-LOW.apk` | `6cfe8d830c909b897d17f3e1c3a4a78dab288f9b3c9e7068cec18e607a71c647` | `6ecf0100a05b57621fe456dbcb4570630643cd26` | present | none (as above) |
+
+Renderer AAR sha256: Baseline `c691cabf…8835f`, Candidate `a03fee59…017a9d5`. react_viro bridge AAR sha256: Baseline `2957c73b…290ab1`, Candidate `c3b4defc…cfa959d`. Candidate rive-runtime `8b3ca41b12bfd8ac9454444102c1fb130b3e7e11`. All four are signed with the app's committed debug keystore.
+
+Cold app release build: 38 to 49 minutes per flavor; the virocore renderer: 3.5 minutes (Baseline), 5.5 minutes with rive-runtime (Candidate).
+
+Problems found and fixed in the script on the way (commits `4a441d9`, `33075b7`): the global pnpm 12.8.1 tool copy was broken; lint vital fails on the react_viro shim (a viro bug, see step 7); the eye-buffer check reported a present string as absent under `pipefail`; the manifest check misread aapt2's `(Raw: ...)` suffix.
+
+### Round 1 rebuild, 2026-10-26
+
+The four APKs above are void. All four crash at launch: `ReactNativeJS` logs `API_URL: neither NEXT_PUBLIC_APP_URL nor EXPO_PUBLIC_APP_URL is set`, then `TypeError: Cannot read property 'ErrorBoundary' of undefined`. The app's `apps/mobile/.env` is git-ignored, so the clone at `9411dc81` had none and Expo inlined no app URL. `out/manifest.json` marks the three that have not been rebuilt `"knownBroken": "no app URL in bundle"`; do not install them.
+
+The PICO 4 Ultra also showed two MoyoLearn tiles. The second was `.VRActivity`, whose intent-filter answered `MAIN` with `com.oculus.intent.category.VR`, `com.pico.intent.category.VR`, `com.picovr.intent.category.VR` and `org.khronos.openxr.intent.category.IMMERSIVE_HMD`.
+
+Fixes:
+
+- `build-stack.sh` (`3e365e6`) copies `APP_ENV_FILE` (default: `$APP_REPO/apps/mobile/.env`) into the app clone and, after the build, greps the APK's `assets/index.android.bundle` for the origin read from that file. A bundle without it deletes the APK and fails the build. Neither the file nor the value is printed; `out/manifest.json` records `bundleAppUrl`. Checked against the void Round 1 Baseline PICO APK: `absent`.
+- MoyoLearn `0e9a1693` on `9411dc81`: both committed manifests drop the filter from `.VRActivity`, and `plugins/with-viro-android-linkage.js` strips every filter from it at prebuild instead of adding PICO categories. `VRActivity` is `exported="false"` and starts only by explicit intent from Viro's `VRLauncher`.
+
+Whether PICO needs the categories was decided on the headset (PICO 4 Ultra, OS 5.15.7), not assumed. With no filter, `VRActivity` started by explicit intent, PICO classified it as immersive, and its session reached FOCUSED and submitted frames:
+
+```
+ActivityTaskManager: START u0 {flg=0x10000000 cmp=com.moyolearn.app/.VRActivity} with LAUNCH_SINGLE_TASK from uid 10145 (BAL_ALLOW_VISIBLE_WINDOW) result code=0
+SYSTEM_EXT: updateSubType id [3], subtype [10] top app : ComponentInfo{com.moyolearn.app/com.moyolearn.app.VRActivity}
+xrt_session: oxr_session_manage_state, client: com.moyolearn.app, action=7, state=XR_SESSION_STATE_FOCUSED
+PxrCompositor: report openxr action = Session_info message = {..."begin_frame_count":3,"end_frame_count":3,"eyebuf_h":1920,"eyebuf_w":1920,...}
+```
+
+A control APK (the same APK with the original `MAIN` + four-category filter put back by apktool and re-signed with the app's debug key) behaved the same way: FOCUSED, `begin_frame_count` 6. In both runs the session then dropped to STOPPING within about 200 ms because nobody was wearing the headset and no boundary was set (`sys.pxr.boundary.ready=0`), so PICO's BoundaryService opened `com.pvr.seethrough.setting` over the app (`isBoundaryStateReady() is false`). That is environmental and independent of the filter. A sustained immersive session needs the headset worn with a boundary set.
+
+| APK | APK sha256 | `libviro_renderer.so` GNU build ID (APK = AAR) | Bundle app URL |
+| --- | --- | --- | --- |
+| `baseline-pico-s1.0-MEDIUM.apk` (app `0e9a1693`) | `831af9f054b2419aedc2fc388bc36ca0826a75523a43e3394d74253526b77500` | `c6195daf3de6ebfc5351c5f81bce02d3b8fce44f` | present |
+
+Verified on the PICO 4 Ultra with that APK installed by `install.sh --clean` (on-device sha256 matches):
+
+- `cmd package query-activities -a android.intent.action.MAIN` lists only `com.moyolearn.app.MainActivity` (the control lists `VRActivity` too).
+- `am start -W -n com.moyolearn.app/.MainActivity`: `Running "main"`, no `API_URL` or ErrorBoundary error, and the Today screen renders over passthrough. The one JS error is VisionCamera finding 0 cameras (`CameraUnavailableException ... Available cameras: 0`), which does not stop the app.
+- The Library (`com.pvr.appmanager/.AllAppActivity`) view tree from `uiautomator dump` has one `Moyo` tile among 18 apps.
+- `PERF_TUNER_OFF=yes scripts/device/check-overrides.sh`: `RESULT clean`, exit 0.
+
+Captures are in `~/viro-device-runs/r1-pico/`: `launch-2d.png`, `immersive-nofilter.png`, `library.png`, `library-uiautomator.xml`, `launch-2d.log`, `immersive-nofilter.log`, `immersive-control-filter.log`, `check-overrides.txt`. `screencap` shows black while the headset sleeps (proximity sensor off); send `input keyevent KEYCODE_WAKEUP` first.
+
+**Candidate PICO is not rebuilt.** The Baseline clones (`~/viro-device-builds/baseline`, 23 GiB) were kept with `KEEP_SOURCES=1` in case a manifest variant was needed, and their deletion was refused by the agent permission check. With 18 GiB free the script's 30 GiB floor stops the Candidate build. Delete that directory, then run `scripts/device/build-stack.sh candidate pico`; the default `APP_SHA` is now `0e9a1693`. Quest APKs are rebuilt later; Quest needs its own check that `VRActivity` still reaches an immersive session with no filter.
+
+**R1.4 Candidate variant cells are not built.** `s1.0-LOW` and `s1.3-MEDIUM` for Quest were built once but failed the manifest check because of the parser bug above, and were deleted unverified. With the clones gone, each further variant needs a fresh Candidate quest stack (about 24 GiB, about 45 minutes cold), and the disk had 36 GiB free after cleanup, so the 30 GiB floor allows one cell at most. Build them in one run once more disk is free:
+
+```sh
+for c in "1.0 low" "1.3 medium" "1.0 medium"; do set -- $c
+  KEEP_SOURCES=1 SCALE=$1 FOVEATION=$2 scripts/device/build-stack.sh candidate quest
+  KEEP_SOURCES=1 SCALE=$1 FOVEATION=$2 REFRESH=highest scripts/device/build-stack.sh candidate quest
+done
+REFRESH=highest scripts/device/build-stack.sh candidate quest   # s1.3-LOW-hi; last cell, cleans up
+```
+
+## 4. Capture scripts
+
+| Script | What it does |
+| --- | --- |
+| `install.sh <apk> [--clean]` | `adb install -r` (or uninstall first with `--clean`), refuses a `mobile` APK or a flavor/headset mismatch, records OS and runtime properties and package versions, and checks the on-device APK SHA-256 against the local file |
+| `check-overrides.sh [file]` | Exit 0 clean, 1 override active (run void), 2 PICO Performance Tuner unconfirmed, 3 setup error |
+| `capture-start.sh <label>` | Override check, device identity, full logcat, OVR Metrics CSV on Quest, a memory/thermal sampler, optional Perfetto (`PERFETTO=1`) |
+| `capture-stop.sh` | Stops everything, pulls the OVR Metrics CSV and the trace, and extracts the eye-buffer, refresh-rate, Rive, compositor, whiteboard and crash lines |
+| `perfetto-vr.pbtx` | Perfetto config: sched, CPU and GPU frequency, thermal, atrace `gfx`/`view`, process and memory stats, `gpu.renderstages`, `gpu.counters` |
+
+Runs land in `~/viro-device-runs/<UTC stamp>-<label>/`. Captures are not committed; link them from the matrix by run directory name.
+
+### OS and runtime identity
+
+| Device | Property or source | Status |
+| --- | --- | --- |
+| Quest | `ro.vros.build.version` | Documented on Meta's native SDK project setup page (developers.meta.com/vr/documentation/native/metavr-os-nsdk/metavr-os-nsdk-project-setup/). Output format not confirmed on a headset |
+| Both | `ro.build.fingerprint`, `ro.build.version.incremental`, `ro.build.display.id` | Stock Android; recorded as printed |
+| PICO | `ro.pvr.internal.version` | From the legacy PICO ADB guide (Neo 3 era, sdk.picovr.com/docs/ADBCommand/chapter_two.html). Not confirmed on PICO 4 Ultra |
+| Both | `versionName` of every package matching `openxr`, `runtime`, `systemdriver`, `vrdriver`, `vrshell`, `pxr`, `pvr` | Recorded by `install.sh`; which package is the OpenXR runtime is read off the list on the first session |
+
+### Overrides that void a run
+
+- Quest, read with `getprop`: `debug.oculus.refreshRate`, `textureWidth`, `textureHeight`, `cpuLevel`, `gpuLevel`, `foveation.dynamic` (Meta, "System properties", developers.meta.com/horizon/documentation/spatial-sdk/ts-systemproperties/), and `foveation.level`, `foveation.subsampled`, `gfr.mode`, `dynResScaler`, `forceSpaceWarp`, `swapInterval`, `eyeFov*` (Meta, MQDH media and VrRuntime debugging table, developers.meta.com/horizon/documentation/unity/ts-mqdh-media/). Meta: "Changes to system properties do not persist over reboots." Reboot before a session to start clean.
+- PICO: the Performance Tuner (Settings > Developer, PICO 4 Ultra OS 5.13.0 and later) sets refresh rate, eye-buffer resolution, CPU and GPU level and FFR per app (PICO community release notes and newsroom; no developer doc page found). No property exposes its state, so Mike confirms by hand that the app has no profile and the script records `PERF_TUNER_OFF=yes`. The legacy `persist.pvr.config.target_fps` and `eyebuffer_width/height` properties are checked too.
+- Third-party optimizers on Quest (for example SideQuest tools) work through the same `debug.oculus.*` properties, so the property check covers them.
+
+## 5. Refresh-rate request
+
+Mike approved a request API ("finish all remaining"). Candidate now has one; Baseline does not.
+
+- virocore #112 (`fix/moyo-right-eye-depth-clear` at `e55b4894`, and #113 `feat/compositor-panel-jni` at `79f9fd89` on top of it) adds an opt-in request through `XR_FB_display_refresh_rate`. The viro config plugin (#69 `upgrade/viro-3.0.3` at `3299e4ea`) takes `android.openxr.displayRefreshRate: "highest" | <Hz>` and writes the manifest key `com.viro.openxr.displayRefreshRate`. Without the option, ViroCore never calls `xrRequestDisplayRefreshRateFB`, so every "default" cell stays at the runtime default.
+- With `"highest"`, the renderer requests the highest rate from `xrEnumerateDisplayRefreshRatesFB` after each `xrBeginSession` and logs one line per request, plus a second line when the runtime confirms the switch:
+  ```
+  [XR-QUALITY] display refresh rate: requested highest, chosen 120.00 Hz, current 72.00 Hz, xrRequestDisplayRefreshRateFB result=0
+  [XR-QUALITY] display refresh rate changed: 72.00 Hz -> 120.00 Hz
+  ```
+  The spec makes the request a hint, so `current` can still show the old rate on the first line. The rate the cell actually ran at is the `changed` line plus OVR Metrics `DRR` (PICO HUD `DRR`).
+- No setprop or Performance Tuner profile is involved, so §4's override checks still hold and a "highest" run is not voided.
+- The setting is baked in at prebuild, so each "highest" cell needs its own Candidate APK built with `openxr: { displayRefreshRate: "highest" }` next to the eye-buffer and foveation options for that cell.
+
+Baseline is pinned to virocore `f5c2a728`, which has no request API. The text below describes both pinned stacks as they were before the change; it still applies to Baseline.
+
+Before the change, ViroCore had no way to request a refresh rate. At both `f5c2a728` (`VROSceneRendererOpenXR.cpp:1149-1178`) and `b73d919` (`:1172-1201`) it loads `xrEnumerateDisplayRefreshRatesFB` and `xrGetDisplayRefreshRateFB` only, with the comment "Read-only: enumerate + current. Never xrRequestDisplayRefreshRateFB". It logs every available rate (`[XR-DIAG] display refresh rate: %.2f Hz`) and the current one (`... current: %.2f Hz`), so the runtime default and the highest available rate are recorded on every run without a request.
+
+Consequences for R1.4 (updated for the request API):
+
+- Every "default" cell runs at the runtime default rate. Meta lists 72 Hz as the default for `debug.oculus.refreshRate` and 72, 80, 90 and 120 Hz as the Quest 3S rates (System properties page above). PICO 4 Ultra's rates are read from the `[XR-DIAG]` lines on the first session.
+- The Candidate "highest available" cells run with `displayRefreshRate: "highest"` and are no longer blocked.
+- The Baseline "highest available" cells cannot run without an override: `f5c2a728` cannot request a rate, and `debug.oculus.refreshRate` (Quest) or the Performance Tuner (PICO) void a run under §4. They are marked "n/a (Baseline has no request API)". At the highest rate, Candidate is compared against Candidate at the default rate, not against Baseline.
+
+## 6. Round 1: flags off (`nativeBoard` and `nativeRive` off)
+
+Columns for every row: SHAs (virocore / viro / viro-external / app), device, OS/runtime, refresh, eye-buffer scale, foveation, build mode, workload, duration, numbers, capture links. For Candidate, "refresh" records the requested and chosen rate from the `[XR-QUALITY] display refresh rate: requested X, chosen Y, current Z, ... result=R` line, the result code, and the rate from the `changed` line. A run with no `[XR-QUALITY]` line made no request and is a "default" run. `capture-stop.sh` extracts only the `[XR-DIAG]` rates into `refresh-rate.txt`, so read the request lines with `grep -E 'XR-QUALITY\] display refresh rate' <run>/logcat.txt`. "Scale" and "foveation" are what the eye-buffer log line and OVR Metrics `EB W`/`EB H`/`FOV` (PICO HUD `EBW`/`EBH`/`FRL`) report, not what the build intended.
+
+### Workload sources in MoyoLearn `a6afe659`
+
+| Row | Workload | Status |
+| --- | --- | --- |
+| R1.1 | Three scenes: `moyo://xr-layout-probe` (stacked-quad panels, `packages/ui/xr`), `moyo://xr-question-probe` (`ViroRivePanel` question panel), `moyo://rive-panel-probe` (`ViroRivePanel`, an external surface per #112 commit `52b3773`). The tutor XR screen (`packages/app/features/tutor/tutor-xr-screen.native.tsx`) is the alternative if a probe does not enter the immersive scene | Routes exist; whether each opens the immersive scene is confirmed on the first session |
+| R1.2 | A clip with a near-black ramp, mid-grey and skin tones | **Blocked**: no `ViroVideo` scene in MoyoLearn and no test clip. Needs an app-side probe route and a clip, built identically for both stacks |
+| R1.3 | A panel at 0.9 opacity with anti-aliased text over passthrough | `rive-panel-probe` takes an `opacity` prop that drives `uiOpacity` (`apps/mobile/src/native-3d/rive-panel-probe.tsx:15,56`); whether the route can set 0.9 without a code change is confirmed on the first session |
+| R1.4 | The R1.1 scene with the heaviest GPU load, chosen on the first session and kept for every cell | Ready once APKs exist |
+| R1.5 | 1, 2 and 4 simultaneous video or external surfaces | **Blocked**: needs a probe that mounts N `ViroRivePanel`s or videos; same app-change decision as R1.2 |
+| R1.6 | Any R1.1 scene, 10 cycles of background/resume and headset off/on | Ready once APKs exist |
+
+### R1.1 to R1.3, R1.5, R1.6
+
+| Row | Stack | Device | SHAs (vc / viro / vx / app) | OS/runtime | Refresh | Scale | Foveation | Build | Workload | Duration | Numbers | Captures | Result |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| R1.1 Existing scenes | Baseline | Quest 3S | f5c2a728 / 99b1d87c / bbd4c617 / 0e9a1693 | not yet run | default | not yet run | not yet run | questRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
+| R1.1 Existing scenes | Candidate | Quest 3S | 79f9fd89 / 98babbc1 / 4dc2775d / 0e9a1693 | not yet run | default | not yet run | not yet run | questRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
+| R1.1 Existing scenes | Baseline | PICO 4 Ultra | f5c2a728 / 99b1d87c / bbd4c617 / 0e9a1693 | not yet run | default | not yet run | not yet run | picoRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
+| R1.1 Existing scenes | Candidate | PICO 4 Ultra | 79f9fd89 / 98babbc1 / 4dc2775d / 0e9a1693 | not yet run | default | not yet run | not yet run | picoRelease | 3 scenes | not yet run | n/a | not yet run | not yet run |
+| R1.2 Video | Baseline | Quest 3S | as R1.1 | not yet run | default | not yet run | not yet run | questRelease | clip (blocked) | not yet run | lifted/crushed blacks: not yet run | not yet run | not yet run |
+| R1.2 Video | Candidate | Quest 3S | as R1.1 | not yet run | default | not yet run | not yet run | questRelease | clip (blocked) | not yet run | lifted/crushed blacks: not yet run | not yet run | not yet run |
+| R1.2 Video | Baseline | PICO 4 Ultra | as R1.1 | not yet run | default | not yet run | not yet run | picoRelease | clip (blocked) | not yet run | lifted/crushed blacks: not yet run | not yet run | not yet run |
+| R1.2 Video | Candidate | PICO 4 Ultra | as R1.1 | not yet run | default | not yet run | not yet run | picoRelease | clip (blocked) | not yet run | lifted/crushed blacks: not yet run | not yet run | not yet run |
+| R1.3 Passthrough | Baseline | Quest 3S | as R1.1 | not yet run | default | not yet run | not yet run | questRelease | 0.9 panel + AA text | not yet run | panel strength, edge quality: not yet run | not yet run | not yet run |
+| R1.3 Passthrough | Candidate | Quest 3S | as R1.1 | not yet run | default | not yet run | not yet run | questRelease | 0.9 panel + AA text | not yet run | panel strength, edge quality: not yet run | not yet run | not yet run |
+| R1.3 Passthrough | Baseline | PICO 4 Ultra | as R1.1 | not yet run | default | not yet run | not yet run | picoRelease | 0.9 panel + AA text | not yet run | panel strength, edge quality: not yet run | not yet run | not yet run |
+| R1.3 Passthrough | Candidate | PICO 4 Ultra | as R1.1 | not yet run | default | not yet run | not yet run | picoRelease | 0.9 panel + AA text | not yet run | panel strength, edge quality: not yet run | not yet run | not yet run |
+| R1.5 Memory, 1/2/4 surfaces | Baseline | Quest 3S | as R1.1 | not yet run | default | not yet run | not yet run | questRelease | N surfaces (blocked) | not yet run | RSS, MemAvailable: not yet run | not yet run | not yet run |
+| R1.5 Memory, 1/2/4 surfaces | Candidate | Quest 3S | as R1.1 | not yet run | default | not yet run | not yet run | questRelease | N surfaces (blocked) | not yet run | RSS, MemAvailable: not yet run | not yet run | not yet run |
+| R1.5 Memory, 1/2/4 surfaces | Baseline | PICO 4 Ultra | as R1.1 | not yet run | default | not yet run | not yet run | picoRelease | N surfaces (blocked) | not yet run | RSS, MemAvailable: not yet run | not yet run | not yet run |
+| R1.5 Memory, 1/2/4 surfaces | Candidate | PICO 4 Ultra | as R1.1 | not yet run | default | not yet run | not yet run | picoRelease | N surfaces (blocked) | not yet run | RSS, MemAvailable: not yet run | not yet run | not yet run |
+| R1.6 Lifecycle, 10 cycles | Baseline | Quest 3S | as R1.1 | not yet run | default | not yet run | not yet run | questRelease | bg/resume + off/on | not yet run | crashes, RSS growth: not yet run | not yet run | not yet run |
+| R1.6 Lifecycle, 10 cycles | Candidate | Quest 3S | as R1.1 | not yet run | default | not yet run | not yet run | questRelease | bg/resume + off/on | not yet run | crashes, RSS growth: not yet run | not yet run | not yet run |
+| R1.6 Lifecycle, 10 cycles | Baseline | PICO 4 Ultra | as R1.1 | not yet run | default | not yet run | not yet run | picoRelease | bg/resume + off/on | not yet run | crashes, RSS growth: not yet run | not yet run | not yet run |
+| R1.6 Lifecycle, 10 cycles | Candidate | PICO 4 Ultra | as R1.1 | not yet run | default | not yet run | not yet run | picoRelease | bg/resume + off/on | not yet run | crashes, RSS growth: not yet run | not yet run | not yet run |
+
+### R1.4 Performance
+
+Each device at the runtime default refresh rate and the highest available, eye-buffer scale 1.0 vs 1.3, foveation LOW vs MEDIUM, 10-minute soak per cell. "default" cells set no `displayRefreshRate`. Candidate "highest" cells set `android.openxr.displayRefreshRate: "highest"` (§5). Each run records the requested rate, the chosen rate and the result code from the `[XR-QUALITY]` line, and the rate from the `changed` line. Evidence: p50/p95 APP T, GPU U, stale frames, FPS, thermal behaviour, logged eye-buffer sizes. Numbers go in [PERFORMANCE.md](PERFORMANCE.md); this table tracks which cells ran.
+
+Baseline has no scale or foveation setting: it always renders at scale 1.0 with MEDIUM dynamic foveation. Candidate is fixed at 1.3 with LOW dynamic foveation until the §6.2 render-quality setting lands; until then only the "1.3 / LOW" Candidate cells can run. The viro bridge has no JS foveation API at `fa238896` (no `setFoveation` in `android/viro_bridge` or `components`), and virocore's `Renderer.setFoveationLevel` (`Renderer.java:215`, `b73d919`) has no caller from the app.
+
+| Device | Refresh | Stack | Scale | Foveation | Soak | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| Quest 3S | default | Baseline | 1.0 | MEDIUM dyn | 10 min | not yet run |
+| Quest 3S | default | Candidate | 1.0 | LOW dyn | 10 min | not yet run (needs §6.2) |
+| Quest 3S | default | Candidate | 1.0 | MEDIUM dyn | 10 min | not yet run (needs §6.2) |
+| Quest 3S | default | Candidate | 1.3 | LOW dyn | 10 min | not yet run |
+| Quest 3S | default | Candidate | 1.3 | MEDIUM dyn | 10 min | not yet run (needs §6.2) |
+| Quest 3S | highest | Baseline | 1.0 | MEDIUM dyn | 10 min | n/a (Baseline has no request API, §5) |
+| Quest 3S | highest | Candidate | 1.0 | LOW dyn | 10 min | not yet run (`displayRefreshRate: "highest"`; needs §6.2) |
+| Quest 3S | highest | Candidate | 1.0 | MEDIUM dyn | 10 min | not yet run (`displayRefreshRate: "highest"`; needs §6.2) |
+| Quest 3S | highest | Candidate | 1.3 | LOW dyn | 10 min | not yet run (`displayRefreshRate: "highest"`) |
+| Quest 3S | highest | Candidate | 1.3 | MEDIUM dyn | 10 min | not yet run (`displayRefreshRate: "highest"`; needs §6.2) |
+| PICO 4 Ultra | default | Baseline | 1.0 | MEDIUM dyn | 10 min | not yet run |
+| PICO 4 Ultra | default | Candidate | 1.0 | LOW dyn | 10 min | not yet run (needs §6.2) |
+| PICO 4 Ultra | default | Candidate | 1.0 | MEDIUM dyn | 10 min | not yet run (needs §6.2) |
+| PICO 4 Ultra | default | Candidate | 1.3 | LOW dyn | 10 min | not yet run |
+| PICO 4 Ultra | default | Candidate | 1.3 | MEDIUM dyn | 10 min | not yet run (needs §6.2) |
+| PICO 4 Ultra | highest | Baseline | 1.0 | MEDIUM dyn | 10 min | n/a (Baseline has no request API, §5) |
+| PICO 4 Ultra | highest | Candidate | 1.0 | LOW dyn | 10 min | not yet run (`displayRefreshRate: "highest"`; needs §6.2) |
+| PICO 4 Ultra | highest | Candidate | 1.0 | MEDIUM dyn | 10 min | not yet run (`displayRefreshRate: "highest"`; needs §6.2) |
+| PICO 4 Ultra | highest | Candidate | 1.3 | LOW dyn | 10 min | not yet run (`displayRefreshRate: "highest"`) |
+| PICO 4 Ultra | highest | Candidate | 1.3 | MEDIUM dyn | 10 min | not yet run (`displayRefreshRate: "highest"`; needs §6.2) |
+
+## 7. Round 2: flags on (`nativeBoard` and `nativeRive` on)
+
+Round 2 follows [`docs/DEVICE_VALIDATION.md`](../DEVICE_VALIDATION.md) as written (rows W1-W9, R1-R11, C1-C2, X1-X9, panel sizing), on Candidate only, Quest 3S and PICO 4 Ultra.
+
+Round 2 cannot run on MoyoLearn `a6afe659` as it stands: the app does not depend on `@viro-external/native-panels` or `@viro-external/spatial-panels`, so neither flag exists in the build. Round 2 needs an app commit that adds them; that is a second consumer-app commit and is recorded as such in every Round 2 row.
+
+| Row | Source | Covers prompt bullet | Quest 3S | PICO 4 Ultra | Gap found while preparing |
+| --- | --- | --- | --- | --- | --- |
+| W1-W9 Whiteboard | DEVICE_VALIDATION §4.1 | ink latency (where instrumented), local and remote edits on one document | not yet run | not yet run | §4.1 has no remote-edit row; add a run where a second client edits the same document while Mike draws. Ink latency has no instrumentation in the source read here; record "not instrumented" rather than a number |
+| R1-R11 Native Rive | DEVICE_VALIDATION §4.2 | Rive mid-grey and 50%-alpha swatch over passthrough matching the Rive editor, no corner halo (R2) | not yet run | not yet run | Capture the same `.riv` open in the Rive editor beside the headset capture |
+| R3 Rive rendering mode | DEVICE_VALIDATION §4.2 R3 | the Rive rendering mode logged on each headset | not yet run | not yet run | **No log line at `b73d919` prints the Rive mode.** The Rive-side lines are `EGL ready…` (`VRORivePanelEGL.cpp:194`) and `finish pass ready: %s output…` (`VROOpenXRRivePanelProducer.cpp:69`); neither names interlock, atomic, MSAA or clockwise. R3 cannot pass until a log of the selected mode is added |
+| C1-C2 Corners | DEVICE_VALIDATION §4.3 | identical corners on quad, cylinder, canvas panel and scene fallback; pointer hits in transparent corners ignored | not yet run | not yet run | C1 covers quad, cylinder and scene panel; add the canvas panel (viro #70) to the same side-by-side. Corner hits are W3 and R6 |
+| X5 Eviction | DEVICE_VALIDATION §4.4 | forced layer-budget eviction falling back with identical pixels and corners | not yet run | not yet run | `[XR-PANEL] compositor maxLayers=%u` (`VROSceneRendererOpenXR.cpp:538`) gives the budget; `compositor panel %s: %s (%s)` (`:1819`) logs each presentation change |
+| X6, X8, R7 Lifecycle | DEVICE_VALIDATION §4.4, §4.2 | session STOPPING, app reload and background/resume with swapchain and surface counts back to baseline | not yet run | not yet run | X6 says the swapchain-count log does not exist yet; it is still missing at `b73d919`. Without it, counts come from Perfetto or `dumpsys`, not a log line |
+
+## 8. Gates and open decisions for Mike
+
+1. Builds: see §3 "Builds, 2026-10-25" for which APKs exist.
+2. Refresh-rate cells: the request API is approved and in Candidate (§5). Candidate "highest" cells need one Candidate APK per cell built with `displayRefreshRate: "highest"`. Baseline "highest" cells stay n/a unless Mike approves a labelled override run.
+3. R1.2 and R1.5 need an app-side probe route and a test clip, added in one app commit used by both stacks.
+4. Round 2 needs an app commit that adds `@viro-external/native-panels` and `@viro-external/spatial-panels`.
+5. R3 needs a Rive-mode log line in virocore before it can pass.
