@@ -31,8 +31,9 @@
 # Environment (all optional):
 #   WORK_DIR            scratch root (default: $HOME/viro-device-builds)
 #   APP_REPO            MoyoLearn clone to clone from (default: $HOME/MoyoLearn)
-#   APP_SHA             consumer-app commit (default: edad9fd5, the one-tile
-#                       branch plus the spatial menu layout, branch
+#   APP_SHA             consumer-app commit (default: 18a8aed1, the one-tile
+#                       branch plus the spatial menu layout and the PICO
+#                       rail-panel fixes, branch
 #                       chore/device-validation-spatial-layout, PR #128)
 #   VIROCORE_REPO / VIRO_REPO / VIRO_EXTERNAL_REPO   local clones to clone from
 #   VIROCORE_SHA / VIRO_SHA / VIRO_EXTERNAL_SHA      override the stack's SHAs
@@ -58,7 +59,7 @@ else
   : "${VIRO_SHA:=98babbc1dc8b4e1357a6ab9283691025b2a3413c}"          # viro #70 feat/canvas-surfaces-registry
   : "${VIRO_EXTERNAL_SHA:=4dc2775d3a07a3f9267b9e8db201fe3edda51287}" # viro-external #73
 fi
-: "${APP_SHA:=edad9fd596dfe63eb8c265bb1069afc19fd4f353}"
+: "${APP_SHA:=18a8aed163506d109fa296d804798b7e97ff118e}"
 : "${WORK_DIR:=$HOME/viro-device-builds}"
 : "${APP_REPO:=$HOME/MoyoLearn}"
 : "${VIROCORE_REPO:=$HOME/virocore}"
