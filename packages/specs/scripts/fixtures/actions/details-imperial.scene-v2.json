@@ -47,7 +47,7 @@
       "kind": "text",
       "text": "Planetarium",
       "style": {
-        "fontSize": 28,
+        "fontSize": 140,
         "fontWeight": "bold",
         "color": "#f2f2f2"
       },
@@ -67,7 +67,7 @@
       "kind": "text",
       "text": "394 ft away",
       "style": {
-        "fontSize": 22,
+        "fontSize": 120,
         "color": "#d0d0d0"
       },
       "extents": {
@@ -77,6 +77,7 @@
     },
     {
       "id": "units-toggle",
+      "label": "Show distance in meters",
       "parentId": "flow-root",
       "position": [
         0,
@@ -86,7 +87,7 @@
       "kind": "text",
       "text": "Show meters",
       "style": {
-        "fontSize": 20,
+        "fontSize": 120,
         "color": "#7aa2ff",
         "textAlign": "center"
       },
@@ -97,6 +98,7 @@
     },
     {
       "id": "back-button",
+      "label": "Back to exhibits",
       "parentId": "flow-root",
       "position": [
         0,
@@ -106,7 +108,7 @@
       "kind": "text",
       "text": "Back to exhibits",
       "style": {
-        "fontSize": 20,
+        "fontSize": 120,
         "color": "#7aa2ff",
         "textAlign": "center"
       },

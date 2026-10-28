@@ -16,7 +16,7 @@ function pinch(backend, scheduler, nodeId, source = "hand-right") {
 test("fixtures compiled by viro from SpecsActionsLab drive the same flow", () => {
   const dir = new URL("./fixtures/actions/", import.meta.url);
   const read = (name) => JSON.parse(readFileSync(new URL(name, dir), "utf8"));
-  // Copied from viro __test__/fixtures/specs/actions (feat/specs-actions 440f93b5).
+  // Copied from viro __test__/fixtures/specs/actions (feat/specs-integration-3 4405c577).
   // Regenerate there with `npm run fixtures:specs-actions` and copy the three files here.
   for (const name of ["list.scene-v2.json", "details.scene-v2.json", "details-imperial.scene-v2.json"]) {
     assert.ok(existsSync(new URL(name, dir)), name + " missing");
