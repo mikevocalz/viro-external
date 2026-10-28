@@ -19,9 +19,11 @@ export const VALIDATED_PACKAGES = {
   "AiPreviewAgentInteract.lspkg": "2.0.1",
 };
 
-/** @param {string} version */
+/** @param {string} version `MAJOR.MINOR.PATCH[-PRERELEASE]` */
 export function nativePackageDescriptor(version) {
-  const [major, minor, patch] = version.split(".");
+  const dash = version.indexOf("-", 1);
+  const [major, minor, patch] = (dash < 0 ? version : version.slice(0, dash)).split(".");
+  const prerelease = dash < 0 ? "" : version.slice(dash + 1);
   return [
     "- !<NativePackageDescriptor/18b4474d-abe9-4f6a-ba18-ddbbd71d8a64>",
     '  PackagePath: ""',
@@ -33,6 +35,7 @@ export function nativePackageDescriptor(version) {
     `  VersionMinor: ${minor}`,
     `  VersionPatch: ${patch}`,
     "  PackagePolicy: CanBeUnpackedTransparent",
+    `  VersionPrerelease: "${prerelease}"`,
     "  AssetLibraryDependencyStructure: !<AssetLibraryDependencyStructure>",
     "    Version:",
     "      major: -1",

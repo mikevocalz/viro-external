@@ -24,22 +24,17 @@ const syncScript = path.join(here, "sync-lens-runtime.mjs");
 const doctorScript = path.join(here, "doctor-lens-project.mjs");
 const promptSource = path.join(packageRoot, "doc", "CLADFinishPrompt.md");
 
-const doctor = spawnSync(
-  process.execPath,
-  [doctorScript, "--project", project],
-  { stdio: "inherit" }
-);
-if (doctor.status !== 0) {
-  process.exit(doctor.status ?? 1);
-}
-
-const sync = spawnSync(
-  process.execPath,
-  [syncScript, "--project", project],
-  { stdio: "inherit" }
-);
-if (sync.status !== 0) {
-  process.exit(sync.status ?? 1);
+// The Platform Lab runs LEAF scenarios and AiPreviewAgent checks, so it needs
+// the validation files and their packages. Check packages first, sync, then
+// check the synced runtime.
+const steps = [
+  [doctorScript, "--project", project, "--with-validation", "--before-sync"],
+  [syncScript, "--project", project, "--with-validation"],
+  [doctorScript, "--project", project, "--with-validation"],
+];
+for (const args of steps) {
+  const step = spawnSync(process.execPath, args, { stdio: "inherit" });
+  if (step.status !== 0) process.exit(step.status ?? 1);
 }
 
 const prompt = await readFile(promptSource, "utf8");

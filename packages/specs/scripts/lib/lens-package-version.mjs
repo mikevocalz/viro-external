@@ -28,9 +28,10 @@ const DESCRIPTOR_IN_ARCHIVE = "Package/Assets/package.native";
 export function parseSemver(text) {
   const match = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/.exec(text.trim());
   if (!match) return undefined;
-  const prerelease = match[4]
-    ? match[4].split(".").map((id) => (/^(0|[1-9]\d*)$/.test(id) ? Number(id) : id))
-    : [];
+  const ids = match[4] ? match[4].split(".") : [];
+  // Identifiers are non-empty; numeric ones have no leading zero.
+  if (ids.some((id) => id === "" || /^0\d+$/.test(id))) return undefined;
+  const prerelease = ids.map((id) => (/^(0|[1-9]\d*)$/.test(id) ? Number(id) : id));
   return { major: Number(match[1]), minor: Number(match[2]), patch: Number(match[3]), prerelease };
 }
 
@@ -68,7 +69,9 @@ export function compareSemver(a, b) {
 
 /**
  * Version fields of a NativePackageDescriptor (package.native) as a semver
- * string. Throws with the reason when the fields are absent or negative.
+ * string: VersionMajor.VersionMinor.VersionPatch, plus -VersionPrerelease
+ * when that field is non-empty. Throws with the reason when a numeric field
+ * is absent or negative, or the prerelease is not a valid semver identifier.
  * @param {string} descriptor
  */
 export function versionFromDescriptor(descriptor) {
@@ -83,7 +86,15 @@ export function versionFromDescriptor(descriptor) {
     if (value < 0) throw new Error("package.native has " + field + " " + value);
     return value;
   };
-  return [read("VersionMajor"), read("VersionMinor"), read("VersionPatch")].join(".");
+  const release = [read("VersionMajor"), read("VersionMinor"), read("VersionPatch")].join(".");
+  // Lens Studio writes `VersionPrerelease: ""` when there is none; older
+  // descriptors omit the field.
+  const prerelease = /^\s*VersionPrerelease:\s*(?:"([^"]*)"|'([^']*)'|(\S*))\s*$/m.exec(descriptor);
+  const tag = prerelease ? (prerelease[1] ?? prerelease[2] ?? prerelease[3] ?? "") : "";
+  if (!tag) return release;
+  const version = release + "-" + tag;
+  if (!parseSemver(version)) throw new Error("package.native has VersionPrerelease " + JSON.stringify(tag) + ", which is not a semver prerelease");
+  return version;
 }
 
 /**
