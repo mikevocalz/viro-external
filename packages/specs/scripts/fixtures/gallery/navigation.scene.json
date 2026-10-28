@@ -87,13 +87,13 @@
       "kind": "image",
       "parentId": "nav-card-1",
       "position": [
-        -0.06,
+        -0.085,
         0,
         0.003
       ],
       "extents": {
-        "width": 0.07,
-        "height": 0.05
+        "width": 0.04,
+        "height": 0.04
       },
       "source": "examples/visionos-sweep/assets/button.png",
       "component": {
@@ -124,13 +124,13 @@
       "kind": "image",
       "parentId": "nav-card-2",
       "position": [
-        -0.06,
+        -0.085,
         0,
         0.003
       ],
       "extents": {
-        "width": 0.07,
-        "height": 0.05
+        "width": 0.04,
+        "height": 0.04
       },
       "source": "examples/visionos-sweep/assets/button.png",
       "component": {
@@ -161,13 +161,13 @@
       "kind": "image",
       "parentId": "nav-card-3",
       "position": [
-        -0.06,
+        -0.085,
         0,
         0.003
       ],
       "extents": {
-        "width": 0.07,
-        "height": 0.05
+        "width": 0.04,
+        "height": 0.04
       },
       "source": "examples/visionos-sweep/assets/button.png",
       "component": {
@@ -198,13 +198,13 @@
       "kind": "image",
       "parentId": "nav-card-4",
       "position": [
-        -0.06,
+        -0.085,
         0,
         0.003
       ],
       "extents": {
-        "width": 0.07,
-        "height": 0.05
+        "width": 0.04,
+        "height": 0.04
       },
       "source": "examples/visionos-sweep/assets/button.png",
       "component": {
@@ -235,13 +235,13 @@
       "kind": "image",
       "parentId": "nav-card-5",
       "position": [
-        -0.06,
+        -0.085,
         0,
         0.003
       ],
       "extents": {
-        "width": 0.07,
-        "height": 0.05
+        "width": 0.04,
+        "height": 0.04
       },
       "source": "examples/visionos-sweep/assets/button.png",
       "component": {
@@ -272,13 +272,13 @@
       "kind": "image",
       "parentId": "nav-card-6",
       "position": [
-        -0.06,
+        -0.085,
         0,
         0.003
       ],
       "extents": {
-        "width": 0.07,
-        "height": 0.05
+        "width": 0.04,
+        "height": 0.04
       },
       "source": "examples/visionos-sweep/assets/button.png",
       "component": {
@@ -309,13 +309,13 @@
       "kind": "image",
       "parentId": "nav-card-7",
       "position": [
-        -0.06,
+        -0.085,
         0,
         0.003
       ],
       "extents": {
-        "width": 0.07,
-        "height": 0.05
+        "width": 0.04,
+        "height": 0.04
       },
       "source": "examples/visionos-sweep/assets/button.png",
       "component": {
@@ -346,13 +346,13 @@
       "kind": "image",
       "parentId": "nav-card-8",
       "position": [
-        -0.06,
+        -0.085,
         0,
         0.003
       ],
       "extents": {
-        "width": 0.07,
-        "height": 0.05
+        "width": 0.04,
+        "height": 0.04
       },
       "source": "examples/visionos-sweep/assets/button.png",
       "component": {
@@ -390,13 +390,13 @@
       "label": "Back",
       "parentId": "nav-detail",
       "position": [
-        -0.19,
+        -0.17,
         0.2,
         0.005
       ],
       "extents": {
-        "width": 0.20961752385933033,
-        "height": 0.08384700954373213
+        "width": 0.14,
+        "height": 0.0837163006058883
       },
       "component": {
         "state": "idle",
@@ -408,13 +408,13 @@
       "kind": "text",
       "parentId": "nav-detail",
       "position": [
-        0.04,
+        0.06,
         0.2,
         0.005
       ],
       "text": "Card 1",
       "style": {
-        "fontSize": 231.2,
+        "fontSize": 231.3,
         "fontWeight": "600",
         "color": "#eef2f0"
       },
@@ -431,12 +431,12 @@
       "parentId": "nav-detail",
       "position": [
         0,
-        0.08,
+        0.115,
         0.005
       ],
       "extents": {
-        "width": 0.2,
-        "height": 0.12
+        "width": 0.16,
+        "height": 0.09
       },
       "source": "examples/visionos-sweep/assets/button.png",
       "component": {
@@ -449,18 +449,18 @@
       "parentId": "nav-detail",
       "position": [
         0,
-        -0.05,
+        -0.03,
         0.005
       ],
       "text": "Change the setting below, then go back. The list keeps your place.",
       "style": {
-        "fontSize": 160.5,
+        "fontSize": 160.4,
         "fontWeight": "400",
         "color": "#eef2f0"
       },
       "extents": {
         "width": 0.46,
-        "height": 0.1
+        "height": 0.2
       },
       "maxLines": 4,
       "component": {
@@ -476,12 +476,12 @@
       "parentId": "nav-detail",
       "position": [
         0,
-        -0.17,
+        -0.19,
         0.005
       ],
       "extents": {
-        "width": 0.25368885441181377,
-        "height": 0.08298639096573233
+        "width": 0.2540919397164467,
+        "height": 0.08311824774265054
       },
       "component": {
         "state": "selected",

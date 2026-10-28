@@ -11,7 +11,7 @@
       ],
       "extents": {
         "width": 0.53,
-        "height": 0.42
+        "height": 0.5
       },
       "component": {
         "type": "spatial-panel"
@@ -23,12 +23,12 @@
       "parentId": "platform-lab-root",
       "position": [
         0,
-        0.15,
+        0.2,
         0.005
       ],
       "text": "Hello",
       "style": {
-        "fontSize": 230.2,
+        "fontSize": 231.1,
         "fontWeight": "600",
         "color": "#eef2f0"
       },
@@ -45,20 +45,20 @@
       "parentId": "platform-lab-root",
       "position": [
         0,
-        0.07,
+        0.09,
         0.005
       ],
       "text": "This scene runs the same Viro JSX as the phone.",
       "style": {
-        "fontSize": 160.5,
+        "fontSize": 160.7,
         "fontWeight": "400",
         "color": "#a9b6bf"
       },
       "extents": {
         "width": 0.46,
-        "height": 0.1
+        "height": 0.15
       },
-      "maxLines": 2,
+      "maxLines": 3,
       "component": {
         "role": "body",
         "tone": "muted",
@@ -72,7 +72,7 @@
       "parentId": "platform-lab-root",
       "position": [
         -0.2,
-        -0.05,
+        -0.08,
         0.005
       ],
       "scale": [
@@ -94,13 +94,13 @@
       "label": "Next scene",
       "parentId": "platform-lab-root",
       "position": [
-        0.15,
-        -0.16,
+        0.13,
+        -0.19,
         0.005
       ],
       "extents": {
-        "width": 0.23735620929717688,
-        "height": 0.08333754542998045
+        "width": 0.23761077750253867,
+        "height": 0.08342692623633134
       },
       "component": {
         "state": "idle",
