@@ -16,6 +16,17 @@ import {
   stepViroSpecsMove,
   stepViroSpecsScroll,
   unrenderedViroSpecsComponentFeatures,
+  estimateViroSpecsLines,
+  layoutViroSpecsButtonError,
+  layoutViroSpecsScrollButtons,
+  layoutViroSpecsModelReset,
+  layoutViroSpecsStatePanel,
+  viroSpecsAutoRotateDegrees,
+  viroSpecsDiscGeometry,
+  viroSpecsLoadingRing,
+  viroSpecsResetProgress,
+  viroSpecsRoundedRectGeometry,
+  VIRO_SPECS_AUTO_ROTATE_DEG_PER_SECOND,
 } from "../build/lens-core/ViroSpecsExperience.js";
 import { VIRO_SPECS_LENS_COPY, formatViroSpecsCopy } from "../build/lens-core/ViroSpecsExperienceCopy.js";
 import {
@@ -23,6 +34,7 @@ import {
   VIRO_SPECS_LENS_SPATIAL_TOKENS,
   VIRO_SPECS_LENS_TEXT_EM_METERS_PER_SIZE,
   resolveViroSpecsTokens,
+  viroSpecsAngleToMeters,
   viroSpecsMetersToAngle,
 } from "../build/lens-core/ViroSpecsExperienceTokens.js";
 import { ViroSpecsPlacementSession, classifyViroSpecsSurface } from "../build/lens-core/ViroSpecsPlacement.js";
@@ -726,16 +738,118 @@ test("Move closer never passes through the wearer, and a drag excursion reports 
   assert.equal(diagnostics.filter((d) => d.code === "VS5023").length, 2);
 });
 
-test("premium features the host does not draw yet are named for VS5025", () => {
+test("the host draws every premium feature, so VS5025 names none", () => {
+  const seen = new Set();
   for (const name of GALLERY) {
     for (const node of fixture(name).nodes) {
-      const missing = unrenderedViroSpecsComponentFeatures(node.component);
-      if (node.component?.type === "scroll-view") assert.deepEqual(missing, [], "scroll-view draws as a scroll group");
-      if (node.component?.type === "model-viewer") assert.ok(missing.includes("resettable (Reset model button)"));
-      if (["spatial-panel", "panel-text", "panel-button"].includes(node.component?.type)) assert.deepEqual(missing, []);
+      if (node.component) seen.add(node.component.type);
+      assert.deepEqual(unrenderedViroSpecsComponentFeatures(node.component), [], node.id);
     }
   }
+  for (const component of [
+    { type: "model-viewer", autoRotate: true, resettable: true },
+    { type: "panel-image" },
+    { type: "scroll-view", itemHeightMeters: 0.1, initialIndex: 0 },
+  ]) {
+    assert.deepEqual(unrenderedViroSpecsComponentFeatures(component), [], component.type);
+  }
+  assert.deepEqual([...seen].sort(), ["model-viewer", "panel-button", "panel-image", "panel-text", "scroll-view", "spatial-panel"]);
   assert.deepEqual(unrenderedViroSpecsComponentFeatures(undefined), []);
+});
+
+test("ModelViewer: autoRotate turns 18 degrees a second, never under reduced motion or while held", () => {
+  assert.equal(VIRO_SPECS_AUTO_ROTATE_DEG_PER_SECOND, 18);
+  assert.equal(viroSpecsAutoRotateDegrees(0.5, { reducedMotion: false, held: false }), 9);
+  assert.equal(viroSpecsAutoRotateDegrees(0.5, { reducedMotion: true, held: false }), 0);
+  assert.equal(viroSpecsAutoRotateDegrees(0.5, { reducedMotion: false, held: true }), 0);
+  assert.equal(viroSpecsAutoRotateDegrees(0, { reducedMotion: false, held: false }), 0);
+  assert.equal(viroSpecsAutoRotateDegrees(Number.NaN, { reducedMotion: false, held: false }), 0);
+});
+
+test("ModelViewer: Reset model sits under the model's bounds and eases back over motion.base", () => {
+  const t = VIRO_SPECS_LENS_SPATIAL_TOKENS;
+  const layout = layoutViroSpecsModelReset(t, { bottomMeters: -0.07 }, 1.5);
+  const gap = viroSpecsAngleToMeters(t.space.smDeg, 1.5);
+  // The button's top edge is space.sm under the bounds.
+  assert.ok(Math.abs(layout.y + layout.heightMeters / 2 - (-0.07 - gap)) < 1e-9);
+  assert.ok(layout.widthMeters > layout.heightMeters);
+  assert.equal(viroSpecsResetProgress(0, t, false), 0);
+  assert.ok(Math.abs(viroSpecsResetProgress(t.motion.baseMs / 2, t, false) - 0.5) < 1e-9);
+  assert.equal(viroSpecsResetProgress(t.motion.baseMs, t, false), 1);
+  assert.equal(viroSpecsResetProgress(t.motion.baseMs * 3, t, false), 1);
+  assert.equal(viroSpecsResetProgress(0, t, true), 1, "reduced motion resets at once");
+});
+
+/** Signed area of triangle (a, b, c) in the XY plane; positive is counter-clockwise. */
+const area = (v, a, b, c) => {
+  const p = (i) => [v[i * 8], v[i * 8 + 1]];
+  const [ax, ay] = p(a);
+  const [bx, by] = p(b);
+  const [cx, cy] = p(c);
+  return ((bx - ax) * (cy - ay) - (cx - ax) * (by - ay)) / 2;
+};
+
+test("reticle disc: round, diameter 1, every triangle faces +Z", () => {
+  const { vertices, indices } = viroSpecsDiscGeometry(48);
+  assert.equal(vertices.length / 8, 49);
+  assert.equal(indices.length, 48 * 3);
+  for (let i = 1; i < vertices.length / 8; i++) {
+    assert.ok(Math.abs(Math.hypot(vertices[i * 8], vertices[i * 8 + 1]) - 0.5) < 1e-9, "rim vertex " + i + " on the circle");
+  }
+  let total = 0;
+  for (let i = 0; i < indices.length; i += 3) {
+    const a = area(vertices, indices[i], indices[i + 1], indices[i + 2]);
+    assert.ok(a > 0, "triangle " + i / 3 + " is counter-clockwise");
+    total += a;
+  }
+  // Close to pi r^2, far from the 1.0 of the unit square it replaces.
+  assert.ok(Math.abs(total - Math.PI * 0.25) < 0.01, "area " + total);
+});
+
+test("PanelImage corners: a rounded rectangle with full-rectangle UVs", () => {
+  const w = 4;
+  const h = 3;
+  const r = 0.8;
+  const { vertices, indices } = viroSpecsRoundedRectGeometry(w, h, r, 8);
+  let total = 0;
+  for (let i = 0; i < indices.length; i += 3) {
+    const a = area(vertices, indices[i], indices[i + 1], indices[i + 2]);
+    assert.ok(a > 0);
+    total += a;
+  }
+  const expected = w * h - (4 - Math.PI) * r * r;
+  assert.ok(Math.abs(total - expected) < 0.02, "area " + total + " vs " + expected);
+  for (let i = 0; i < vertices.length; i += 8) {
+    const [x, y, , , , , u, v] = vertices.slice(i, i + 8);
+    assert.ok(Math.abs(x) <= w / 2 + 1e-9 && Math.abs(y) <= h / 2 + 1e-9);
+    assert.ok(Math.abs(u - (x / w + 0.5)) < 1e-9 && Math.abs(v - (y / h + 0.5)) < 1e-9);
+    // No vertex in a corner square outside its quarter circle.
+    const cx = Math.abs(x) - (w / 2 - r);
+    const cy = Math.abs(y) - (h / 2 - r);
+    if (cx > 0 && cy > 0) assert.ok(Math.hypot(cx, cy) <= r + 1e-9);
+  }
+  // The radius never exceeds half the shorter side.
+  const pill = viroSpecsRoundedRectGeometry(4, 1, 5, 8);
+  for (let i = 0; i < pill.vertices.length; i += 8) assert.ok(Math.abs(pill.vertices[i + 1]) <= 0.5 + 1e-9);
+});
+
+test("state panel rows use the line measure the host passes", () => {
+  const t = VIRO_SPECS_LENS_SPATIAL_TOKENS;
+  const content = { title: "Model didn't load", body: "The rest of the scene works. Retry to load it again.", detail: "VS5003 (platform-lab-model)", action: "Retry", ring: false };
+  const asked = [];
+  const measured = layoutViroSpecsStatePanel(t, content, 1.5, (text, em, wrap) => {
+    asked.push(text);
+    return text.startsWith("VS5003") ? 1 : estimateViroSpecsLines(text, em, wrap);
+  });
+  const estimated = layoutViroSpecsStatePanel(t, content, 1.5);
+  assert.deepEqual(asked, [content.title, content.body, content.detail]);
+  assert.equal(measured.detail.lines, 1);
+  assert.ok(estimated.detail.lines >= measured.detail.lines);
+  assert.ok(measured.heightMeters <= estimated.heightMeters);
+  // A measure that reports 0 for non-empty text still reserves one line.
+  assert.equal(layoutViroSpecsStatePanel(t, content, 1.5, () => 0).detail.lines, 1);
+  const error = layoutViroSpecsButtonError(t, { width: 0.23, height: 0.08 }, "That didn't go through.", 1.5, undefined, () => 1);
+  assert.equal(error.lines, 1);
 });
 
 // SpatialScrollView: the gallery's nav-list is a scroll group, so the host
@@ -750,7 +864,7 @@ test("navigation: nav-list is a scroll group stepping by itemHeightMeters from i
   const doc = fixture("navigation");
   const list = doc.nodes.find((n) => n.id === "nav-list");
   assert.equal(list.kind, "group");
-  assert.deepEqual(list.scroll, { width: 0.48, height: 0.3, contentHeight: 0.56 });
+  assert.deepEqual(list.scroll, { width: 0.48, height: 0.26, contentHeight: 0.52 });
   assert.equal(controller.present(doc).status, "committed");
   const handle = controller.getNodeHandle("nav-list");
   assert.deepEqual(handle.state.scrollRows, { stepMeters: 0.13, initialOffsetMeters: 0 });
@@ -812,3 +926,140 @@ test("navigation: the scroll position is kept per route across navigation and ba
   assert.equal(controller.present(list).status, "committed");
   assert.deepEqual(controller.getNodeState("nav-list").scrollNormalized, kept, "back restores the remembered position, not initialIndex");
 });
+
+// ---------------------------------------------------------------------------
+// Layout the Lens view draws from (ws4-07 polish). Defects seen in Lens Studio
+// Preview (viro-lens docs/evidence/specs/lens/ws4-06-captures): panel text ran
+// past the panel, Retry's error line covered Reset model, the loading panel
+// had no ring, and gaze mode had no Scroll buttons.
+
+const D = tokens.distance.defaultMeters;
+const overlaps = (a, b) => a.left < b.right && b.left < a.right && a.bottom < b.top && b.bottom < a.top;
+const blockBox = (block, width) => ({ left: -width / 2, right: width / 2, bottom: block.y - block.heightMeters / 2, top: block.y + block.heightMeters / 2 });
+
+/** Every panel the controller can show, with the copy it shows. */
+function statePanelContents() {
+  const contents = [];
+  const panel = (title, body, detail, action, ring = false) => contents.push({ title, body, detail, action, ring });
+  for (const kind of ["asset", "scene", "sceneNoFallback", "transport"]) {
+    panel(VIRO_SPECS_LENS_COPY["error." + kind + ".title"], VIRO_SPECS_LENS_COPY["error." + kind + ".message"], "VS5003 (platform-lab-model)\nVS5002 (x)", VIRO_SPECS_LENS_COPY["error." + kind + ".action"]);
+  }
+  for (const key of Object.keys(VIRO_SPECS_LENS_COPY).filter((k) => k.startsWith("degraded.") && k !== "degraded.dismiss")) {
+    panel("", VIRO_SPECS_LENS_COPY[key], "hand-tracking: permission-required", VIRO_SPECS_LENS_COPY["degraded.dismiss"]);
+  }
+  panel(VIRO_SPECS_LENS_COPY["permission.handTracking.title"], VIRO_SPECS_LENS_COPY["permission.handTracking.body.noGaze"], "", VIRO_SPECS_LENS_COPY["permission.action.close"]);
+  panel(VIRO_SPECS_LENS_COPY["loading.title"], VIRO_SPECS_LENS_COPY["loading.slow"], "", null, true);
+  return contents;
+}
+
+test("state panels: every row wraps inside the backing and no two rows overlap", () => {
+  for (const preferences of [{ highContrast: false, reducedMotion: false }, { highContrast: true, reducedMotion: true }]) {
+    const t = resolveViroSpecsTokens(VIRO_SPECS_LENS_DEFAULT_THEME, preferences);
+    for (const content of statePanelContents()) {
+      const layout = layoutViroSpecsStatePanel(t, content, D);
+      const label = JSON.stringify(content.body);
+      assert.ok(layout.wrapWidthMeters < layout.widthMeters, label);
+      const backing = { left: -layout.widthMeters / 2, right: layout.widthMeters / 2, bottom: -layout.heightMeters / 2, top: layout.heightMeters / 2 };
+      const rows = [];
+      for (const key of ["title", "body", "detail"]) {
+        const block = layout[key];
+        if (content[key] === "") {
+          assert.equal(block, undefined, label + " " + key);
+          continue;
+        }
+        assert.ok(block, label + " " + key);
+        // Enough lines for the copy at the wrap width, by the same estimate.
+        assert.equal(block.lines, estimateViroSpecsLines(content[key], block.emMeters, layout.wrapWidthMeters));
+        rows.push([key, blockBox(block, layout.wrapWidthMeters)]);
+      }
+      if (layout.action) rows.push(["action", blockBox({ y: layout.action.y, heightMeters: layout.action.heightMeters }, layout.action.widthMeters)]);
+      if (layout.ring) rows.push(["ring", blockBox({ y: layout.ring.y, heightMeters: layout.ring.diameterMeters }, layout.ring.diameterMeters)]);
+      assert.equal(layout.action !== undefined, content.action !== null, label);
+      assert.equal(layout.ring !== undefined, content.ring, label);
+      for (const [key, box] of rows) {
+        assert.ok(box.left >= backing.left && box.right <= backing.right && box.bottom >= backing.bottom - 1e-9 && box.top <= backing.top + 1e-9, label + ": " + key + " leaves the backing");
+      }
+      for (let i = 0; i < rows.length; i++) {
+        for (let j = i + 1; j < rows.length; j++) assert.ok(!overlaps(rows[i][1], rows[j][1]), label + ": " + rows[i][0] + " overlaps " + rows[j][0]);
+      }
+    }
+  }
+});
+
+test("state panels: the asset error body wraps to more than one line instead of running past the panel", () => {
+  // In Preview this line was wider than the 20 degree panel (hello_error-preview.png).
+  const layout = layoutViroSpecsStatePanel(tokens, { title: "Model didn't load", body: VIRO_SPECS_LENS_COPY["error.asset.message"], detail: "VS5003 (platform-lab-model)", action: "Retry", ring: false }, D);
+  assert.ok(layout.body.lines >= 2);
+  assert.ok(layout.title.y > layout.body.y && layout.body.y > layout.detail.y && layout.detail.y > layout.action.y, "rows stack top to bottom");
+});
+
+test("loading panel: the ring sits above the title and fills with progress", () => {
+  const layout = layoutViroSpecsStatePanel(tokens, { title: "Loading scene", body: "Loading 0 of 1", detail: "", action: null, ring: true }, D);
+  assert.ok(layout.ring.y > layout.title.y);
+  assert.ok(layout.ring.diameterMeters > 0 && layout.ring.thicknessMeters < layout.ring.diameterMeters / 2);
+  const lit = (indicator, progress, ms = 0) => viroSpecsLoadingRing(indicator, progress, 24, ms, tokens);
+  assert.equal(lit("ring-arc", 0).lit.filter(Boolean).length, 0);
+  assert.equal(lit("ring-arc", 0.5).lit.filter(Boolean).length, 12);
+  assert.equal(lit("ring-arc", 1).lit.filter(Boolean).length, 24);
+  // Reduced motion never rotates; only unknown progress without it spins.
+  assert.equal(lit("arc-static", 0.5, 777).turns, 0);
+  assert.equal(lit("dots", undefined, 777).turns, 0);
+  assert.equal(lit("ring-arc", 0.5, 777).turns, 0);
+  assert.ok(lit("ring-spin", undefined, 300).turns > 0);
+  assert.equal(lit("dots", undefined).lit.filter(Boolean).length, 8);
+});
+
+test("Interaction gallery: Retry's error row stays inside the panel and clear of every other button", () => {
+  const doc = fixture("interaction");
+  const panel = doc.nodes.find((n) => n.id === "ix-panel");
+  const retry = doc.nodes.find((n) => n.id === "ix-btn-retry");
+  const block = layoutViroSpecsButtonError(tokens, retry.extents, retry.component.errorMessage, D, { width: panel.extents.width, buttonX: retry.position[0] });
+  assert.ok(block.lines <= 2, "two lines across the panel, " + block.lines + " estimated");
+  // Panel-local box of the error row.
+  const x = retry.position[0] + block.x;
+  const y = retry.position[1] + block.y;
+  const row = { left: x - block.wrapWidthMeters / 2, right: x + block.wrapWidthMeters / 2, bottom: y - block.heightMeters / 2, top: y + block.heightMeters / 2 };
+  assert.ok(row.left >= -panel.extents.width / 2 && row.right <= panel.extents.width / 2 && row.bottom >= -panel.extents.height / 2, "inside the panel");
+  assert.ok(row.top < retry.position[1] - retry.extents.height / 2, "under the button");
+  for (const n of doc.nodes) {
+    if (n.parentId !== "ix-panel" || n.component?.type !== "panel-button" || n.id === "ix-btn-retry") continue;
+    const box = { left: n.position[0] - n.extents.width / 2, right: n.position[0] + n.extents.width / 2, bottom: n.position[1] - n.extents.height / 2, top: n.position[1] + n.extents.height / 2 };
+    assert.ok(!overlaps(row, box), "error row overlaps " + n.id);
+  }
+  // A button with no SpatialPanel parent wraps at its own width.
+  const alone = layoutViroSpecsButtonError(tokens, retry.extents, retry.component.errorMessage, D);
+  assert.equal(alone.wrapWidthMeters, retry.extents.width);
+  assert.equal(alone.x, 0);
+  assert.ok(alone.lines > block.lines);
+});
+
+test("Navigation gallery: gaze Scroll buttons sit under the list window, apart, inside the panel width", () => {
+  const doc = fixture("navigation");
+  const panel = doc.nodes.find((n) => n.id === "nav-panel");
+  const list = doc.nodes.find((n) => n.id === "nav-list");
+  const layout = layoutViroSpecsScrollButtons(tokens, list.scroll, D);
+  const box = (at) => ({ left: at.x - layout.widthMeters / 2, right: at.x + layout.widthMeters / 2, bottom: at.y - layout.heightMeters / 2, top: at.y + layout.heightMeters / 2 });
+  const windowBox = { left: -list.scroll.width / 2, right: list.scroll.width / 2, bottom: -list.scroll.height / 2, top: list.scroll.height / 2 };
+  assert.ok(!overlaps(box(layout.up), box(layout.down)));
+  assert.ok(!overlaps(box(layout.up), windowBox) && !overlaps(box(layout.down), windowBox));
+  assert.ok(layout.up.x < layout.down.x, "Scroll up on the left");
+  assert.ok(box(layout.down).right <= panel.extents.width / 2 + 1e-9 && box(layout.up).left >= -panel.extents.width / 2 - 1e-9);
+  // Each button fits its label at the label size.
+  for (const label of [VIRO_SPECS_LENS_COPY["gaze.scrollUp"], VIRO_SPECS_LENS_COPY["gaze.scrollDown"]]) {
+    assert.equal(estimateViroSpecsLines(label, viroSpecsAngle(tokens.type.labelDeg), layout.widthMeters), 1);
+  }
+});
+
+test("comfort band: a position inside the band comes back as the same array (the Lens drag hook relies on it)", () => {
+  const { experience } = setup("interaction");
+  const inside = [0.2, -0.1, -1.4];
+  assert.equal(experience.clampToComfortBand("ix-model", inside), inside);
+  const outside = [0, 0, -3.6];
+  const clamped = experience.clampToComfortBand("ix-model", outside);
+  assert.notEqual(clamped, outside);
+  assert.ok(Math.abs(Math.hypot(...clamped) - tokens.distance.maxMeters) < 1e-9);
+});
+
+function viroSpecsAngle(deg) {
+  return 2 * D * Math.tan((deg * Math.PI) / 360);
+}

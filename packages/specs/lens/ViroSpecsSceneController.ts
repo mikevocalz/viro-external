@@ -37,6 +37,7 @@ import type {
   ViroSpecsExtents,
   ViroSpecsHostInteraction,
   ViroSpecsNativeAnimationPlan,
+  ViroSpecsVec3,
 } from "./ViroSpecsProtocol";
 import {
   createViroSpecsHostDiagnostic,
@@ -212,6 +213,7 @@ export class ViroSpecsSceneController<N, A, M> {
   private readonly materialCache: ViroSpecsResourceCache<M>;
   private readonly placeholderExtents: ViroSpecsExtents;
   private readonly interactionListeners = new Set<(event: ViroSpecsHostInteraction) => void>();
+  private dragConstraint: ((nodeId: string, position: ViroSpecsVec3) => ViroSpecsVec3) | undefined;
   private readonly lifecycleListeners = new Set<(state: ViroSpecsSceneLifecycle) => void>();
   private readonly completionListeners = new Set<(nodeId: string, name: string) => void>();
   private readonly actionListeners = new Set<(event: ViroSpecsActionEvent) => void>();
@@ -270,6 +272,11 @@ export class ViroSpecsSceneController<N, A, M> {
     return { pending: state.pendingAssets.size, total };
   }
 
+  /** True while the committed scene is still loading the image or model asset of node `id`. */
+  isAssetPending(id: string): boolean {
+    return this.current?.pendingAssets.has(id) ?? false;
+  }
+
   /** The validated scene that is committed, or null. Read-only view for the experience layer. */
   get committedScene(): ViroSpecsHostScene | null {
     return this.current?.scene ?? null;
@@ -316,6 +323,19 @@ export class ViroSpecsSceneController<N, A, M> {
   /** Sets or clears the focused node. Ignored for unknown IDs. */
   setFocused(id: string | undefined): void {
     if (id === undefined || this.current?.nodes.has(id)) this.focusedId = id;
+  }
+
+  /**
+   * Sets the one drag constraint, replacing the previous one; `undefined`
+   * removes it. On every `drag` that carries a position, the constraint gets
+   * the node ID and the position (world meters) before any interaction
+   * listener or triggered action, and returns the position the node is
+   * actually at, which every listener then receives. The experience layer
+   * uses it to hold drags inside the comfort band. A constraint that throws
+   * is `VS5014` and the event keeps the unconstrained position.
+   */
+  setDragConstraint(constraint: ((nodeId: string, position: ViroSpecsVec3) => ViroSpecsVec3) | undefined): void {
+    this.dragConstraint = constraint;
   }
 
   /** Interaction events from bound nodes and from {@linkcode dispatchInteraction}. */
@@ -447,6 +467,7 @@ export class ViroSpecsSceneController<N, A, M> {
     this.controllerWork.retire();
     this.materialCache.dispose();
     this.interactionListeners.clear();
+    this.dragConstraint = undefined;
     this.lifecycleListeners.clear();
     this.completionListeners.clear();
     this.actionListeners.clear();
@@ -1181,11 +1202,17 @@ export class ViroSpecsSceneController<N, A, M> {
     if (raw.phase === "hover-enter" || raw.phase === "hover-move") this.focusedId = nodeId;
     else if (raw.phase === "hover-exit" && this.focusedId === nodeId) this.focusedId = undefined;
     else if (raw.phase === "select-end") this.selectedId = nodeId;
+    let position = raw.position;
+    const constraint = this.dragConstraint;
+    if (raw.phase === "drag" && position !== undefined && constraint) {
+      const from = position;
+      position = this.guard("interaction", "drag constraint", () => constraint(nodeId, from), nodeId) ?? from;
+    }
     const event: ViroSpecsHostInteraction = {
       nodeId,
       phase: raw.phase,
       source: raw.source,
-      ...(raw.position !== undefined ? { position: raw.position } : {}),
+      ...(position !== undefined ? { position } : {}),
       ...(raw.normal !== undefined ? { normal: raw.normal } : {}),
       ...(raw.direction !== undefined ? { direction: raw.direction } : {}),
       timestampMs: this.scheduler.nowMs(),

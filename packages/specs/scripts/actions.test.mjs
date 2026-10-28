@@ -313,3 +313,22 @@ test("100 list -> details -> setting -> back cycles keep scroll, leak nothing an
   assert.equal(backend.liveNodes().length, 0);
   assert.equal(backend.bindings.filter((b) => b.active).length, 0);
 });
+
+test("reference list rows sit inside the scroll content, so the list opens on Orrery", () => {
+  // Content y = 0 is the window's top edge. Rows placed from the window
+  // centre put Orrery and Foucault Pendulum above the window, masked out
+  // (Lens Studio Preview, ws4-07-polish/before/reference_list_top-positions.json).
+  const doc = viewViroSpecsReferenceFlow(VIRO_SPECS_REFERENCE_INITIAL_STATE);
+  const list = doc.nodes.find((n) => n.id === "exhibit-list");
+  const contentHeight = Math.max(list.scroll.height, list.scroll.contentHeight);
+  const rows = doc.nodes.filter((n) => n.parentId === "exhibit-list");
+  assert.equal(rows.length, VIRO_SPECS_REFERENCE_INITIAL_STATE.exhibits.length);
+  for (const row of rows) {
+    const half = row.extents.height / 2;
+    assert.ok(row.position[1] + half <= 1e-9, row.id + " top is above the window top");
+    assert.ok(row.position[1] - half >= -contentHeight - 1e-9, row.id + " is below the content");
+  }
+  // The window shows [-height, 0] at the top: the first four rows fit, Orrery first.
+  const shown = rows.filter((r) => r.position[1] - r.extents.height / 2 >= -list.scroll.height - 1e-9).map((r) => r.id);
+  assert.deepEqual(shown, ["card-orrery", "card-pendulum", "card-tesla-coil", "card-planetarium"]);
+});

@@ -451,16 +451,25 @@ export class ViroSpecsLensSceneBackend
     component.continuousUpdate = false;
     component.smoothUpdate = false;
     // Runtime-created script components can receive lifecycle callbacks
-    // before their inputs are assigned; build the mesh one frame later.
-    this.deferFrame(() => {
+    // before their inputs are assigned; build the mesh a frame later.
+    //
+    // VolumetricLine's autoCorrectOffset setter logs through a logger it
+    // creates in onAwake, and onAwake does not run under the disabled staging
+    // root. One frame is not enough: while a slow asset holds the scene in
+    // staging the root is still disabled, and the setter threw "Cannot read
+    // property 'debug' of undefined" (Preview, viro_ws4_preferences). Wait,
+    // frame by frame, until commit has enabled the root.
+    const build = (): void => {
       if (isNull(root)) return;
-      // VolumetricLine's autoCorrectOffset setter logs through a logger it
-      // creates in onAwake, and onAwake does not run under the disabled staging
-      // root. Set it here, after commit has enabled the root.
+      if (!root.isEnabledInHierarchy) {
+        this.deferFrame(build);
+        return;
+      }
       component.autoCorrectOffset = false;
       if (root.getComponent("Component.RenderMeshVisual")) component.updateMesh();
       else component.onStart();
-    });
+    };
+    this.deferFrame(build);
     return { id: line.id, kind: "polyline", object: root };
   }
 

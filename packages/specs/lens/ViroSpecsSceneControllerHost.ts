@@ -1,4 +1,4 @@
-import type { ViroSpecsActionEvent, ViroSpecsHostInteraction } from "./ViroSpecsProtocol";
+import type { ViroSpecsActionEvent, ViroSpecsHostInteraction, ViroSpecsVec3 } from "./ViroSpecsProtocol";
 import {
   formatViroSpecsHostDiagnostic,
   ViroSpecsHostDiagnostics,
@@ -123,6 +123,11 @@ export class ViroSpecsSceneControllerHost extends BaseScriptComponent {
     return this.controller?.addOnInteractionListener(listener) ?? { remove: () => undefined };
   }
 
+  /** See {@linkcode ViroSpecsSceneController.setDragConstraint}. */
+  setDragConstraint(constraint: ((nodeId: string, position: ViroSpecsVec3) => ViroSpecsVec3) | undefined): void {
+    this.controller?.setDragConstraint(constraint);
+  }
+
   /** Typed actions from triggers, one frame after the pinch, owned by their scene. */
   addOnActionListener(listener: (event: ViroSpecsActionEvent) => void): ViroSpecsSubscription {
     return this.controller?.addOnActionListener(listener) ?? { remove: () => undefined };
@@ -152,6 +157,11 @@ export class ViroSpecsSceneControllerHost extends BaseScriptComponent {
    */
   scrollByRows(id: string, rows: number): boolean {
     return this.controller?.scrollByRows(id, rows) ?? false;
+  }
+
+  /** True while the committed scene is still loading node `id`'s image or model. */
+  isAssetPending(id: string): boolean {
+    return this.controller?.isAssetPending(id) ?? false;
   }
 
   /** Focus, selection and scroll position of a committed node. Undefined when absent. */

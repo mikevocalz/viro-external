@@ -6,12 +6,12 @@
       "kind": "panel",
       "position": [
         0,
-        0,
+        -0.22,
         -1.5
       ],
       "extents": {
         "width": 0.53,
-        "height": 0.5
+        "height": 0.6
       },
       "component": {
         "type": "spatial-panel"
@@ -28,12 +28,12 @@
       "parentId": "nav-list-view",
       "position": [
         0,
-        0.2,
+        0.235,
         0.005
       ],
       "text": "Navigation",
       "style": {
-        "fontSize": 231.1,
+        "fontSize": 229.1,
         "fontWeight": "600",
         "color": "#eef2f0"
       },
@@ -50,13 +50,13 @@
       "parentId": "nav-list-view",
       "position": [
         0,
-        -0.01,
+        0.05,
         0.005
       ],
       "scroll": {
         "width": 0.48,
-        "height": 0.3,
-        "contentHeight": 0.56
+        "height": 0.26,
+        "contentHeight": 0.52
       },
       "component": {
         "initialIndex": 0,
@@ -90,7 +90,7 @@
       "position": [
         -0.085,
         0,
-        0.003
+        0.012
       ],
       "extents": {
         "width": 0.04,
@@ -127,7 +127,7 @@
       "position": [
         -0.085,
         0,
-        0.003
+        0.012
       ],
       "extents": {
         "width": 0.04,
@@ -164,7 +164,7 @@
       "position": [
         -0.085,
         0,
-        0.003
+        0.012
       ],
       "extents": {
         "width": 0.04,
@@ -201,7 +201,7 @@
       "position": [
         -0.085,
         0,
-        0.003
+        0.012
       ],
       "extents": {
         "width": 0.04,
@@ -238,7 +238,7 @@
       "position": [
         -0.085,
         0,
-        0.003
+        0.012
       ],
       "extents": {
         "width": 0.04,
@@ -275,7 +275,7 @@
       "position": [
         -0.085,
         0,
-        0.003
+        0.012
       ],
       "extents": {
         "width": 0.04,
@@ -312,7 +312,7 @@
       "position": [
         -0.085,
         0,
-        0.003
+        0.012
       ],
       "extents": {
         "width": 0.04,
@@ -349,7 +349,7 @@
       "position": [
         -0.085,
         0,
-        0.003
+        0.012
       ],
       "extents": {
         "width": 0.04,
@@ -367,12 +367,12 @@
       "parentId": "nav-list-view",
       "position": [
         0.14,
-        -0.2,
+        -0.245,
         0.005
       ],
       "extents": {
-        "width": 0.2379532348262456,
-        "height": 0.08354716557136606
+        "width": 0.24692152085295782,
+        "height": 0.08669599806407083
       },
       "component": {
         "state": "idle",
@@ -392,12 +392,12 @@
       "parentId": "nav-detail",
       "position": [
         -0.17,
-        0.2,
+        0.235,
         0.005
       ],
       "extents": {
         "width": 0.14,
-        "height": 0.0837163006058883
+        "height": 0.08299051466109837
       },
       "component": {
         "state": "idle",
@@ -410,12 +410,12 @@
       "parentId": "nav-detail",
       "position": [
         0.06,
-        0.2,
+        0.235,
         0.005
       ],
       "text": "Card 1",
       "style": {
-        "fontSize": 231.3,
+        "fontSize": 229.3,
         "fontWeight": "600",
         "color": "#eef2f0"
       },
@@ -432,7 +432,7 @@
       "parentId": "nav-detail",
       "position": [
         0,
-        0.115,
+        0.15,
         0.005
       ],
       "extents": {
@@ -450,12 +450,12 @@
       "parentId": "nav-detail",
       "position": [
         0,
-        -0.03,
+        -0.01,
         0.005
       ],
       "text": "Change the setting below, then go back. The list keeps your place.",
       "style": {
-        "fontSize": 160.4,
+        "fontSize": 162.3,
         "fontWeight": "400",
         "color": "#eef2f0"
       },
@@ -481,8 +481,8 @@
         0.005
       ],
       "extents": {
-        "width": 0.2540919397164467,
-        "height": 0.08311824774265054
+        "width": 0.2613716926597311,
+        "height": 0.08549959171334255
       },
       "component": {
         "state": "selected",
