@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2021"],
+    "types": [],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitOverride": true,
+    "isolatedModules": true,
+    "noEmit": false,
+    "declaration": false,
+    "sourceMap": false,
+    "rootDir": "lens",
+    "outDir": "dist/lens-core"
+  },
+  "files": [
+    "lens/ViroSpecsProtocol.ts",
+    "lens/ViroSpecsHostDiagnostics.ts"
+  ]
+}

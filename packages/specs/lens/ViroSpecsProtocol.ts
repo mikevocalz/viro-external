@@ -7,6 +7,154 @@
  */
 export const VIRO_SPECS_WIRE_VERSION = 1 as const;
 
+/**
+ * Scene protocols ViroSpecsSceneController reads. Protocol 1 is
+ * {@linkcode ViroSpecsSceneSnapshot}; protocol 2 is
+ * {@linkcode ViroSpecsSceneDocumentV2}, which carries text style, extents,
+ * maxLines, opacity, materials and lights. Anything else is rejected with
+ * host diagnostic VS5001 before the live scene is touched.
+ */
+export const VIRO_SPECS_SCENE_PROTOCOLS = [1, 2] as const;
+
+/** One of {@linkcode VIRO_SPECS_SCENE_PROTOCOLS}. */
+export type ViroSpecsSceneProtocol = (typeof VIRO_SPECS_SCENE_PROTOCOLS)[number];
+
+/** `[x, y, z]`. */
+export type ViroSpecsVec3 = [number, number, number];
+
+/** Unit quaternion `[x, y, z, w]`. */
+export type ViroSpecsQuat = [number, number, number, number];
+
+/** Width and height in meters. */
+export type ViroSpecsExtents = { width: number; height: number };
+
+/**
+ * Text style from manifest v2 (`ViroText` `style`). `fontSize` is in Viro
+ * points; colors are `#RRGGBB` or `#RRGGBBAA`.
+ */
+export type ViroSpecsDocumentTextStyle = {
+  fontFamily?: string;
+  fontSize?: number;
+  fontWeight?: "normal" | "bold" | "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900";
+  fontStyle?: "normal" | "italic";
+  color?: string;
+  textAlign?: "left" | "center" | "right";
+  textAlignVertical?: "top" | "center" | "bottom";
+};
+
+/** Fields every protocol 2 node kind shares. */
+export type ViroSpecsDocumentNodeBase = {
+  id: string;
+  parentId?: string;
+  position?: ViroSpecsVec3;
+  rotation?: ViroSpecsQuat;
+  scale?: ViroSpecsVec3;
+  visible?: boolean;
+  /** 0 to 1. */
+  opacity?: number;
+  /** Entry in `materials`, or a material in the Lens asset registry. */
+  materialId?: string;
+};
+
+/** Protocol 2 node, discriminated by `kind`. Video and sound never reach the wire. */
+export type ViroSpecsDocumentNode =
+  | (ViroSpecsDocumentNodeBase & { kind: "group"; scroll?: ViroSpecsScroll })
+  | (ViroSpecsDocumentNodeBase & {
+      kind: "text";
+      text: string;
+      style?: ViroSpecsDocumentTextStyle;
+      extents?: ViroSpecsExtents;
+      maxLines?: number;
+    })
+  | (ViroSpecsDocumentNodeBase & { kind: "image"; source: string; extents?: ViroSpecsExtents })
+  | (ViroSpecsDocumentNodeBase & { kind: "model"; source: string; format?: "glb" | "gltf" | "obj" | "fbx" })
+  | (ViroSpecsDocumentNodeBase & { kind: "panel"; extents?: ViroSpecsExtents });
+
+/** World-space line, meters. */
+export type ViroSpecsDocumentPolyline = {
+  id: string;
+  points: ViroSpecsVec3[];
+  radiusMeters: number;
+  materialId?: string;
+  primitive?: "volumetric-line";
+  backendPackage?: string;
+};
+
+/** Light from a Viro light component. Intensity in Viro lumens (1000 = default). */
+export type ViroSpecsDocumentLight = {
+  id: string;
+  parentId?: string;
+  color?: string;
+  intensity?: number;
+} & (
+  | { type: "ambient" }
+  | { type: "directional"; direction: ViroSpecsVec3 }
+  | { type: "omni"; position: ViroSpecsVec3 }
+  | { type: "spot"; position: ViroSpecsVec3; direction: ViroSpecsVec3; innerAngle?: number; outerAngle?: number }
+);
+
+/** Material definition. The host builds an owned material from it. */
+export type ViroSpecsDocumentMaterial = {
+  id: string;
+  color?: string;
+  opacity?: number;
+  /** Image asset ID. */
+  texture?: string;
+  lightingModel?: "constant" | "lambert" | "blinn" | "phong" | "pbr";
+};
+
+/** Interaction intent for one node. */
+export type ViroSpecsDocumentInteraction = {
+  nodeId: string;
+  interactable: true;
+  manipulation: boolean;
+  events: ("hover" | "select" | "drag")[];
+};
+
+/** Animation on one node. `plan.backendPackage` is optional on the wire. */
+export type ViroSpecsDocumentAnimation = {
+  nodeId: string;
+  name: string;
+  plan: Omit<ViroSpecsNativeAnimationPlan, "backendPackage" | "easing"> & {
+    backendPackage?: string;
+    easing: ViroSpecsAnimationEasing;
+  };
+};
+
+/**
+ * Scene protocol 2: the manifest v2 document minus authoring metadata and
+ * the media kinds no host plays. One document describes one scene; the
+ * controller diffs consecutive documents by ID.
+ */
+export type ViroSpecsSceneDocumentV2 = {
+  version: 2;
+  nodes: ViroSpecsDocumentNode[];
+  polylines?: ViroSpecsDocumentPolyline[];
+  lights?: ViroSpecsDocumentLight[];
+  materials?: ViroSpecsDocumentMaterial[];
+  interactions?: ViroSpecsDocumentInteraction[];
+  animations?: ViroSpecsDocumentAnimation[];
+};
+
+/** Interaction sources the host reports. */
+export type ViroSpecsHostInteractionSource = "hand-left" | "hand-right" | "gaze" | "synthetic";
+
+/**
+ * Interaction event the controller delivers. Positions, normals and
+ * directions are world space; positions are meters.
+ */
+export type ViroSpecsHostInteraction = {
+  nodeId: string;
+  phase: ViroSpecsInteractionPhase;
+  source: ViroSpecsHostInteractionSource;
+  position?: ViroSpecsVec3;
+  normal?: ViroSpecsVec3;
+  direction?: ViroSpecsVec3;
+  timestampMs: number;
+  /** Revision of the scene that owned the node when the event fired. */
+  sceneRevision: number;
+};
+
 export type ViroSpecsNodeKind =
   | "group"
   | "text"
