@@ -79,10 +79,27 @@ function hasVisual(object: SceneObject): boolean {
   );
 }
 
-/** The object SIK should target: the node itself if it draws, else its first drawing descendant. */
+/**
+ * Both scene runtimes name the SceneObject of each portable node
+ * "viro:<id>". A child named that way is another node, with its own ID and
+ * its own interaction, not part of this node's visual.
+ */
+function isOtherViroNode(object: SceneObject): boolean {
+  return object.name.startsWith("viro:");
+}
+
+/**
+ * The object SIK should target: the node itself if it draws, else its first
+ * drawing descendant that belongs to the node (a panel's backplate, a
+ * model's mesh). Child nodes are never chosen: binding a group's or a
+ * panel's interaction on a child ViroText would rename that text node and
+ * route the parent's pinches through it. With no drawing part of its own the
+ * node itself is the target, and the binding gives it a box collider.
+ */
 export function findViroSpecsInteractionTarget(root: SceneObject): SceneObject {
   if (root.getComponent(Interactable.getTypeName()) || hasVisual(root)) return root;
   for (const child of root.children) {
+    if (isOtherViroNode(child)) continue;
     const target = findViroSpecsInteractionTarget(child);
     if (target !== child || hasVisual(child) || child.getComponent(Interactable.getTypeName())) return target;
   }
