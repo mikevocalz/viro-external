@@ -35,6 +35,17 @@ Files: `ViroSpecsSceneController.ts`, `ViroSpecsSceneDocument.ts`,
 `ViroSpecsSikBinding.ts` and `ViroSpecsSceneControllerHost.ts` are the Lens
 side.
 
+### ViroSpecsActionsLab and ViroSpecsActionRuntime (typed actions)
+
+`ViroSpecsActionRuntime` turns pinches into app state with no phone: a
+trigger on a node fires a declared action, `ViroSpecsActionRegistry` runs
+its handler `(state, payload) => state`, and `view(state)` is sent to the
+controller host with `update` (a new `route` navigates; the same route
+patches). `ViroSpecsActionsLab` runs the reference flow
+(`ViroSpecsReferenceFlow`): add it to a SceneObject and set
+`controllerHostObject` to the object holding `ViroSpecsSceneControllerHost`.
+Guide: [../doc/ActionsAndState.md](../doc/ActionsAndState.md).
+
 ### ViroSpecsInteractionKit
 
 The only file that imports the Interaction Kit. `pnpm specs:sync` rewrites
