@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "wireVersion": 1,
+  "sceneProtocols": [1, 2],
+  "files": {
+    "production": [
+      "ViroSpecsAnimationHost.ts",
+      "ViroSpecsAnimationRuntime.ts",
+      "ViroSpecsAssetRegistry.ts",
+      "ViroSpecsCapabilities.ts",
+      "ViroSpecsHostDiagnostics.ts",
+      "ViroSpecsInteractionHost.ts",
+      "ViroSpecsInteractionKit.ts",
+      "ViroSpecsInteractionRuntime.ts",
+      "ViroSpecsLensSceneBackend.ts",
+      "ViroSpecsLensTransport.ts",
+      "ViroSpecsNavigationHost.ts",
+      "ViroSpecsNavigationRuntime.ts",
+      "ViroSpecsPresentationHost.ts",
+      "ViroSpecsProtocol.ts",
+      "ViroSpecsResourceCache.ts",
+      "ViroSpecsRuntimeHost.ts",
+      "ViroSpecsSceneBackend.ts",
+      "ViroSpecsSceneController.ts",
+      "ViroSpecsSceneControllerHost.ts",
+      "ViroSpecsSceneDocument.ts",
+      "ViroSpecsSceneRuntime.ts",
+      "ViroSpecsSikBinding.ts",
+      "ViroSpecsWorldRuntime.ts"
+    ],
+    "validation": [
+      "ViroSpecsAgentValidation.ts",
+      "ViroSpecsLeafIndex.ts",
+      "ViroSpecsLeafInteractionScenario.ts",
+      "ViroSpecsLeafSceneSmokeScenario.ts",
+      "ViroSpecsPlatformLab.ts",
+      "ViroSpecsRuntimeValidation.ts"
+    ],
+    "notSynced": ["README.md"]
+  },
+  "interactionKit": {
+    "2": { "package": "SpectaclesInteractionKit.lspkg", "minVersion": "2.0.0" },
+    "4": { "package": "InteractionKit.lspkg", "minVersion": "4.0.0" }
+  },
+  "requiredPackages": [
+    { "package": "SpectaclesUIKit.lspkg", "minVersion": "2.0.0" },
+    { "package": "SurfacePlacement.lspkg", "minVersion": "2.0.0" },
+    { "package": "VolumetricLine.lspkg", "minVersion": "2.0.0" },
+    { "package": "SpecsNavigationKit.lspkg", "minVersion": "2.0.0" }
+  ],
+  "validationPackages": [
+    { "package": "Leaf.lspkg", "minVersion": "2.0.2" },
+    { "package": "AiPreviewAgentInspect.lspkg", "minVersion": "2.0.2" },
+    { "package": "AiPreviewAgentInteract.lspkg", "minVersion": "2.0.1" }
+  ]
+}
