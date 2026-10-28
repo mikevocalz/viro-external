@@ -46,6 +46,18 @@ Needs `@viro-external/xr-contract` ^0.3.0. Pairs with
   result.
 - Committed API snapshots under `api/`, checked by
   `node scripts/ci/api-snapshot.mjs` from the workspace root.
+- The Lens host draws every premium feature: the ModelViewer load ring,
+  Reset model button and `autoRotate` (18 degrees a second, off under
+  reduced motion and while held), and `radius.card` corners on PanelImage.
+  `VS5025` stays in the catalog and now names nothing. The layout
+  helpers behind this are in `api/specs-lens-core.api.d.ts`:
+  `layoutViroSpecsStatePanel`, `layoutViroSpecsButtonError`,
+  `layoutViroSpecsScrollButtons`, `layoutViroSpecsModelReset`,
+  `viroSpecsActionButtonSize`, `estimateViroSpecsLines` with
+  `VIRO_SPECS_EM_PER_CHARACTER`, `viroSpecsAutoRotateDegrees`,
+  `viroSpecsResetProgress`, `viroSpecsLoadingRing`,
+  `viroSpecsDiscGeometry` and `viroSpecsRoundedRectGeometry`. The
+  change adds names and removes none.
 
 ### Changed
 

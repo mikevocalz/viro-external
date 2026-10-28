@@ -507,6 +507,193 @@ export declare function stepViroSpecsMove(position: Vec3, direction: "left" | "r
  * `VS5025` so a dropped prop is never silent.
  */
 export declare function unrenderedViroSpecsComponentFeatures(component: ViroSpecsComponentSpec | undefined): readonly string[];
+/**
+ * ModelViewer `autoRotate` speed: one turn every 20 seconds about the model's
+ * own up axis, slow enough to read as a turntable rather than motion of the
+ * scene. Off under reduced motion.
+ */
+export declare const VIRO_SPECS_AUTO_ROTATE_DEG_PER_SECOND = 18;
+/**
+ * Degrees a ModelViewer with `autoRotate` turns in `deltaSeconds`: zero under
+ * reduced motion, while the wearer holds or drags it, or for a non-positive
+ * frame time.
+ */
+export declare function viroSpecsAutoRotateDegrees(deltaSeconds: number, options: {
+    readonly reducedMotion: boolean;
+    readonly held: boolean;
+}): number;
+/**
+ * The ModelViewer Reset model button: a PanelButton-sized control centred
+ * under the model's authored bounds, `space.sm` below their bottom edge.
+ * Meters; `y` is the button centre relative to the model's authored origin,
+ * along the parent's up axis.
+ */
+export declare function layoutViroSpecsModelReset(tokens: ViroSpecsSpatialTokens, bounds: {
+    readonly bottomMeters: number;
+}, distanceMeters: number): {
+    readonly y: number;
+    readonly widthMeters: number;
+    readonly heightMeters: number;
+};
+/**
+ * Progress of a Reset model transition `elapsedMs` after it started:
+ * ease-in-out over `motion.base`, or done at once under reduced motion
+ * (`motion.instant`). 0 is where the model was, 1 is the authored transform.
+ */
+export declare function viroSpecsResetProgress(elapsedMs: number, tokens: ViroSpecsSpatialTokens, reducedMotion: boolean): number;
+/**
+ * Flat geometry in the XY plane, facing +Z (counter-clockwise seen from +Z):
+ * interleaved `[x, y, z, nx, ny, nz, u, v]` per vertex and triangle indices.
+ */
+export type ViroSpecsFlatGeometry = {
+    readonly vertices: readonly number[];
+    readonly indices: readonly number[];
+};
+/**
+ * A disc of diameter 1 centred on the origin, as a fan of `segments`
+ * triangles. The reticle and the gaze dwell disc draw on it, scaled to their
+ * diameter.
+ */
+export declare function viroSpecsDiscGeometry(segments?: number): ViroSpecsFlatGeometry;
+/**
+ * A `width` by `height` rectangle centred on the origin with corners rounded
+ * to `radius` (clamped to half the shorter side), UVs 0..1 across the full
+ * rectangle so a texture maps as it would on a plain quad. A fan from the
+ * centre over the outline: `cornerSegments` steps per corner.
+ */
+export declare function viroSpecsRoundedRectGeometry(width: number, height: number, radius: number, cornerSegments?: number): ViroSpecsFlatGeometry;
+/**
+ * Average glyph advance as a fraction of the em, for line-count estimates.
+ * The same 0.55 em guard viro's PanelButton sizing and gallery layout test
+ * use; real glyphs are narrower, so an estimate errs toward more lines.
+ */
+export declare const VIRO_SPECS_EM_PER_CHARACTER = 0.55;
+/**
+ * Lines `text` needs at `emMeters` when wrapped at `wrapWidthMeters`, by the
+ * {@linkcode VIRO_SPECS_EM_PER_CHARACTER} estimate. Explicit newlines count.
+ * Zero for empty text.
+ */
+export declare function estimateViroSpecsLines(text: string, emMeters: number, wrapWidthMeters: number): number;
+/**
+ * Lines `text` takes at `emMeters` when wrapped at `wrapWidthMeters`; zero for
+ * empty text. The layout functions default to
+ * {@linkcode estimateViroSpecsLines}; the Lens host passes one that measures
+ * the laid-out glyphs, so rows are sized to the lines the text really wraps to.
+ */
+export type ViroSpecsLineMeasure = (text: string, emMeters: number, wrapWidthMeters: number) => number;
+/** A text block in a {@linkcode ViroSpecsStatePanelLayout}: centre and size, meters, panel-local. */
+export type ViroSpecsTextBlock = {
+    readonly y: number;
+    readonly lines: number;
+    readonly emMeters: number;
+    /** Lines times `type.lineHeight` times the em. */
+    readonly heightMeters: number;
+};
+/**
+ * Geometry of a loading, notice, error or permission panel, from
+ * {@linkcode layoutViroSpecsStatePanel}. Meters, in the panel's own frame:
+ * x right, y up, origin at the panel centre. Rows stack top to bottom with
+ * `space.sm` between them and `space.md` padding, so text never runs past
+ * the backing and the action never covers a line.
+ */
+export type ViroSpecsStatePanelLayout = {
+    readonly widthMeters: number;
+    readonly heightMeters: number;
+    /** Width every text row wraps at: the panel width less `space.md` on each side. */
+    readonly wrapWidthMeters: number;
+    readonly ring?: {
+        readonly y: number;
+        readonly diameterMeters: number;
+        readonly thicknessMeters: number;
+    };
+    readonly title?: ViroSpecsTextBlock;
+    readonly body?: ViroSpecsTextBlock;
+    readonly detail?: ViroSpecsTextBlock;
+    readonly action?: {
+        readonly y: number;
+        readonly widthMeters: number;
+        readonly heightMeters: number;
+    };
+};
+/** What a state panel shows, for {@linkcode layoutViroSpecsStatePanel}. Empty strings are left out. */
+export type ViroSpecsStatePanelContent = {
+    readonly title: string;
+    readonly body: string;
+    readonly detail: string;
+    readonly action: string | null;
+    /** The loading panel's progress ring, above the title. */
+    readonly ring: boolean;
+};
+/**
+ * Lays out a state panel 20 degrees wide (the handoff panel width) at
+ * `distanceMeters`. Title and body use `type.bodyDeg`, detail and action
+ * `type.labelDeg`; the ring is three body ems across. Row heights come from
+ * `measureLines`, which defaults to the {@linkcode estimateViroSpecsLines}
+ * estimate.
+ */
+export declare function layoutViroSpecsStatePanel(tokens: ViroSpecsSpatialTokens, content: ViroSpecsStatePanelContent, distanceMeters: number, measureLines?: ViroSpecsLineMeasure): ViroSpecsStatePanelLayout;
+/**
+ * Size of a panel action button at `distanceMeters`: one label line plus
+ * `space.sm` above and below, and at least the label plus `space.md` each
+ * side (the PanelButton default), never narrower than 2.5 heights.
+ */
+export declare function viroSpecsActionButtonSize(tokens: ViroSpecsSpatialTokens, label: string, distanceMeters: number): {
+    readonly widthMeters: number;
+    readonly heightMeters: number;
+};
+/**
+ * Where a PanelButton's `errorMessage` goes: a row under the button, its top
+ * `space.xs` below the button's bottom edge. Inside a SpatialPanel the row
+ * spans the panel's inner width (the panel less `space.md` each side) and is
+ * centred on the panel, so the message wraps to two lines instead of four;
+ * on its own it wraps at the button width. The line count comes from
+ * `measureLines` (default {@linkcode estimateViroSpecsLines}). Meters, button-local (origin at
+ * the button centre).
+ */
+export declare function layoutViroSpecsButtonError(tokens: ViroSpecsSpatialTokens, button: {
+    readonly width: number;
+    readonly height: number;
+}, message: string, distanceMeters: number, panel?: {
+    readonly width: number;
+    readonly buttonX: number;
+}, measureLines?: ViroSpecsLineMeasure): ViroSpecsTextBlock & {
+    readonly x: number;
+    readonly wrapWidthMeters: number;
+};
+/**
+ * Gaze Scroll up and Scroll down buttons for a scroll group's window, in the
+ * group's frame (the window is centred on its origin). They sit side by side
+ * under the window's bottom edge, `space.sm` below it and apart, Scroll up on
+ * the left, so they cover neither the rows nor a title above the list and
+ * stay inside the wearer's view of the list.
+ */
+export declare function layoutViroSpecsScrollButtons(tokens: ViroSpecsSpatialTokens, window: {
+    readonly width: number;
+    readonly height: number;
+}, distanceMeters: number): {
+    readonly up: {
+        readonly x: number;
+        readonly y: number;
+    };
+    readonly down: {
+        readonly x: number;
+        readonly y: number;
+    };
+    readonly widthMeters: number;
+    readonly heightMeters: number;
+};
+/**
+ * Loading ring segments for `progress` (0..1, or undefined when unknown):
+ * how many of `count` segments are lit and the rotation of segment 0, in
+ * turns. `ring-arc` and `arc-static` fill from the top clockwise and never
+ * rotate; `ring-spin` lights a quarter of the ring and turns once per
+ * `motion.progressLoopMs`; `dots` (reduced motion, unknown progress) lights
+ * every third segment with no movement.
+ */
+export declare function viroSpecsLoadingRing(indicator: ViroSpecsLoadingIndicator, progress: number | undefined, count: number, elapsedMs: number, tokens: ViroSpecsSpatialTokens): {
+    readonly lit: readonly boolean[];
+    readonly turns: number;
+};
 export {};
 
 // ---- ViroSpecsExperienceCopy.d.ts
@@ -940,7 +1127,7 @@ export declare const VIRO_SPECS_HOST_DIAGNOSTICS: {
     readonly VS5025: {
         readonly severity: "warning";
         readonly title: "Premium component feature not drawn by this host";
-        readonly hint: "The scene carries the feature but this host version does not render it yet; the message names the node and the features. See doc/Experience.md#not-drawn-yet.";
+        readonly hint: "The scene carries a premium feature this host version does not draw; the message names the node and the features. The current Lens host draws every premium feature (ModelViewer load ring, Reset model button and autoRotate; PanelImage radius.card corners), so it reports none. See doc/Experience.md#not-drawn-yet.";
     };
 };
 /** Codes in {@linkcode VIRO_SPECS_HOST_DIAGNOSTICS}. */
@@ -1752,7 +1939,7 @@ export interface ViroSpecsSceneBackend<N, A, M> {
  * Dependency-free and free of Lens globals; the Lens binding is
  * ViroSpecsLensSceneBackend plus ViroSpecsSceneControllerHost.
  */
-import type { ViroSpecsActionEvent, ViroSpecsDocumentNode, ViroSpecsExtents, ViroSpecsHostInteraction } from "./ViroSpecsProtocol";
+import type { ViroSpecsActionEvent, ViroSpecsDocumentNode, ViroSpecsExtents, ViroSpecsHostInteraction, ViroSpecsVec3 } from "./ViroSpecsProtocol";
 import { ViroSpecsHostDiagnostics, type ViroSpecsHostDiagnostic, type ViroSpecsSubscription } from "./ViroSpecsHostDiagnostics";
 import { type ViroSpecsHostNode, type ViroSpecsHostScene } from "./ViroSpecsSceneDocument";
 import type { ViroSpecsCancel, ViroSpecsHostScheduler, ViroSpecsNodeUiState, ViroSpecsSceneBackend } from "./ViroSpecsSceneBackend";
@@ -1845,6 +2032,7 @@ export declare class ViroSpecsSceneController<N, A, M> {
     private readonly materialCache;
     private readonly placeholderExtents;
     private readonly interactionListeners;
+    private dragConstraint;
     private readonly lifecycleListeners;
     private readonly completionListeners;
     private readonly actionListeners;
@@ -1870,6 +2058,8 @@ export declare class ViroSpecsSceneController<N, A, M> {
         readonly pending: number;
         readonly total: number;
     };
+    /** True while the committed scene is still loading the image or model asset of node `id`. */
+    isAssetPending(id: string): boolean;
     /** The validated scene that is committed, or null. Read-only view for the experience layer. */
     get committedScene(): ViroSpecsHostScene | null;
     /** Owned materials currently cached. */
@@ -1890,6 +2080,16 @@ export declare class ViroSpecsSceneController<N, A, M> {
     setSelected(id: string | undefined): void;
     /** Sets or clears the focused node. Ignored for unknown IDs. */
     setFocused(id: string | undefined): void;
+    /**
+     * Sets the one drag constraint, replacing the previous one; `undefined`
+     * removes it. On every `drag` that carries a position, the constraint gets
+     * the node ID and the position (world meters) before any interaction
+     * listener or triggered action, and returns the position the node is
+     * actually at, which every listener then receives. The experience layer
+     * uses it to hold drags inside the comfort band. A constraint that throws
+     * is `VS5014` and the event keeps the unconstrained position.
+     */
+    setDragConstraint(constraint: ((nodeId: string, position: ViroSpecsVec3) => ViroSpecsVec3) | undefined): void;
     /** Interaction events from bound nodes and from {@linkcode dispatchInteraction}. */
     addOnInteractionListener(listener: (event: ViroSpecsHostInteraction) => void): ViroSpecsSubscription;
     /** Lifecycle changes. */
