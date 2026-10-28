@@ -69,6 +69,13 @@ const OVERLAY_ORDER = { backing: 100, control: 101, text: 102 } as const;
  * this far in front of the hovered backing.
  */
 const LABEL_LIFT_CM = 0.2;
+/**
+ * Text layouts the line measure may run in one frame. Lens Studio throws "Per
+ * frame rate limit exceeded" when a frame lays out many strings (nine error
+ * lines arriving at once did); past the budget a row uses the estimate and
+ * the panel is laid out again on the next frame.
+ */
+const MEASURES_PER_FRAME = 4;
 /** Segments in the loading ring. */
 const RING_SEGMENTS = 24;
 
@@ -261,6 +268,10 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
   /** Invisible Text the overlay lays strings out in to count their lines. */
   private measureText: Text | null = null;
   private readonly measuredLines = new Map<string, number>();
+  /** Measurements left this frame; Lens limits how often a frame may lay out text. */
+  private measureBudget = MEASURES_PER_FRAME;
+  /** A row used the estimate because the budget ran out or layout threw; re-render next frame. */
+  private measureDeferred = false;
   private readonly placementListeners = new Set<(pose: { position: [number, number, number]; normal: [number, number, number] }) => void>();
   private readonly retryListeners = new Set<(nodeIds: readonly string[]) => void>();
 
@@ -589,6 +600,11 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
     const experience = this.experience;
     if (!experience) return;
     experience.tick();
+    this.measureBudget = MEASURES_PER_FRAME;
+    if (this.measureDeferred && this.lastRendered) {
+      this.measureDeferred = false;
+      this.render(this.lastRendered);
+    }
     const view = experience.view();
     // A replacement in the same lifecycle state fires no lifecycle event.
     if ((this.host?.committedScene ?? null) !== this.decoratedScene) this.decorate();
@@ -797,12 +813,23 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
     if (cached !== undefined) return cached;
     const t = this.measuringText();
     if (!t) return estimateViroSpecsLines(text, emMeters, wrapWidthMeters);
-    t.size = size;
-    t.text = text;
-    t.layoutRect = Rect.create(-wrapCm / 2, wrapCm / 2, -1000, 1000);
+    if (this.measureBudget <= 0) {
+      this.measureDeferred = true;
+      return estimateViroSpecsLines(text, emMeters, wrapWidthMeters);
+    }
+    this.measureBudget -= 1;
     const rows = new Set<number>();
-    for (const rect of t.getHighlightRects(0, text.length)) {
-      if (rect.right - rect.left > 0) rows.add(Math.round(((rect.top + rect.bottom) / 2) * 10));
+    try {
+      t.size = size;
+      t.text = text;
+      t.layoutRect = Rect.create(-wrapCm / 2, wrapCm / 2, -1000, 1000);
+      for (const rect of t.getHighlightRects(0, text.length)) {
+        if (rect.right - rect.left > 0) rows.add(Math.round(((rect.top + rect.bottom) / 2) * 10));
+      }
+    } catch (_error) {
+      this.measureBudget = 0;
+      this.measureDeferred = true;
+      return estimateViroSpecsLines(text, emMeters, wrapWidthMeters);
     }
     const lines = rows.size > 0 ? rows.size : estimateViroSpecsLines(text, emMeters, wrapWidthMeters);
     this.measuredLines.set(key, lines);
