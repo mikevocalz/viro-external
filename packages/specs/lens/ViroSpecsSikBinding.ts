@@ -60,7 +60,17 @@ function fromEvent(phase: ViroSpecsInteractionPhase, event: InteractorEvent | un
 function ensureCollider(object: SceneObject): void {
   if (object.getComponent("ColliderComponent")) return;
   const collider = object.createComponent("ColliderComponent") as ColliderComponent;
-  if (hasVisual(object)) {
+  const text = object.getComponent("Component.Text") as Text | null;
+  if (text && !object.getComponent("Component.RenderMeshVisual")) {
+    // fitVisual gives a Text no shape a ray can hit (measured in Preview:
+    // no hit on an interactive ViroText). Box its layout rectangle instead,
+    // 1 cm deep, so the target does not change size when the copy changes.
+    const rect = text.layoutRect;
+    const shape = Shape.createBoxShape();
+    shape.size = new vec3(Math.max(rect.right - rect.left, 1), Math.max(rect.top - rect.bottom, 1), 1);
+    collider.shape = shape;
+    collider.fitVisual = false;
+  } else if (hasVisual(object)) {
     collider.fitVisual = true;
   } else {
     const shape = Shape.createBoxShape();
@@ -96,7 +106,7 @@ function viroNodeIdOf(object: SceneObject): string | undefined {
 /**
  * The object SIK should target: the node itself if it draws, else its first
  * drawing descendant that belongs to the node (a panel's backplate, a
- * model's mesh). Objects of other nodes are never chosen: binding a group's
+ * model's mesh), never a missing asset's placeholder box. Objects of other nodes are never chosen: binding a group's
  * or a panel's interaction on a child ViroText would rename that text node
  * and route the parent's pinches through it. With no drawing part of its own
  * the node itself is the target, and the binding gives it a box collider.
@@ -106,6 +116,10 @@ export function findViroSpecsInteractionTarget(root: SceneObject, ownId: string 
   for (const child of root.children) {
     const childId = viroNodeIdOf(child);
     if (childId !== undefined && childId !== ownId) continue;
+    // A missing asset's placeholder box is temporary: it is destroyed when
+    // the asset loads, which would take the Interactable with it, and it
+    // keeps its "viro-placeholder:" name for lookups.
+    if (child.name.startsWith("viro-placeholder:")) continue;
     const target = findViroSpecsInteractionTarget(child, ownId);
     if (target !== child || hasVisual(child) || child.getComponent(Interactable.getTypeName())) return target;
   }
