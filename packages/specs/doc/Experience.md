@@ -158,22 +158,60 @@ a dwell on one calls `scrollByRows` with -1 or +1.
 State panels (loading, notice, error, permission) lay out from
 `layoutViroSpecsStatePanel`: rows wrap at the panel width less `space.md`
 on each side, the backing grows to fit them, and the loading panel has a
-progress ring above its title. Panels draw after scene content with depth
-test off, so content nearer than the panel does not show through. A
-PanelButton error message is a row under the button across its
+progress ring above its title. Row heights come from the lines the text
+really wraps to: the Lens host lays each string out in an invisible Text at
+the row's size and width and counts its highlight rectangles (one per line),
+so "VS5003 (platform-lab-model)" takes one line. Node tests use the 0.55 em
+per character estimate (`estimateViroSpecsLines`), which errs toward more
+lines.
+
+Panels draw after scene content with depth test off and an opaque backing
+(blend mode disabled, alpha 1), so no virtual content behind a panel shows
+through it. The backing also stops rays: it carries a collider and a SIK
+Interactable with no listeners, so neither a hand ray (SIK targets the
+nearest Interactable) nor gaze (the nearest collider) reaches a control
+behind an open panel. The panel's own action sits in front of the backing
+and stays reachable. SPECS is an additive display: the room behind a panel
+always shows through, brightened by the panel color, and Lens Studio's
+SPECS 27 Preview simulates that. Opaque here means opaque to the Lens's own
+content.
+
+A PanelButton error message is a row under the button across its
 SpatialPanel's inner width (`layoutViroSpecsButtonError`); scenes leave that
-row free. Hand drags are held inside the comfort band like gaze Move and
-placement, with one `VS5023` per excursion.
+row free. A PanelButton's label sits `depth.hover` plus 0.2 cm in front of
+the button, so a hovered backing never covers it; content an app puts inside
+a PanelButton (a card's PanelImage) belongs at least that far forward too.
 
-The host does not draw these yet; each node that uses one is reported once as `VS5025`:
+Hand drags are held inside the comfort band like gaze Move and placement,
+with one `VS5023` per excursion. The clamp runs as the scene controller's
+drag constraint (`setDragConstraint`), before any interaction listener, so
+an app's drag listener receives the clamped position the node is at.
 
-| Component | Not drawn |
-| --- | --- |
-| ModelViewer | `autoRotate`, the Reset model button, the load ring at the model bounds |
-| PanelImage | `radius.card` corners |
+The reticle and the gaze dwell indicator draw on a disc mesh, not the
+square unit plane.
 
+ModelViewer:
+
+- Load ring: while the model's asset loads, a ring three body ems across turns
+  at the model's origin (the bounds are unknown until the model arrives),
+  dots without movement under reduced motion.
+- Reset model (`resettable`, on by default): a button `space.sm` under the
+  model's bounds, measured once when it first draws. A pinch or a gaze dwell
+  returns the model to its authored position, rotation and scale over
+  `motion.base` with ease-in-out, at once under reduced motion. Scenes that
+  author their own Reset model button set `resettable={false}`.
+- `autoRotate`: 18 degrees a second about the model's up axis, paused while
+  the wearer holds or drags it and during a Reset, off under reduced motion.
+
+PanelImage draws on a rounded-rectangle mesh with `radius.card` corners,
+capped at a quarter of the shorter side so a small thumbnail stays a rounded
+square, sharing the Image's material; the square Image quad is switched off
+while a texture is set, and the missing-image placeholder box is unchanged.
+
+The host draws every premium feature, so `VS5025` lists none.
 `unrenderedViroSpecsComponentFeatures` in `ViroSpecsExperience.ts` is the
-list the host reports from; update it when a feature lands.
+list the host reports from; a feature a future compiler adds goes there until
+the host draws it.
 
 ## Wearer-relative measurement
 

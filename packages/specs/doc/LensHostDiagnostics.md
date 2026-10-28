@@ -188,8 +188,10 @@ gaze dwell (1000 ms, provisional) and adds step buttons for drag and scroll.
 
 ### VS5025 · warning
 
-Premium component feature not drawn by this host. The scene document carries
-a premium component feature that `ViroSpecsExperienceHost` does not render
-yet (model-viewer reset button and load ring,
-image corner radius). Reported once per node; the message names the
-features. See `Experience.md#not-drawn-yet`.
+Premium component feature not drawn by this host. A host reports it once
+per node for each premium feature in the scene document it cannot draw; the
+message names the node and the features. The current
+`ViroSpecsExperienceHost` draws every premium feature (ModelViewer load ring,
+Reset model button and `autoRotate`; PanelImage `radius.card` corners;
+SpatialScrollView as a scroll group), so it raises none. See
+`Experience.md#not-drawn-yet`.

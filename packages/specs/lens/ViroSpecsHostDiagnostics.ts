@@ -164,7 +164,7 @@ export const VIRO_SPECS_HOST_DIAGNOSTICS = {
   VS5025: {
     severity: "warning",
     title: "Premium component feature not drawn by this host",
-    hint: "The scene carries the feature but this host version does not render it yet; the message names the node and the features. See doc/Experience.md#not-drawn-yet.",
+    hint: "The scene carries a premium feature this host version does not draw; the message names the node and the features. The current Lens host draws every premium feature (ModelViewer load ring, Reset model button and autoRotate; PanelImage radius.card corners), so it reports none. See doc/Experience.md#not-drawn-yet.",
   },
 } as const satisfies Record<string, ViroSpecsHostDiagnosticDefinition>;
 
