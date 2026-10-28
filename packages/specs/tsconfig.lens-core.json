@@ -14,7 +14,7 @@
     "declaration": false,
     "sourceMap": false,
     "rootDir": "lens",
-    "outDir": "dist/lens-core"
+    "outDir": "build/lens-core"
   },
   "files": [
     "lens/ViroSpecsProtocol.ts",

@@ -6,7 +6,8 @@ This document records the supported/validated combination for
 | Layer | Supported / validated |
 | --- | --- |
 | Viro SPECS package | `@viro-external/specs@0.2.x` |
-| XR contract | `@viro-external/xr-contract@0.2.x` (renderer-neutral TypeScript contract) |
+| XR contract | `@viro-external/xr-contract@^0.3.0` (renderer-neutral TypeScript contract). `src/render.ts` imports `PortableXRTextStyle` and `PortableXRScroll`, which are not in 0.2.0, so the peer is `^0.3.0`. |
+| Scene protocols | 1 (`ViroSpecsSceneSnapshot`) and 2 (`ViroSpecsSceneDocumentV2`), read by `ViroSpecsSceneController` |
 | Previous release candidate | `@viro-external/specs@0.2.0-rc.1` + `@viro-external/xr-contract@0.2.0-rc.1`, simulator validated |
 | Module formats | ESM (`import`), CommonJS (`require`), TypeScript source under the `react-native` condition for Metro |
 | Lens Studio minimum | 5.22.0+ |

@@ -297,9 +297,7 @@ export class ViroSpecsSceneController<N, A, M> {
     if (this.disposed) return () => undefined;
     const owner = this.current?.ownership ?? this.controllerWork;
     const revision = this.current?.revision;
-    return owner.own(
-      this.scheduler.nextFrame(() => this.safeCall("queued action", revision, action))
-    );
+    return this.ownFrame(owner, () => this.safeCall("queued action", revision, action));
   }
 
   /**
@@ -1042,12 +1040,10 @@ export class ViroSpecsSceneController<N, A, M> {
   private scheduleBindings(state: SceneState<N, M>, interactions: readonly ViroSpecsDocumentInteraction[]): void {
     if (interactions.length === 0) return;
     const pending = interactions.slice();
-    state.ownership.own(
-      this.scheduler.nextFrame(() => {
-        if (!state.ownership.alive || this.current !== state) return;
-        for (const interaction of pending) this.bind(state, interaction);
-      })
-    );
+    this.ownFrame(state.ownership, () => {
+      if (!state.ownership.alive || this.current !== state) return;
+      for (const interaction of pending) this.bind(state, interaction);
+    });
   }
 
   private bind(state: SceneState<N, M>, interaction: ViroSpecsDocumentInteraction): void {
@@ -1139,6 +1135,24 @@ export class ViroSpecsSceneController<N, A, M> {
     } else {
       state.animations.set(key, state.ownership.own(play()));
     }
+  }
+
+  /**
+   * Schedules a one-shot next-frame job owned by `owner`. The ownership
+   * entry is released when the job runs, so finished jobs do not count as
+   * pending work.
+   */
+  private ownFrame(owner: Ownership, job: () => void): ViroSpecsCancel {
+    let release: ViroSpecsCancel = () => undefined;
+    let ran = false;
+    const cancel = this.scheduler.nextFrame(() => {
+      ran = true;
+      release();
+      job();
+    });
+    release = owner.own(cancel);
+    if (ran) release();
+    return release;
   }
 
   private setLifecycle(next: ViroSpecsSceneLifecycle): void {

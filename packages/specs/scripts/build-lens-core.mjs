@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Compiles the Lens files that use no Lens Studio globals (tsconfig.lens-core.json)
-// to dist/lens-core so Node tests can run the real host code against a mock
+// to build/lens-core so Node tests can run the real host code against a mock
 // backend. Lens Studio resolves extensionless relative imports; Node ESM does
 // not, so the emitted specifiers get ".js".
 import { execFileSync } from "node:child_process";
@@ -9,7 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const out = path.join(packageRoot, "dist", "lens-core");
+const out = path.join(packageRoot, "build", "lens-core");
 await rm(out, { recursive: true, force: true });
 const tsc = path.join(packageRoot, "node_modules", ".bin", "tsc");
 execFileSync(tsc, ["-p", path.join(packageRoot, "tsconfig.lens-core.json")], { stdio: "inherit" });
