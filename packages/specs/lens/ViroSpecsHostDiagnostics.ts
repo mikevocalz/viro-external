@@ -24,7 +24,8 @@ export type ViroSpecsHostPhase =
   | "interaction"
   | "animation"
   | "dispose"
-  | "listener";
+  | "listener"
+  | "action";
 
 /** Catalog entry: severity is fixed per code. */
 export type ViroSpecsHostDiagnosticDefinition = {
@@ -108,6 +109,36 @@ export const VIRO_SPECS_HOST_DIAGNOSTICS = {
     severity: "error",
     title: "Backend operation failed",
     hint: "A Lens call threw while updating a committed node. The node keeps its previous state; the message names the operation.",
+  },
+  VS5015: {
+    severity: "error",
+    title: "Action is not declared",
+    hint: "Declare the action ID in the scene's actions list and in the ViroSpecsActionRegistry. The trigger or dispatch was dropped.",
+  },
+  VS5016: {
+    severity: "error",
+    title: "Action is declared or handled twice",
+    hint: "Action IDs are unique per scene and per registry. The first declaration or handler stays; remove the second.",
+  },
+  VS5017: {
+    severity: "error",
+    title: "Action payload does not match its declaration",
+    hint: "The fieldPath names the field: missing, unknown, wrong type or not in enum. The action was dropped and state is unchanged.",
+  },
+  VS5018: {
+    severity: "info",
+    title: "Queued action invalidated by navigation",
+    hint: "No action needed. The scene that showed the node was retired before the action ran, so it was dropped.",
+  },
+  VS5019: {
+    severity: "warning",
+    title: "Declared action has no handler",
+    hint: "Register a handler with ViroSpecsActionRegistry.on, or set forward on ViroSpecsActionRuntime to send the action to a phone app.",
+  },
+  VS5020: {
+    severity: "info",
+    title: "Route memory is full; least recently used route forgotten",
+    hint: "Scroll positions of the forgotten route reset when it is shown again. Raise maxRememberedRoutes if this repeats.",
   },
 } as const satisfies Record<string, ViroSpecsHostDiagnosticDefinition>;
 

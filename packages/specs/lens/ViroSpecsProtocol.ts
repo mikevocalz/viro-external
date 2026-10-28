@@ -103,12 +103,77 @@ export type ViroSpecsDocumentMaterial = {
   lightingModel?: "constant" | "lambert" | "blinn" | "phong" | "pbr";
 };
 
+/** Value type of one action payload field. `integer` is a whole `number`. */
+export type ViroSpecsActionFieldType = "string" | "number" | "integer" | "boolean";
+
+/** One field of an action payload declaration. */
+export type ViroSpecsActionField = {
+  type: ViroSpecsActionFieldType;
+  /** Allowed values. Only valid on `string` fields. */
+  enum?: string[];
+  /** When true the field may be absent. Default false. */
+  optional?: boolean;
+};
+
+/**
+ * Declares one semantic action: a stable ID and the type of its payload.
+ * IDs match {@linkcode VIRO_SPECS_ACTION_ID_PATTERN}, for example
+ * `exhibit.open`. A payload is a flat object of strings, numbers and
+ * booleans, so it crosses any transport as JSON and never carries a closure.
+ */
+export type ViroSpecsActionDeclaration = {
+  id: string;
+  /** Field name to type. Absent means the action takes an empty payload. */
+  payload?: Record<string, ViroSpecsActionField>;
+};
+
+/** Lowercase dot-separated segments: `exhibit.open`, `settings.set-units`. */
+export const VIRO_SPECS_ACTION_ID_PATTERN = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)*$/;
+
+/** A payload value. */
+export type ViroSpecsActionValue = string | number | boolean;
+
+/** An action payload: flat, JSON-safe. */
+export type ViroSpecsActionPayload = Record<string, ViroSpecsActionValue>;
+
+/** Interaction moment that fires a trigger. `select` is a completed pinch or click. */
+export type ViroSpecsActionTriggerEvent = "select" | "hover-enter" | "hover-exit";
+
+/** Fires a declared action with a fixed payload when its node sees `on`. */
+export type ViroSpecsActionTrigger = {
+  on: ViroSpecsActionTriggerEvent;
+  actionId: string;
+  /** Checked against the action's declaration. Absent means `{}`. */
+  payload?: ViroSpecsActionPayload;
+};
+
 /** Interaction intent for one node. */
 export type ViroSpecsDocumentInteraction = {
   nodeId: string;
   interactable: true;
   manipulation: boolean;
   events: ("hover" | "select" | "drag")[];
+  /** Actions this node fires. `select` needs `select` in `events`, hover triggers need `hover`. */
+  triggers?: ViroSpecsActionTrigger[];
+};
+
+/**
+ * A typed action raised by a trigger on the committed scene, or dispatched
+ * by app code. Delivered by `ViroSpecsSceneController.addOnActionListener`
+ * one frame after the interaction, and only if the scene that showed the
+ * node is still committed.
+ */
+export type ViroSpecsActionEvent = {
+  actionId: string;
+  payload: ViroSpecsActionPayload;
+  /** Node whose trigger fired. Absent for app-dispatched actions. */
+  nodeId?: string;
+  /** Interaction moment. Absent for app-dispatched actions. */
+  on?: ViroSpecsActionTriggerEvent;
+  source?: ViroSpecsHostInteractionSource;
+  /** Revision of the scene the wearer interacted with. */
+  sceneRevision: number;
+  timestampMs: number;
 };
 
 /** Animation on one node. `plan.backendPackage` is optional on the wire. */
@@ -128,6 +193,15 @@ export type ViroSpecsDocumentAnimation = {
  */
 export type ViroSpecsSceneDocumentV2 = {
   version: 2;
+  /**
+   * Route the scene belongs to, for example `list` or `details`. When an
+   * update names a different route than the committed scene, the controller
+   * navigates (transactional replacement) instead of patching, and restores
+   * the scroll positions it remembered for the route it returns to.
+   */
+  route?: string;
+  /** Actions the scene's triggers fire. Required when any trigger exists. */
+  actions?: ViroSpecsActionDeclaration[];
   nodes: ViroSpecsDocumentNode[];
   polylines?: ViroSpecsDocumentPolyline[];
   lights?: ViroSpecsDocumentLight[];
