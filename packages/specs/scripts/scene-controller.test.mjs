@@ -112,12 +112,21 @@ test("round trip: protocol 1 snapshot from the existing wire still renders", () 
 
 test("the round trip fixture compiled by viro-specs-compile renders without diagnostics", () => {
   const url = new URL("./fixtures/platform-lab.scene-v2.json", import.meta.url);
-  assert.ok(existsSync(url), "fixture missing: run viro-specs-compile --format scene-json on the Platform Lab");
+  // Regenerate from a viro checkout with:
+  //   viro-specs-compile --entry examples/specs-platform-lab/SpecsPlatformLab.tsx \
+  //     --out <this dir>/fixtures/platform-lab.scene-v2.json --format scene-json --strict
+  assert.ok(existsSync(url), "fixture missing");
   const { backend, scheduler, controller } = setup();
-  backend.models.set("examples/specs-platform-lab/assets/tutor.glb", { prefab: "tutor" });
+  // Asset IDs are the compiler's cwd-relative paths; register the model as a Lens project would.
+  for (const node of JSON.parse(readFileSync(url, "utf8")).nodes) {
+    if (node.kind === "model") backend.models.set(node.source, { prefab: node.source });
+    if (node.kind === "image") backend.images.set(node.source, { texture: node.source });
+  }
   const fixture = JSON.parse(readFileSync(url, "utf8"));
   const result = controller.present(fixture);
   assert.equal(result.status, "committed", JSON.stringify(result.diagnostics));
+  assert.deepEqual(result.diagnostics.filter((d) => d.severity === "error"), []);
+  assert.equal(controller.lifecycle, "ready");
   const ids = backend.liveNodes().map((h) => h.id).sort();
   const expected = [...fixture.nodes.map((n) => n.id), ...(fixture.polylines ?? []).map((p) => p.id), ...(fixture.lights ?? []).map((l) => l.id)].sort();
   assert.deepEqual(ids, expected);

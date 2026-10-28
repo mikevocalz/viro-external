@@ -135,6 +135,7 @@ jobs:
         if: inputs.suite == 'xr'
         run: |
           pnpm --filter @viro-external/specs specs:validate-lens
+          pnpm --filter @viro-external/specs specs:test-host
           pnpm --filter @viro-external/xr-contract build
           pnpm --filter @viro-external/specs build
           node -e "Promise.all([import('./packages/xr-platform-contract/dist/index.js'), import('./packages/specs/dist/index.js')]).then(() => console.log('ESM imports OK'))"

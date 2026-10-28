@@ -38,6 +38,7 @@ jobs:
           pnpm --filter @viro-external/specs typecheck
           pnpm --filter @viro-external/specs specs:validate-lens
           pnpm --filter @viro-external/specs specs:test-runner
+          pnpm --filter @viro-external/specs specs:test-host
 
       - name: Build publishable packages
         run: |
