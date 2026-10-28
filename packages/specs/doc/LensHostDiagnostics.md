@@ -156,3 +156,40 @@ Route memory is full; least recently used route forgotten. The controller
 remembers scroll positions for at most `maxRememberedRoutes` routes
 (default 16). A forgotten route shows its scroll groups at their initial
 position the next time it is presented.
+
+## Experience layer
+
+Codes from `ViroSpecsExperienceController` (`lens/ViroSpecsExperience.ts`),
+phase `experience`. See `Experience.md`.
+
+### VS5021 · info
+
+Capability degraded; dependent UI hidden. Reported each time a capability the
+scene uses changes to `unsupported`, `permission-required`,
+`temporarily-unavailable` or `unverified`. The message names the capability,
+the state and the UI that was hidden; the wearer sees the one-line notice from
+the copy table.
+
+### VS5022 · warning
+
+Text raised to the 1.2 degree minimum. The host measured a text node at its
+current distance and raised its size. PanelText sizes from tokens at compile
+time, but placement and drag can move text farther away.
+
+### VS5023 · warning
+
+Position clamped into the 0.6-3.0 m comfort band. A placement or drag would
+have put the node outside the band; it stops at the edge.
+
+### VS5024 · info
+
+Gaze-only input active. Hand tracking is not available, so the host selects by
+gaze dwell (1000 ms, provisional) and adds step buttons for drag and scroll.
+
+### VS5025 · warning
+
+Premium component feature not drawn by this host. The scene document carries
+a premium component feature that `ViroSpecsExperienceHost` does not render
+yet (scroll-view native scrolling, model-viewer reset button and load ring,
+image corner radius). Reported once per node; the message names the
+features. See `Experience.md#not-drawn-yet`.

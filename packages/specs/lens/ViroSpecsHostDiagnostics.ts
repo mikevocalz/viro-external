@@ -25,7 +25,8 @@ export type ViroSpecsHostPhase =
   | "animation"
   | "dispose"
   | "listener"
-  | "action";
+  | "action"
+  | "experience";
 
 /** Catalog entry: severity is fixed per code. */
 export type ViroSpecsHostDiagnosticDefinition = {
@@ -139,6 +140,31 @@ export const VIRO_SPECS_HOST_DIAGNOSTICS = {
     severity: "info",
     title: "Route memory is full; least recently used route forgotten",
     hint: "Scroll positions of the forgotten route reset when it is shown again. Raise maxRememberedRoutes if this repeats.",
+  },
+  VS5021: {
+    severity: "info",
+    title: "Capability degraded; dependent UI hidden",
+    hint: "No action needed for the build. The message names the capability, its state and the UI the experience layer hid; the wearer sees a one-line notice.",
+  },
+  VS5022: {
+    severity: "warning",
+    title: "Text raised to the 1.2 degree minimum",
+    hint: "The text rendered smaller than 1.2 degrees at its distance, so the host raised its size. Size it from the type tokens (PanelText) to avoid the clamp.",
+  },
+  VS5023: {
+    severity: "warning",
+    title: "Position clamped into the 0.6-3.0 m comfort band",
+    hint: "A placement or drag would have put the node nearer than 0.6 m or farther than 3.0 m; the host stopped it at the band edge.",
+  },
+  VS5024: {
+    severity: "info",
+    title: "Gaze-only input active",
+    hint: "Hand tracking is not available, so selection works by gaze dwell and drag is replaced by step buttons. It switches back when hand tracking returns.",
+  },
+  VS5025: {
+    severity: "warning",
+    title: "Premium component feature not drawn by this host",
+    hint: "The scene carries the feature but this host version does not render it yet; the message names the node and the features. See doc/Experience.md#not-drawn-yet.",
   },
 } as const satisfies Record<string, ViroSpecsHostDiagnosticDefinition>;
 

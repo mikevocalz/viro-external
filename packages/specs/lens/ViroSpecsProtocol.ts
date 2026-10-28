@@ -5,6 +5,8 @@
  * produces structurally compatible payloads; Lens Studio only needs these
  * serialized shapes and official .lspkg dependencies.
  */
+import type { ViroSpecsComponentSpec, ViroSpecsTheme } from "./ViroSpecsExperienceTokens";
+
 export const VIRO_SPECS_WIRE_VERSION = 1 as const;
 
 /**
@@ -54,6 +56,10 @@ export type ViroSpecsDocumentNodeBase = {
   opacity?: number;
   /** Entry in `materials`, or a material in the Lens asset registry. */
   materialId?: string;
+  /** Accessible name. Required by the compilers on interactable nodes (VS3016). */
+  label?: string;
+  /** Premium component; drawn by the experience layer from `theme` tokens. */
+  component?: ViroSpecsComponentSpec;
 };
 
 /** Protocol 2 node, discriminated by `kind`. Video and sound never reach the wire. */
@@ -208,6 +214,8 @@ export type ViroSpecsSceneDocumentV2 = {
   materials?: ViroSpecsDocumentMaterial[];
   interactions?: ViroSpecsDocumentInteraction[];
   animations?: ViroSpecsDocumentAnimation[];
+  /** Spatial tokens and preferences. Absent means the host's default theme. */
+  theme?: ViroSpecsTheme;
 };
 
 /** Interaction sources the host reports. */

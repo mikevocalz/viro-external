@@ -12,7 +12,7 @@
 export { Interactable } from "SpectaclesInteractionKit.lspkg/Components/Interaction/Interactable/Interactable";
 export { InteractableManipulation } from "SpectaclesInteractionKit.lspkg/Components/Interaction/InteractableManipulation/InteractableManipulation";
 export { InteractionManager } from "SpectaclesInteractionKit.lspkg/Core/InteractionManager/InteractionManager";
-export { InteractorInputType } from "SpectaclesInteractionKit.lspkg/Core/Interactor/Interactor";
+export { InteractorInputType, InteractorTriggerType } from "SpectaclesInteractionKit.lspkg/Core/Interactor/Interactor";
 export type { Interactor } from "SpectaclesInteractionKit.lspkg/Core/Interactor/Interactor";
 export type { InteractorEvent } from "SpectaclesInteractionKit.lspkg/Core/Interactor/InteractorEvent";
 export { setTimeout, clearTimeout } from "SpectaclesInteractionKit.lspkg/Utils/FunctionTimingUtils";
