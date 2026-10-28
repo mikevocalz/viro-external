@@ -222,3 +222,18 @@ test("registers runtime textures without mutating Inspector arrays", () => {
   assert.match(registry, /this\.imageIds = ids;\s*this\.imageTextures = textures;/);
   assert.doesNotMatch(registry, /this\.imageIds\.push\(/);
 });
+
+test("legacy Lens entry points validate like the controller and drop actions of replaced pages", () => {
+  const host = readFileSync(new URL("../lens/ViroSpecsPresentationHost.ts", import.meta.url), "utf8");
+  // Validation runs before anything is cleared.
+  assert.ok(host.indexOf("readViroSpecsSceneInput(snapshot.scene") < host.indexOf("renderer.clear();\n    this.actions.clear();\n    try"));
+  // A deferred action carries its page's generation and is dropped after replacement.
+  const emit = host.slice(host.indexOf("private emitDeferred"));
+  assert.match(emit, /const generation = this\.generation;/);
+  assert.match(emit, /if \(generation !== this\.generation\) return;/);
+  assert.match(emit, /catch \(error\)/);
+  const runtimeHost = readFileSync(new URL("../lens/ViroSpecsRuntimeHost.ts", import.meta.url), "utf8");
+  const apply = runtimeHost.slice(runtimeHost.indexOf("applySceneSnapshot(scene"));
+  assert.ok(apply.indexOf("readViroSpecsSceneInput(scene, 0)") < apply.indexOf("this.applyRenderPlan"));
+  assert.match(apply, /read\.scene\.protocol !== 1/);
+});
