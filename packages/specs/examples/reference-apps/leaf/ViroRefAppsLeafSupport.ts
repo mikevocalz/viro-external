@@ -174,6 +174,12 @@ function specFor(name: ViroRefAppName): AppSpec<unknown> {
  */
 export async function startRefApp<S>(name: ViroRefAppName, edit?: (doc: ViroRefSceneDocument) => void): Promise<RefApp<S>> {
   const host = controllerHost();
+  // A project with "GeneratedHost" presents its own scene shortly after each
+  // Lens reset; wait for that first, or it replaces the app mid-scenario.
+  if (findSceneObjectByName(REF_HOSTS.generated)) {
+    await waitFor(() => host.committedScene !== null && host.lifecycle === "ready", 3000);
+    await settle();
+  }
   const base = viroRefAppScene(name) as ViroRefSceneDocument;
   if (edit) edit(base);
   const spec = specFor(name) as unknown as AppSpec<S>;

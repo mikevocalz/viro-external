@@ -48,7 +48,13 @@ export class ViroRefPlacementCancelScenario extends Scenario {
       injectWorldQuery(host, { position: cameraPosition().add(new vec3(0, -45, -110)), normal: vec3.up() });
       expect(await waitFor(() => reticleLabel().startsWith("Table"), 3000)).toBe(true);
       injectWorldQuery(host, null);
-      expect(await waitFor(() => reticleLabel().startsWith("Placement cancelled"), 4000)).toBe(true);
+      // A cancelled attempt hides the reticle, so its Text keeps the last
+      // label; the placement session's view carries the cancelled state.
+      const session = (): string => {
+        const placement = (host as unknown as { placement: { view(): { label: string } } | null }).placement;
+        return placement ? placement.view().label : "";
+      };
+      expect(await waitFor(() => session().startsWith("Placement cancelled") && !(findSceneObjectByName("ViroSpecsReticle")?.enabled ?? false), 4000)).toBe(true);
       await hold(config, "placement_cancelled");
       expect(host.confirmPlacement()).toBe(false);
       expect(nodeObject(ids.card)?.enabled ?? true).toBe(false);

@@ -66,10 +66,13 @@ export class ViroRefModelMissingAssetScenario extends Scenario {
       expect((textOf(ids.status) ?? "").startsWith("Turned")).toBe(true);
 
       const panel = experiencePanel("error");
-      // The panel's action button is the only Interactable under the panel.
+      // The action button is the panel's "action" child. The backing also
+      // carries an Interactable, with no listeners, that stops rays.
+      const actionObject = (panel as SceneObject).children.find((child) => child.name === "action") ?? null;
+      expect(actionObject).toBeTruthy();
       const action = findInteractables(
         (object) => (object.getComponent(Interactable.getTypeName()) as Interactable | null) ?? undefined,
-        panel as SceneObject,
+        actionObject as SceneObject,
         true
       )[0];
       expect(action).toBeTruthy();

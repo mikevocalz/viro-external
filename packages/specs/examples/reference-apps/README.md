@@ -118,16 +118,20 @@ capture. The default is 0.
 | `viro_ref_model_missing_asset` | `ViroRefModelMissingAssetScenario` | With an unregistered GLB: `VS5003` for `mv-model`, `viro-placeholder:mv-model`, error panel "Model didn't load" with Retry, the controls still work, Retry hands `mv-model` to the retry listener | Pass |
 | `viro_ref_placement_ready` | `ViroRefPlacementReadyScenario` | World-placed info reaches `ready` with no findings; the card is committed but hidden; idle prompt; "Place card" interactable; Cancel hidden | Pass |
 | `viro_ref_placement_confirm` | `ViroRefPlacementConfirmScenario` | "Place card" starts placement; an injected table hit shows "Table. Pinch to place."; confirm sends `placement.confirm` and the card shows within 3 cm of the hit; prompt and button change | Pass |
-| `viro_ref_placement_cancel` | `ViroRefPlacementCancelScenario` | After a valid hit then none for 1.5 s the reticle reads "Placement cancelled" and confirm places nothing; Cancel returns to the idle prompt with the card still hidden | Pass |
+| `viro_ref_placement_cancel` | `ViroRefPlacementCancelScenario` | After a valid hit then none for 1.5 s the placement session reports "Placement cancelled" and the reticle is hidden (its Text keeps the last label); confirm places nothing; Cancel returns to the idle prompt with the card still hidden | Pass |
 | `viro_ref_expected_failure` | `ViroRefExpectedFailureScenario` | Asserts the dashboard title is "REF_EXPECTED_FAILURE: this title does not exist" | **Fails**, with expected "REF_EXPECTED_FAILURE: this title does not exist" and received "Workshop sensors". If it passes, the harness is broken |
 
-Findings leave out `VS5008` (see above) and `VS5025`: this host reports that
-it does not draw the ModelViewer load ring yet, for every ModelViewer.
+Findings leave out `VS5008` (see above). They also filter `VS5025`, which
+the current host never raises: it draws the ModelViewer load ring, Reset
+model and `autoRotate`, so the list of features it does not draw is empty.
 
 Preview has no SPECS depth, so the placement scenarios replace the
 experience host's WorldQuery session with one that reports a fixed hit, as
 the WS4 placement scenarios do.
 
-Evidence: the Node test is `portable-test-passed`. The LEAF scenarios have
-not been run in Lens Studio Preview yet; Preview is the validation tier for
-this release.
+Evidence: the Node test is `portable-test-passed`. The LEAF scenarios are
+`preview-validated`: the Platform Lab copy in viro (branch
+`feat/specs-lens-experience`, `docs/evidence/specs/lens/ws4-08-polish2/leaf-suite/`)
+ran all ten in Lens Studio Preview on SPECS 27. Nine passed and
+`viro_ref_expected_failure` failed as required. The lab copies of the
+scenario files are byte-identical to the ones here.
