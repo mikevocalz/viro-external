@@ -300,8 +300,12 @@ export type ViroSpecsPortableInteraction = {
   phase: ViroSpecsInteractionPhase;
   targetId?: string;
   position?: [number, number, number];
+  /** Surface normal at the hit, world space. */
+  normal?: [number, number, number];
   direction?: [number, number, number];
   timestampMs?: number;
+  /** Which hand, gaze or synthetic input produced the event. */
+  inputSource?: ViroSpecsHostInteractionSource;
 };
 
 export type ViroSpecsSurfaceClassification =

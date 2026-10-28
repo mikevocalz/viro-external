@@ -46,6 +46,11 @@ export class ViroSpecsInteractionHost extends BaseScriptComponent {
     this.requireRuntime().setInteractable(nodeId, enabled);
   }
 
+  /** Unbinds one node; unknown IDs are ignored. */
+  remove(nodeId: string): void {
+    this.requireRuntime().remove(nodeId);
+  }
+
   setManipulationEnabled(nodeId: string, enabled: boolean): void {
     this.requireRuntime().setManipulationEnabled(nodeId, enabled);
   }

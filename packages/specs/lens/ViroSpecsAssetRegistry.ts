@@ -38,6 +38,34 @@ export class ViroSpecsAssetRegistry extends BaseScriptComponent {
   @allowUndefined
   defaultImageMaterial: Material | null = null;
 
+  /** Font assets by fontFamily name, for manifest text style. */
+  @input
+  fontIds: string[] = [];
+
+  @input
+  fonts: Font[] = [];
+
+  /**
+   * Unlit material the scene host clones for missing-asset placeholders.
+   * Falls back to defaultImageMaterial.
+   */
+  @input
+  @allowUndefined
+  placeholderMaterial: Material | null = null;
+
+  /**
+   * Base material the scene host clones for scene-defined materials
+   * (`materials` in a protocol 2 scene). Falls back to defaultImageMaterial.
+   */
+  @input
+  @allowUndefined
+  defaultMaterial: Material | null = null;
+
+  /** Material for polylines without a materialId. */
+  @input
+  @allowUndefined
+  defaultLineMaterial: Material | null = null;
+
   /**
    * Registers or replaces an image at runtime, for textures that only exist
    * once the Lens is running (remote media, WebView, camera crops). Nodes
@@ -70,6 +98,10 @@ export class ViroSpecsAssetRegistry extends BaseScriptComponent {
 
   resolveMaterial(source: string): Material | null {
     return this.resolveById(source, this.materialIds, this.materials);
+  }
+
+  resolveFont(family: string): Font | null {
+    return this.resolveById(family, this.fontIds, this.fonts);
   }
 
   private resolveById<T>(

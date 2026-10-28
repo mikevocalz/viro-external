@@ -26,6 +26,14 @@ const requiredFiles = [
   "ViroSpecsLeafSceneSmokeScenario.ts",
   "ViroSpecsLeafInteractionScenario.ts",
   "ViroSpecsLeafIndex.ts",
+  "ViroSpecsHostDiagnostics.ts",
+  "ViroSpecsSceneDocument.ts",
+  "ViroSpecsSceneBackend.ts",
+  "ViroSpecsResourceCache.ts",
+  "ViroSpecsSceneController.ts",
+  "ViroSpecsSikBinding.ts",
+  "ViroSpecsLensSceneBackend.ts",
+  "ViroSpecsSceneControllerHost.ts",
 ];
 
 const forbiddenImports = [
