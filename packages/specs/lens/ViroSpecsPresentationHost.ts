@@ -59,7 +59,7 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
     // Same field checks as ViroSpecsSceneController, so raw wire JSON cannot
     // pass with a kind, field or reference this host would trip over later.
     const read = readViroSpecsSceneInput(snapshot.scene, this.generation + 1);
-    if (!read.ok) {
+    if (read.ok === false) {
       throw new Error("Invalid Specs scene: " + read.diagnostics.map(formatViroSpecsHostDiagnostic).join("; "));
     }
     const plan = compileLensRenderPlan(snapshot.scene);

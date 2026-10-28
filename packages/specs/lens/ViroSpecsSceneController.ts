@@ -330,7 +330,7 @@ export class ViroSpecsSceneController<N, A, M> {
       if (!state || this.disposed) return this.presentInner(input);
       const revision = ++this.revisionCounter;
       const read = readViroSpecsSceneInput(input, revision);
-      if (!read.ok) return this.reject(revision, read.diagnostics);
+      if (read.ok === false) return this.reject(revision, read.diagnostics);
       return this.patchTo(state, read.scene, revision);
     });
   }
@@ -355,7 +355,7 @@ export class ViroSpecsSceneController<N, A, M> {
         animations: state.scene.animations.filter((a) => nodes.some((n) => n.id === a.nodeId)),
       };
       const read = readViroSpecsSceneInput(document, revision, { allowLegacyTextStyle: true });
-      if (!read.ok) return this.reject(revision, read.diagnostics);
+      if (read.ok === false) return this.reject(revision, read.diagnostics);
       return this.patchTo(state, read.scene, revision);
     });
   }
@@ -394,7 +394,7 @@ export class ViroSpecsSceneController<N, A, M> {
       ]);
     }
     const read = readViroSpecsSceneInput(input, revision);
-    if (!read.ok) return this.reject(revision, read.diagnostics);
+    if (read.ok === false) return this.reject(revision, read.diagnostics);
 
     // Stage: build the whole scene under a disabled root.
     const ownership = new Ownership();

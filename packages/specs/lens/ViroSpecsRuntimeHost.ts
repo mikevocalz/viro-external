@@ -56,8 +56,8 @@ export class ViroSpecsRuntimeHost extends BaseScriptComponent {
    */
   applySceneSnapshot(scene: ViroSpecsSceneSnapshot): void {
     const read = readViroSpecsSceneInput(scene, 0);
-    if (!read.ok || read.scene.protocol !== 1) {
-      const reasons = read.ok ? ["expected scene protocol 1"] : read.diagnostics.map(formatViroSpecsHostDiagnostic);
+    if (read.ok === false || read.scene.protocol !== 1) {
+      const reasons = read.ok === false ? read.diagnostics.map(formatViroSpecsHostDiagnostic) : ["expected scene protocol 1"];
       throw new Error("Invalid Specs scene snapshot: " + reasons.join("; "));
     }
     this.applyRenderPlan(compileLensRenderPlan(scene));

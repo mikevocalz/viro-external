@@ -83,6 +83,15 @@ for (const file of tsFiles) {
       }
     }
   }
+
+  // Lens Studio's compiler does not narrow a `{ ok: true } | { ok: false }`
+  // union through `!x.ok` or `x.ok ? a : b`, so the else side fails with TS2339
+  // there while tsc accepts it. Compare against the literal instead.
+  content.split("\n").forEach((line, index) => {
+    if (/!\s*[\w.]+\.ok\b|\.ok\s*\?/.test(line)) {
+      violations.push(file + ":" + (index + 1) + " narrows .ok by truthiness; write `.ok === false`");
+    }
+  });
 }
 
 if (violations.length > 0) {
