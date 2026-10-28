@@ -88,7 +88,10 @@ export class ViroSpecsSceneControllerHost extends BaseScriptComponent {
     return this.controller?.nodeIds ?? [];
   }
 
-  /** The diagnostics channel this host reports to; the experience layer reports into it too. */
+  /**
+   * The diagnostics channel this host reports to. The experience layer and an
+   * action runtime that shares the channel report into it too.
+   */
   get diagnosticsChannel(): ViroSpecsHostDiagnostics {
     return this.diagnostics;
   }
@@ -123,11 +126,6 @@ export class ViroSpecsSceneControllerHost extends BaseScriptComponent {
   /** Typed actions from triggers, one frame after the pinch, owned by their scene. */
   addOnActionListener(listener: (event: ViroSpecsActionEvent) => void): ViroSpecsSubscription {
     return this.controller?.addOnActionListener(listener) ?? { remove: () => undefined };
-  }
-
-  /** The channel this host reports on, for an action runtime that shares it. */
-  get diagnosticsChannel(): ViroSpecsHostDiagnostics {
-    return this.diagnostics;
   }
 
   addOnLifecycleListener(listener: (state: ViroSpecsSceneLifecycle) => void): ViroSpecsSubscription {
