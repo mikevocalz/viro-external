@@ -24,7 +24,8 @@ export type ViroSpecsHostPhase =
   | "interaction"
   | "animation"
   | "dispose"
-  | "listener";
+  | "listener"
+  | "experience";
 
 /** Catalog entry: severity is fixed per code. */
 export type ViroSpecsHostDiagnosticDefinition = {
@@ -108,6 +109,26 @@ export const VIRO_SPECS_HOST_DIAGNOSTICS = {
     severity: "error",
     title: "Backend operation failed",
     hint: "A Lens call threw while updating a committed node. The node keeps its previous state; the message names the operation.",
+  },
+  VS5015: {
+    severity: "info",
+    title: "Capability degraded; dependent UI hidden",
+    hint: "No action needed for the build. The message names the capability, its state and the UI the experience layer hid; the wearer sees a one-line notice.",
+  },
+  VS5016: {
+    severity: "warning",
+    title: "Text raised to the 1.2 degree minimum",
+    hint: "The text rendered smaller than 1.2 degrees at its distance, so the host raised its size. Size it from the type tokens (PanelText) to avoid the clamp.",
+  },
+  VS5017: {
+    severity: "warning",
+    title: "Position clamped into the 0.6-3.0 m comfort band",
+    hint: "A placement or drag would have put the node nearer than 0.6 m or farther than 3.0 m; the host stopped it at the band edge.",
+  },
+  VS5018: {
+    severity: "info",
+    title: "Gaze-only input active",
+    hint: "Hand tracking is not available, so selection works by gaze dwell and drag is replaced by step buttons. It switches back when hand tracking returns.",
   },
 } as const satisfies Record<string, ViroSpecsHostDiagnosticDefinition>;
 

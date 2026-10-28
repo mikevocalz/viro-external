@@ -1,0 +1,361 @@
+{
+  "version": 2,
+  "nodes": [
+    {
+      "id": "ix-panel",
+      "kind": "panel",
+      "position": [
+        0,
+        0,
+        -1.5
+      ],
+      "extents": {
+        "width": 0.53,
+        "height": 0.6
+      },
+      "component": {
+        "type": "spatial-panel"
+      }
+    },
+    {
+      "id": "ix-title",
+      "kind": "text",
+      "parentId": "ix-panel",
+      "position": [
+        0,
+        0.24,
+        0.005
+      ],
+      "text": "Interaction",
+      "style": {
+        "fontSize": 232,
+        "fontWeight": "600",
+        "color": "#eef2f0"
+      },
+      "maxLines": 2,
+      "component": {
+        "role": "title",
+        "tone": "default",
+        "type": "panel-text"
+      }
+    },
+    {
+      "id": "ix-body",
+      "kind": "text",
+      "parentId": "ix-panel",
+      "position": [
+        0,
+        0.175,
+        0.005
+      ],
+      "text": "Pinch a button. Drag the model.",
+      "style": {
+        "fontSize": 161.5,
+        "fontWeight": "400",
+        "color": "#a9b6bf"
+      },
+      "extents": {
+        "width": 0.46,
+        "height": 0.05
+      },
+      "maxLines": 1,
+      "component": {
+        "role": "body",
+        "tone": "muted",
+        "type": "panel-text"
+      }
+    },
+    {
+      "id": "ix-btn-a",
+      "kind": "panel",
+      "label": "Option A",
+      "parentId": "ix-panel",
+      "position": [
+        -0.125,
+        0.095,
+        0.005
+      ],
+      "extents": {
+        "width": 0.23,
+        "height": 0.08290846041551164
+      },
+      "component": {
+        "state": "idle",
+        "type": "panel-button"
+      }
+    },
+    {
+      "id": "ix-btn-b",
+      "kind": "panel",
+      "label": "Option B",
+      "parentId": "ix-panel",
+      "position": [
+        0.125,
+        0.095,
+        0.005
+      ],
+      "extents": {
+        "width": 0.23,
+        "height": 0.08290846041551164
+      },
+      "component": {
+        "state": "selected",
+        "type": "panel-button"
+      }
+    },
+    {
+      "id": "ix-btn-disabled",
+      "kind": "panel",
+      "label": "Option C",
+      "parentId": "ix-panel",
+      "position": [
+        -0.125,
+        -0.01,
+        0.005
+      ],
+      "extents": {
+        "width": 0.23,
+        "height": 0.08274456735443075
+      },
+      "component": {
+        "state": "disabled",
+        "type": "panel-button"
+      }
+    },
+    {
+      "id": "ix-btn-retry",
+      "kind": "panel",
+      "label": "Retry",
+      "parentId": "ix-panel",
+      "position": [
+        0.125,
+        -0.01,
+        0.005
+      ],
+      "extents": {
+        "width": 0.23,
+        "height": 0.08274456735443075
+      },
+      "component": {
+        "errorMessage": "That didn't go through. Pinch Retry to try again.",
+        "state": "error",
+        "type": "panel-button"
+      }
+    },
+    {
+      "id": "ix-model",
+      "kind": "model",
+      "label": "Shiba model",
+      "parentId": "ix-panel",
+      "position": [
+        -0.14,
+        -0.17,
+        0.06
+      ],
+      "scale": [
+        0.12,
+        0.12,
+        0.12
+      ],
+      "source": "examples/visionos-sweep/assets/shiba.glb",
+      "format": "glb",
+      "component": {
+        "autoRotate": false,
+        "resettable": true,
+        "type": "model-viewer"
+      }
+    },
+    {
+      "id": "ix-reset",
+      "kind": "panel",
+      "label": "Reset model",
+      "parentId": "ix-panel",
+      "position": [
+        0.13,
+        -0.12,
+        0.005
+      ],
+      "extents": {
+        "width": 0.23,
+        "height": 0.08303036649090781
+      },
+      "component": {
+        "state": "idle",
+        "type": "panel-button"
+      }
+    },
+    {
+      "id": "ix-next",
+      "kind": "panel",
+      "label": "Next scene",
+      "parentId": "ix-panel",
+      "position": [
+        0.13,
+        -0.225,
+        0.005
+      ],
+      "extents": {
+        "width": 0.23,
+        "height": 0.08369131561438936
+      },
+      "component": {
+        "state": "idle",
+        "type": "panel-button"
+      }
+    }
+  ],
+  "polylines": [],
+  "lights": [],
+  "materials": [],
+  "interactions": [
+    {
+      "nodeId": "ix-btn-a",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ]
+    },
+    {
+      "nodeId": "ix-btn-b",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ]
+    },
+    {
+      "nodeId": "ix-btn-retry",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ]
+    },
+    {
+      "nodeId": "ix-model",
+      "interactable": true,
+      "manipulation": true,
+      "events": [
+        "drag"
+      ]
+    },
+    {
+      "nodeId": "ix-reset",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ]
+    },
+    {
+      "nodeId": "ix-next",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ]
+    }
+  ],
+  "animations": [],
+  "theme": {
+    "highContrast": {
+      "borderScale": 2,
+      "color": {
+        "border": "#ffffff",
+        "focus": "#ffd25e",
+        "surface": "#000000",
+        "text": "#ffffff",
+        "textMuted": "#ffffff"
+      },
+      "surfaceOpacity": 1,
+      "typeBoostDeg": 0.2
+    },
+    "preferences": {
+      "highContrast": false,
+      "reducedMotion": false
+    },
+    "tokens": {
+      "color": {
+        "border": "#6b7d8c",
+        "borderStrong": "#c4d0d8",
+        "degraded": "#9cc8ff",
+        "degradedSurface": "#1e2c3d",
+        "error": "#ff8a7a",
+        "errorSurface": "#3a1f1e",
+        "focus": "#f2b544",
+        "onFocus": "#14202a",
+        "placeholder": "#6b7d8c",
+        "selectedFill": "#3b3320",
+        "success": "#8fd9b6",
+        "surface": "#1b2630",
+        "surfacePressed": "#33444f",
+        "surfaceRaised": "#26343f",
+        "text": "#eef2f0",
+        "textDisabled": "#808d96",
+        "textMuted": "#a9b6bf"
+      },
+      "depth": {
+        "baseMeters": 0,
+        "hoverMeters": 0.01,
+        "overlayMeters": 0.03,
+        "raisedMeters": 0.005
+      },
+      "distance": {
+        "defaultMeters": 1.5,
+        "maxMeters": 3,
+        "minMeters": 0.6
+      },
+      "input": {
+        "gazeDwellMs": 1000,
+        "gazeStepMeters": 0.1,
+        "lookAwayCancelMs": 1500,
+        "reticleDeg": 2
+      },
+      "motion": {
+        "appearScaleFrom": 0.96,
+        "baseMs": 240,
+        "fastMs": 120,
+        "hoverScale": 1.04,
+        "maxMs": 500,
+        "progressLoopMs": 1200,
+        "slowMs": 400
+      },
+      "opacity": {
+        "disabledBorder": 0.5,
+        "placeholder": 0.4,
+        "surface": 0.92
+      },
+      "shape": {
+        "borderWidthDeg": 0.15,
+        "borderWidthFocusDeg": 0.3,
+        "radiusButtonDeg": 0.8,
+        "radiusCardDeg": 0.8,
+        "radiusPanelDeg": 1.2
+      },
+      "space": {
+        "lgDeg": 2,
+        "mdDeg": 1.2,
+        "smDeg": 0.8,
+        "xlDeg": 3.2,
+        "xsDeg": 0.4
+      },
+      "tint": {
+        "ceiling": "#a9b6bf",
+        "floor": "#8fd9b6",
+        "opacity": 0.35,
+        "seat": "#d9a6f2",
+        "table": "#f2b544",
+        "wall": "#9cc8ff"
+      },
+      "type": {
+        "bodyDeg": 1.4,
+        "labelDeg": 1.2,
+        "lineHeight": 1.3,
+        "minAngleDeg": 1.2,
+        "titleDeg": 2
+      }
+    },
+    "version": 1
+  }
+}

@@ -245,6 +245,26 @@ export class ViroSpecsSceneController<N, A, M> {
     return (this.current?.ownership.pendingCount ?? 0) + this.controllerWork.pendingCount;
   }
 
+  /**
+   * Asset loads of the committed scene: `total` image and model nodes, of
+   * which `pending` are still loading. The experience layer draws the loading
+   * ring from this. Both are 0 when nothing is committed.
+   */
+  get assetProgress(): { readonly pending: number; readonly total: number } {
+    const state = this.current;
+    if (!state) return { pending: 0, total: 0 };
+    let total = 0;
+    for (const node of state.scene.nodes) {
+      if (node.kind === "image" || node.kind === "model") total += 1;
+    }
+    return { pending: state.pendingAssets.size, total };
+  }
+
+  /** The validated scene that is committed, or null. Read-only view for the experience layer. */
+  get committedScene(): ViroSpecsHostScene | null {
+    return this.current?.scene ?? null;
+  }
+
   /** Owned materials currently cached. */
   get cachedMaterialCount(): number {
     return this.materialCache.size;

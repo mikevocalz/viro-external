@@ -23,6 +23,7 @@ import {
   type ViroSpecsTextStyle,
 } from "./ViroSpecsProtocol";
 import { createViroSpecsHostDiagnostic, type ViroSpecsHostDiagnostic } from "./ViroSpecsHostDiagnostics";
+import { checkViroSpecsComponent, checkViroSpecsTheme, type ViroSpecsTheme } from "./ViroSpecsExperienceTokens";
 
 /** A node after validation. Protocol 1 text keeps its Lens-unit style. */
 export type ViroSpecsHostNode = ViroSpecsDocumentNode & {
@@ -39,6 +40,8 @@ export type ViroSpecsHostScene = {
   materials: ViroSpecsDocumentMaterial[];
   interactions: ViroSpecsDocumentInteraction[];
   animations: ViroSpecsDocumentAnimation[];
+  /** Validated theme, when the document carried one. */
+  theme?: ViroSpecsTheme;
 };
 
 /** Result of {@linkcode readViroSpecsSceneInput}. */
@@ -49,7 +52,7 @@ export type ViroSpecsSceneReadResult =
 type Json = Record<string, unknown>;
 
 const NODE_KINDS = new Set(["group", "text", "image", "model", "panel"]);
-const BASE_FIELDS = ["id", "kind", "parentId", "position", "rotation", "scale", "visible", "opacity", "materialId"];
+const BASE_FIELDS = ["id", "kind", "parentId", "position", "rotation", "scale", "visible", "opacity", "materialId", "label", "component"];
 const KIND_FIELDS: Record<string, readonly string[]> = {
   group: ["scroll"],
   text: ["text", "style", "extents", "maxLines"],
@@ -212,6 +215,10 @@ function checkNodeV2(c: Checker, node: Json, path: string, id: string, kind: str
   checkBase(c, node, path, id);
   if (node.opacity !== undefined) c.number(node.opacity, path + "/opacity", { min: 0, max: 1 }, id);
   if (node.materialId !== undefined) c.string(node.materialId, path + "/materialId", id);
+  if (node.label !== undefined) c.string(node.label, path + "/label", id);
+  if (node.component !== undefined) {
+    checkViroSpecsComponent(node.component, kind, path + "/component", (at, message) => c.fail(at, message, id));
+  }
   switch (kind) {
     case "group":
       if (node.scroll !== undefined) checkScroll(c, node.scroll, path + "/scroll", id);
@@ -467,7 +474,7 @@ export function readViroSpecsSceneInput(
   const protocol = version as ViroSpecsSceneProtocol;
   c.only(
     input,
-    protocol === 1 ? ["version", "nodes"] : ["version", "nodes", "polylines", "lights", "materials", "interactions", "animations"],
+    protocol === 1 ? ["version", "nodes"] : ["version", "nodes", "polylines", "lights", "materials", "interactions", "animations", "theme"],
     ""
   );
 
@@ -550,6 +557,10 @@ export function readViroSpecsSceneInput(
   const animations = c.array(input.animations, "/animations");
   animations.forEach((a, i) => checkAnimation(c, a, "/animations/" + i, nodeIds));
 
+  if (protocol === 2 && input.theme !== undefined) {
+    checkViroSpecsTheme(input.theme, "/theme", (at, message) => c.fail(at, message));
+  }
+
   const ordered = orderNodes(c, nodes);
   if (c.diagnostics.length > 0) return { ok: false, diagnostics: c.diagnostics };
   return {
@@ -562,6 +573,7 @@ export function readViroSpecsSceneInput(
       materials: materials as ViroSpecsDocumentMaterial[],
       interactions: interactions as ViroSpecsDocumentInteraction[],
       animations: animations as ViroSpecsDocumentAnimation[],
+      ...(input.theme !== undefined ? { theme: input.theme as ViroSpecsTheme } : {}),
     },
   };
 }

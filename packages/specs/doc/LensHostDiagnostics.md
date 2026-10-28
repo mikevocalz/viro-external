@@ -117,3 +117,32 @@ the patch applied.
 Backend operation failed. A Lens call threw while updating a committed node.
 The node keeps its previous state for that field; the message names the
 operation.
+
+## Experience layer
+
+Codes from `ViroSpecsExperienceController` (`lens/ViroSpecsExperience.ts`),
+phase `experience`. See `Experience.md`.
+
+### VS5015 · info
+
+Capability degraded; dependent UI hidden. Reported each time a capability the
+scene uses changes to `unsupported`, `permission-required`,
+`temporarily-unavailable` or `unverified`. The message names the capability,
+the state and the UI that was hidden; the wearer sees the one-line notice from
+the copy table.
+
+### VS5016 · warning
+
+Text raised to the 1.2 degree minimum. The host measured a text node at its
+current distance and raised its size. PanelText sizes from tokens at compile
+time, but placement and drag can move text farther away.
+
+### VS5017 · warning
+
+Position clamped into the 0.6-3.0 m comfort band. A placement or drag would
+have put the node outside the band; it stops at the edge.
+
+### VS5018 · info
+
+Gaze-only input active. Hand tracking is not available, so the host selects by
+gaze dwell (1000 ms, provisional) and adds step buttons for drag and scroll.
