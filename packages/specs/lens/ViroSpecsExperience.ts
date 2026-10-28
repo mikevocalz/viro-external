@@ -905,3 +905,222 @@ export function unrenderedViroSpecsComponentFeatures(component: ViroSpecsCompone
       ];
   }
 }
+
+/**
+ * Average glyph advance as a fraction of the em, for line-count estimates.
+ * The same 0.55 em guard viro's PanelButton sizing and gallery layout test
+ * use; real glyphs are narrower, so an estimate errs toward more lines.
+ */
+export const VIRO_SPECS_EM_PER_CHARACTER = 0.55;
+
+/**
+ * Lines `text` needs at `emMeters` when wrapped at `wrapWidthMeters`, by the
+ * {@linkcode VIRO_SPECS_EM_PER_CHARACTER} estimate. Explicit newlines count.
+ * Zero for empty text.
+ */
+export function estimateViroSpecsLines(text: string, emMeters: number, wrapWidthMeters: number): number {
+  if (text === "") return 0;
+  const perLine = Math.max(1, Math.floor(wrapWidthMeters / (VIRO_SPECS_EM_PER_CHARACTER * emMeters)));
+  let lines = 0;
+  for (const paragraph of text.split("\n")) {
+    // Word wrap: a word that does not fit starts a new line.
+    let used = 0;
+    let count = 1;
+    for (const word of paragraph.split(" ")) {
+      const length = word.length;
+      if (used === 0) used = length;
+      else if (used + 1 + length <= perLine) used += 1 + length;
+      else {
+        count++;
+        used = length;
+      }
+      while (used > perLine) {
+        count++;
+        used -= perLine;
+      }
+    }
+    lines += count;
+  }
+  return lines;
+}
+
+/** A text block in a {@linkcode ViroSpecsStatePanelLayout}: centre and size, meters, panel-local. */
+export type ViroSpecsTextBlock = {
+  readonly y: number;
+  readonly lines: number;
+  readonly emMeters: number;
+  /** Lines times `type.lineHeight` times the em. */
+  readonly heightMeters: number;
+};
+
+/**
+ * Geometry of a loading, notice, error or permission panel, from
+ * {@linkcode layoutViroSpecsStatePanel}. Meters, in the panel's own frame:
+ * x right, y up, origin at the panel centre. Rows stack top to bottom with
+ * `space.sm` between them and `space.md` padding, so text never runs past
+ * the backing and the action never covers a line.
+ */
+export type ViroSpecsStatePanelLayout = {
+  readonly widthMeters: number;
+  readonly heightMeters: number;
+  /** Width every text row wraps at: the panel width less `space.md` on each side. */
+  readonly wrapWidthMeters: number;
+  readonly ring?: { readonly y: number; readonly diameterMeters: number; readonly thicknessMeters: number };
+  readonly title?: ViroSpecsTextBlock;
+  readonly body?: ViroSpecsTextBlock;
+  readonly detail?: ViroSpecsTextBlock;
+  readonly action?: { readonly y: number; readonly widthMeters: number; readonly heightMeters: number };
+};
+
+/** What a state panel shows, for {@linkcode layoutViroSpecsStatePanel}. Empty strings are left out. */
+export type ViroSpecsStatePanelContent = {
+  readonly title: string;
+  readonly body: string;
+  readonly detail: string;
+  readonly action: string | null;
+  /** The loading panel's progress ring, above the title. */
+  readonly ring: boolean;
+};
+
+/**
+ * Lays out a state panel 20 degrees wide (the handoff panel width) at
+ * `distanceMeters`. Title and body use `type.bodyDeg`, detail and action
+ * `type.labelDeg`; the ring is three body ems across.
+ */
+export function layoutViroSpecsStatePanel(
+  tokens: ViroSpecsSpatialTokens,
+  content: ViroSpecsStatePanelContent,
+  distanceMeters: number
+): ViroSpecsStatePanelLayout {
+  const m = (deg: number) => viroSpecsAngleToMeters(deg, distanceMeters);
+  const width = m(20);
+  const pad = m(tokens.space.mdDeg);
+  const gap = m(tokens.space.smDeg);
+  const wrap = width - 2 * pad;
+  const bodyEm = m(tokens.type.bodyDeg);
+  const labelEm = m(tokens.type.labelDeg);
+  type Row = { key: "ring" | "title" | "body" | "detail" | "action"; height: number; lines: number; em: number };
+  const rows: Row[] = [];
+  const text = (key: "title" | "body" | "detail", value: string, em: number) => {
+    const lines = estimateViroSpecsLines(value, em, wrap);
+    if (lines > 0) rows.push({ key, height: lines * tokens.type.lineHeight * em, lines, em });
+  };
+  if (content.ring) rows.push({ key: "ring", height: 3 * bodyEm, lines: 0, em: 0 });
+  text("title", content.title, bodyEm);
+  text("body", content.body, bodyEm);
+  text("detail", content.detail, labelEm);
+  const action = content.action !== null ? viroSpecsActionButtonSize(tokens, content.action, distanceMeters) : undefined;
+  if (action) rows.push({ key: "action", height: action.heightMeters, lines: 0, em: 0 });
+  const inner = rows.reduce((sum, row) => sum + row.height, 0) + gap * Math.max(0, rows.length - 1);
+  const height = inner + 2 * pad;
+  let ring: ViroSpecsStatePanelLayout["ring"];
+  let actionRow: ViroSpecsStatePanelLayout["action"];
+  const blocks: Partial<Record<"title" | "body" | "detail", ViroSpecsTextBlock>> = {};
+  let top = height / 2 - pad;
+  for (const row of rows) {
+    const y = top - row.height / 2;
+    if (row.key === "ring") ring = { y, diameterMeters: row.height, thicknessMeters: m(tokens.shape.borderWidthFocusDeg) * 2 };
+    else if (row.key === "action") actionRow = action ? { y, widthMeters: action.widthMeters, heightMeters: action.heightMeters } : undefined;
+    else blocks[row.key] = { y, lines: row.lines, emMeters: row.em, heightMeters: row.height };
+    top -= row.height + gap;
+  }
+  return {
+    widthMeters: width,
+    heightMeters: height,
+    wrapWidthMeters: wrap,
+    ...(ring ? { ring } : {}),
+    ...(blocks.title ? { title: blocks.title } : {}),
+    ...(blocks.body ? { body: blocks.body } : {}),
+    ...(blocks.detail ? { detail: blocks.detail } : {}),
+    ...(actionRow ? { action: actionRow } : {}),
+  };
+}
+
+/**
+ * Size of a panel action button at `distanceMeters`: one label line plus
+ * `space.sm` above and below, and at least the label plus `space.md` each
+ * side (the PanelButton default), never narrower than 2.5 heights.
+ */
+export function viroSpecsActionButtonSize(
+  tokens: ViroSpecsSpatialTokens,
+  label: string,
+  distanceMeters: number
+): { readonly widthMeters: number; readonly heightMeters: number } {
+  const labelEm = viroSpecsAngleToMeters(tokens.type.labelDeg, distanceMeters);
+  const height = labelEm * tokens.type.lineHeight + 2 * viroSpecsAngleToMeters(tokens.space.smDeg, distanceMeters);
+  const width = Math.max(height * 2.5, label.length * VIRO_SPECS_EM_PER_CHARACTER * labelEm + 2 * viroSpecsAngleToMeters(tokens.space.mdDeg, distanceMeters));
+  return { widthMeters: width, heightMeters: height };
+}
+
+/**
+ * Where a PanelButton's `errorMessage` goes: a row under the button, its top
+ * `space.xs` below the button's bottom edge. Inside a SpatialPanel the row
+ * spans the panel's inner width (the panel less `space.md` each side) and is
+ * centred on the panel, so the message wraps to two lines instead of four;
+ * on its own it wraps at the button width. Meters, button-local (origin at
+ * the button centre).
+ */
+export function layoutViroSpecsButtonError(
+  tokens: ViroSpecsSpatialTokens,
+  button: { readonly width: number; readonly height: number },
+  message: string,
+  distanceMeters: number,
+  panel?: { readonly width: number; readonly buttonX: number }
+): ViroSpecsTextBlock & { readonly x: number; readonly wrapWidthMeters: number } {
+  const em = viroSpecsAngleToMeters(tokens.type.labelDeg, distanceMeters);
+  const wrap = panel ? panel.width - 2 * viroSpecsAngleToMeters(tokens.space.mdDeg, distanceMeters) : button.width;
+  const lines = estimateViroSpecsLines(message, em, wrap);
+  const heightMeters = lines * tokens.type.lineHeight * em;
+  const top = -button.height / 2 - viroSpecsAngleToMeters(tokens.space.xsDeg, distanceMeters);
+  return { x: panel ? -panel.buttonX : 0, y: top - heightMeters / 2, lines, emMeters: em, heightMeters, wrapWidthMeters: wrap };
+}
+
+/**
+ * Gaze Scroll up and Scroll down buttons for a scroll group's window, in the
+ * group's frame (the window is centred on its origin). They sit side by side
+ * under the window's bottom edge, `space.sm` below it and apart, Scroll up on
+ * the left, so they cover neither the rows nor a title above the list and
+ * stay inside the wearer's view of the list.
+ */
+export function layoutViroSpecsScrollButtons(
+  tokens: ViroSpecsSpatialTokens,
+  window: { readonly width: number; readonly height: number },
+  distanceMeters: number
+): { readonly up: { readonly x: number; readonly y: number }; readonly down: { readonly x: number; readonly y: number }; readonly widthMeters: number; readonly heightMeters: number } {
+  const longest = [formatViroSpecsCopy("gaze.scrollUp"), formatViroSpecsCopy("gaze.scrollDown")].reduce((a, b) => (b.length > a.length ? b : a));
+  const size = viroSpecsActionButtonSize(tokens, longest, distanceMeters);
+  const gap = viroSpecsAngleToMeters(tokens.space.smDeg, distanceMeters);
+  const x = (size.widthMeters + gap) / 2;
+  const y = -window.height / 2 - gap - size.heightMeters / 2;
+  return { up: { x: -x, y }, down: { x, y }, widthMeters: size.widthMeters, heightMeters: size.heightMeters };
+}
+
+/**
+ * Loading ring segments for `progress` (0..1, or undefined when unknown):
+ * how many of `count` segments are lit and the rotation of segment 0, in
+ * turns. `ring-arc` and `arc-static` fill from the top clockwise and never
+ * rotate; `ring-spin` lights a quarter of the ring and turns once per
+ * `motion.progressLoopMs`; `dots` (reduced motion, unknown progress) lights
+ * every third segment with no movement.
+ */
+export function viroSpecsLoadingRing(
+  indicator: ViroSpecsLoadingIndicator,
+  progress: number | undefined,
+  count: number,
+  elapsedMs: number,
+  tokens: ViroSpecsSpatialTokens
+): { readonly lit: readonly boolean[]; readonly turns: number } {
+  const lit: boolean[] = [];
+  if (indicator === "ring-arc" || indicator === "arc-static") {
+    const filled = Math.round(Math.min(1, Math.max(0, progress ?? 0)) * count);
+    for (let i = 0; i < count; i++) lit.push(i < filled);
+    return { lit, turns: 0 };
+  }
+  if (indicator === "dots") {
+    for (let i = 0; i < count; i++) lit.push(i % 3 === 0);
+    return { lit, turns: 0 };
+  }
+  const quarter = Math.max(1, Math.round(count / 4));
+  for (let i = 0; i < count; i++) lit.push(i < quarter);
+  return { lit, turns: (elapsedMs % tokens.motion.progressLoopMs) / tokens.motion.progressLoopMs };
+}

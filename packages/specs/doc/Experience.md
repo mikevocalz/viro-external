@@ -151,8 +151,19 @@ scroll group: a UI Kit ScrollWindow that clips at the window edge, settles
 drags on `itemHeightMeters` rows (`snapRegion`), opens `initialIndex` rows
 down, and keeps its position across patches and, per route, across back
 navigation. `scrollByRows(id, rows)` on the controller and on
-`ViroSpecsSceneControllerHost` moves it by whole rows; the gaze Scroll
-up/down buttons that should call it are not drawn yet.
+`ViroSpecsSceneControllerHost` moves it by whole rows. In gaze mode the
+host draws Scroll up and Scroll down side by side under each scroll window;
+a dwell on one calls `scrollByRows` with -1 or +1.
+
+State panels (loading, notice, error, permission) lay out from
+`layoutViroSpecsStatePanel`: rows wrap at the panel width less `space.md`
+on each side, the backing grows to fit them, and the loading panel has a
+progress ring above its title. Panels draw after scene content with depth
+test off, so content nearer than the panel does not show through. A
+PanelButton error message is a row under the button across its
+SpatialPanel's inner width (`layoutViroSpecsButtonError`); scenes leave that
+row free. Hand drags are held inside the comfort band like gaze Move and
+placement, with one `VS5023` per excursion.
 
 The host does not draw these yet; each node that uses one is reported once as `VS5025`:
 

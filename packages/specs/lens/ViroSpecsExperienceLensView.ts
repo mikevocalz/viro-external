@@ -3,8 +3,9 @@
  * {@linkcode ViroSpecsExperienceController}, feeds it the head ray for gaze
  * dwell, WorldQuery hits for placement and SIK pinches for confirm.
  *
- * Evidence: implemented. This file has not been compiled in Lens Studio or
- * run in Preview; the portable logic it calls is tested in
+ * Evidence: preview-validated. Compiled in Lens Studio and driven by the
+ * Platform Lab's viro_ws4_* LEAF scenarios in Preview; the layout it draws
+ * from (panel rows, error rows, scroll buttons, loading ring) is tested in
  * `scripts/experience.test.mjs`. Doc: `doc/Experience.md`.
  *
  * Rules this file keeps (Lens Studio compiler traps): result unions are
@@ -13,13 +14,18 @@
  * under the scene controller's disabled staging root.
  */
 import {
+  layoutViroSpecsButtonError,
+  layoutViroSpecsScrollButtons,
+  layoutViroSpecsStatePanel,
   unrenderedViroSpecsComponentFeatures,
   resolveViroSpecsButtonVisual,
   stepViroSpecsMove,
+  viroSpecsLoadingRing,
   ViroSpecsButtonTracker,
   ViroSpecsExperienceController,
   ViroSpecsGazeDwell,
   type ViroSpecsExperienceView,
+  type ViroSpecsTextBlock,
 } from "./ViroSpecsExperience";
 import {
   viroSpecsAngleToMeters,
@@ -30,6 +36,7 @@ import {
 import { InteractionManager, InteractorInputType, InteractorTriggerType } from "./ViroSpecsInteractionKit";
 import { ViroSpecsPlacementSession, type ViroSpecsPlacementHit, type ViroSpecsReticleView } from "./ViroSpecsPlacement";
 import { createViroSpecsHostDiagnostic } from "./ViroSpecsHostDiagnostics";
+import { formatViroSpecsCopy } from "./ViroSpecsExperienceCopy";
 import type { ViroSpecsCapabilityState } from "./ViroSpecsProtocol";
 import type { ViroSpecsHostScene } from "./ViroSpecsSceneDocument";
 import { ViroSpecsSceneControllerHost } from "./ViroSpecsSceneControllerHost";
@@ -41,6 +48,15 @@ const WorldQueryModule = require("LensStudio:WorldQueryModule") as WorldQueryMod
 const CM_PER_METER = 100;
 /** Head-ray length for gaze targeting and WorldQuery, centimeters (the far edge of the comfort band). */
 const RAY_CM = 300;
+/**
+ * Draw order of the experience overlay. State panels, the reticle and the
+ * dwell disc draw after scene content (render order 0) with
+ * depth test off, so content nearer than the panel (a line at 1.38 m in front
+ * of a panel at 1.47 m) never shows through it.
+ */
+const OVERLAY_ORDER = { backing: 100, control: 101, text: 102 } as const;
+/** Segments in the loading ring. */
+const RING_SEGMENTS = 24;
 
 /** Lens objects the experience layer adds to a committed premium node. */
 type Decoration = {
@@ -58,6 +74,8 @@ type Decoration = {
 type Panel = {
   readonly root: SceneObject;
   readonly backing: RenderMeshVisual | null;
+  /** Loading ring: a parent to rotate and its segments, track-tinted or lit. */
+  readonly ring: { readonly root: SceneObject; readonly segments: RenderMeshVisual[] } | null;
   readonly title: Text;
   readonly body: Text;
   readonly detail: Text;
@@ -70,9 +88,29 @@ type Panel = {
   shownAtMs: number;
 };
 
+/** A gaze Scroll up or Scroll down button on one scroll group. */
+type ScrollButton = {
+  readonly root: SceneObject;
+  readonly backing: RenderMeshVisual | null;
+  readonly label: Text;
+  readonly unbind: () => void;
+};
+
 function rgba(hex: string, alpha = 1): vec4 {
   const [r, g, b] = parseViroSpecsColor(hex);
   return new vec4(r, g, b, alpha);
+}
+
+/**
+ * Wraps `text` inside a box `widthCm` wide and `heightCm` tall centred on its
+ * object, so a line never runs past the panel it sits on.
+ */
+function wrapText(text: Text, widthCm: number, heightCm: number): void {
+  text.horizontalOverflow = HorizontalOverflow.Wrap;
+  text.verticalOverflow = VerticalOverflow.Overflow;
+  text.horizontalAlignment = HorizontalAlignment.Center;
+  text.verticalAlignment = VerticalAlignment.Center;
+  text.layoutRect = Rect.create(-widthCm / 2, widthCm / 2, -heightCm / 2, heightCm / 2);
 }
 
 /** Lens Text size whose em is `angleDeg` tall at `distanceMeters`. */
@@ -145,6 +183,7 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
   private dwellDisc: RenderMeshVisual | null = null;
   private wasTriggering = false;
   private warnedNoMesh = false;
+  private scrollButtons = new Map<string, { up: ScrollButton; down: ScrollButton }>();
   private readonly placementListeners = new Set<(pose: { position: [number, number, number]; normal: [number, number, number] }) => void>();
   private readonly retryListeners = new Set<(nodeIds: readonly string[]) => void>();
 
@@ -234,6 +273,24 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
     object.getTransform().setWorldPosition(head.add(new vec3(clamped[0] * CM_PER_METER, clamped[1] * CM_PER_METER, clamped[2] * CM_PER_METER)));
   }
 
+  /**
+   * Keeps a dragged node inside the comfort band around the wearer's head.
+   * SIK manipulation has already moved the node this frame; a position past
+   * the band is pulled back to its edge and `VS5023` is reported once per
+   * excursion.
+   */
+  private holdInComfortBand(nodeId: string): void {
+    const object = this.host?.getNode(nodeId) ?? null;
+    const experience = this.experience;
+    if (!object || !experience) return;
+    const head = this.headRay()?.start ?? vec3.zero();
+    const p = object.getTransform().getWorldPosition().sub(head);
+    const position: [number, number, number] = [p.x / CM_PER_METER, p.y / CM_PER_METER, p.z / CM_PER_METER];
+    const clamped = experience.clampToComfortBand(nodeId, position);
+    if (clamped === position) return;
+    object.getTransform().setWorldPosition(head.add(new vec3(clamped[0] * CM_PER_METER, clamped[1] * CM_PER_METER, clamped[2] * CM_PER_METER)));
+  }
+
   private start(): void {
     const host = this.sceneHostObject
       ? (this.sceneHostObject.getComponent(ViroSpecsSceneControllerHost.getTypeName()) as ViroSpecsSceneControllerHost | null)
@@ -260,7 +317,11 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
       return node?.component?.type === "panel-button" ? node.component.state : undefined;
     };
     this.tracker = new ViroSpecsButtonTracker(authored);
-    host.addOnInteractionListener((event) => this.tracker?.handle(event));
+    host.addOnInteractionListener((event) => {
+      this.tracker?.handle(event);
+      // Hand drags stay in the comfort band, like gaze Move and placement.
+      if (event.phase === "drag") this.holdInComfortBand(event.nodeId);
+    });
     this.dwell = new ViroSpecsGazeDwell(
       () => experience.view().tokens.input.gazeDwellMs,
       (id) => {
@@ -327,7 +388,8 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
         extra.text = component.title;
       }
       if (component.type === "panel-button" && component.errorMessage !== undefined) {
-        extra = addText("errorMessage", -extentsH);
+        // Positioned and wrapped at the button width in styleDecorations.
+        extra = addText("errorMessage", 0);
         extra.text = component.errorMessage;
       }
       if (component.type === "panel-button") {
@@ -364,6 +426,11 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
         if (decoration.extra) {
           decoration.extra.size = sizeFor(tokens.type.titleDeg, distance);
           decoration.extra.textFill.color = rgba(tokens.color.text);
+          if (node.kind === "panel" && node.extents) {
+            const em = viroSpecsAngleToMeters(tokens.type.titleDeg, distance);
+            const wrap = node.extents.width - 2 * viroSpecsAngleToMeters(tokens.space.mdDeg, distance);
+            wrapText(decoration.extra, wrap * CM_PER_METER, em * tokens.type.lineHeight * CM_PER_METER);
+          }
         }
       } else if (component.type === "panel-button") {
         const label = node.label ?? "";
@@ -382,6 +449,19 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
           decoration.extra.getSceneObject().enabled = component.state === "error";
           decoration.extra.size = sizeFor(tokens.type.labelDeg, distance);
           decoration.extra.textFill.color = rgba(tokens.color.error);
+          if (node.kind === "panel" && node.extents) {
+            // A row under the button, across the SpatialPanel it sits on;
+            // the scene leaves that row free (viro's gallery layout test
+            // checks it).
+            const parent = node.parentId !== undefined ? scene.nodes.find((n) => n.id === node.parentId) : undefined;
+            const panel =
+              parent && parent.kind === "panel" && parent.extents && parent.component?.type === "spatial-panel"
+                ? { width: parent.extents.width, buttonX: node.position?.[0] ?? 0 }
+                : undefined;
+            const block = layoutViroSpecsButtonError(tokens, node.extents, decoration.extra.text, distance, panel);
+            wrapText(decoration.extra, block.wrapWidthMeters * CM_PER_METER, block.heightMeters * CM_PER_METER);
+            decoration.extra.getSceneObject().getTransform().setLocalPosition(new vec3(block.x * CM_PER_METER, block.y * CM_PER_METER, 0.6));
+          }
         }
         if (decoration.label) {
           decoration.label.text = (visual.glyph === "check" ? "\u2713 " : visual.glyph === "error" ? "! " : "") + visual.labelText;
@@ -407,6 +487,13 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
     // A replacement in the same lifecycle state fires no lifecycle event.
     if ((this.host?.committedScene ?? null) !== this.decoratedScene) this.decorate();
     this.styleDecorations(view.tokens);
+    this.drawScrollButtons(view);
+    // A spinning ring (unknown progress) moves without a view change.
+    const loadingPanel = this.panels.get("loading");
+    if (loadingPanel && loadingPanel.root.enabled && view.loading.visible === true && view.loading.indicator === "ring-spin") {
+      const ring = layoutViroSpecsStatePanel(view.tokens, { title: view.loading.title, body: view.loading.line, detail: "", action: null, ring: true }, view.tokens.distance.defaultMeters).ring;
+      this.drawRing(loadingPanel, ring, view.tokens);
+    }
     const ray = this.headRay();
     if (!ray) return;
     if (view.inputMode === "gaze") this.gazeTarget(ray.start, ray.end);
@@ -447,6 +534,10 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
       for (const [key, panel] of this.panels) {
         if (panel.root.enabled) byObject.set(panel.action, "experience:" + key);
       }
+      for (const [id, buttons] of this.scrollButtons) {
+        if (buttons.up.root.enabled) byObject.set(buttons.up.root, "experience:scroll-up:" + id);
+        if (buttons.down.root.enabled) byObject.set(buttons.down.root, "experience:scroll-down:" + id);
+      }
       let target: string | undefined;
       while (object && target === undefined) {
         target = byObject.get(object);
@@ -469,7 +560,7 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
     if (!this.dwellDisc) {
       const object = global.scene.createSceneObject("ViroSpecsDwell");
       object.setParent(this.overlay);
-      this.dwellDisc = this.makeBacking(object);
+      this.dwellDisc = this.makeBacking(object, OVERLAY_ORDER.control);
       this.dwellDisc?.getSceneObject().getTransform().setLocalPosition(new vec3(0, 0, 0));
       this.dwellRoot = object;
     }
@@ -494,6 +585,14 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
   }
 
   private selectByGaze(id: string): void {
+    if (id.startsWith("experience:scroll-up:")) {
+      this.scrollGroup(id.slice("experience:scroll-up:".length), -1);
+      return;
+    }
+    if (id.startsWith("experience:scroll-down:")) {
+      this.scrollGroup(id.slice("experience:scroll-down:".length), 1);
+      return;
+    }
     if (id.startsWith("experience:")) {
       this.activatePanel(id.slice("experience:".length) as "loading" | "notice" | "error" | "permission");
       return;
@@ -541,11 +640,10 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
     if (!this.reticle) {
       const root = global.scene.createSceneObject("ViroSpecsReticle");
       root.setParent(this.overlay);
-      const disc = this.makeBacking(root);
+      const disc = this.makeBacking(root, OVERLAY_ORDER.control);
       const labelObject = global.scene.createSceneObject("ViroSpecsReticleLabel");
       labelObject.setParent(root);
-      const label = labelObject.createComponent("Component.Text") as Text;
-      label.depthTest = true;
+      const label = this.overlayText(labelObject);
       this.reticle = { root, disc, label };
     }
     const r = this.reticle;
@@ -580,7 +678,8 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
     const loading = view.loading;
     this.showPanel("loading", loading.visible === false ? null : {
       title: loading.title,
-      body: loading.line + (loading.progress !== undefined ? "  " + Math.round(loading.progress * 100) + "%" : ""),
+      // The ring shows the fraction; the line keeps the counts.
+      body: loading.line,
       detail: "",
       action: null,
       surface: t.color.surface,
@@ -630,40 +729,42 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
       this.placeInView(panel.root, tokens.distance.defaultMeters + (key === "loading" ? 0 : -tokens.depth.overlayMeters));
     }
     const d = tokens.distance.defaultMeters;
-    const line = (text: Text, value: string, deg: number, color: string, y: number) => {
+    const layout = layoutViroSpecsStatePanel(tokens, { ...content, ring: key === "loading" }, d);
+    const wrapCm = layout.wrapWidthMeters * CM_PER_METER;
+    const line = (text: Text, value: string, block: ViroSpecsTextBlock | undefined, color: string) => {
+      text.getSceneObject().enabled = block !== undefined;
+      if (!block) return;
       text.text = value;
-      text.size = sizeFor(deg, d);
+      text.size = Math.ceil((block.emMeters / VIRO_SPECS_LENS_TEXT_EM_METERS_PER_SIZE) * 10) / 10;
       text.textFill.color = rgba(color);
-      text.getSceneObject().enabled = value !== "";
-      text.getSceneObject().getTransform().setLocalPosition(new vec3(0, y, 0.6));
+      wrapText(text, wrapCm, block.heightMeters * CM_PER_METER);
+      text.getSceneObject().getTransform().setLocalPosition(new vec3(0, block.y * CM_PER_METER, 0.6));
     };
-    const step = viroSpecsAngleToMeters(tokens.type.bodyDeg * tokens.type.lineHeight, d) * CM_PER_METER;
-    line(panel.title, content.title, tokens.type.bodyDeg, content.accent, step * 1.5);
-    line(panel.body, content.body, tokens.type.bodyDeg, tokens.color.text, 0);
-    line(panel.detail, content.detail, tokens.type.labelDeg, tokens.color.textMuted, -step * 1.5);
+    line(panel.title, content.title, layout.title, content.accent);
+    line(panel.body, content.body, layout.body, tokens.color.text);
+    line(panel.detail, content.detail, layout.detail, tokens.color.textMuted);
     if (panel.backing) {
-      // 20 degrees wide (the handoff panel width) and tall enough for title,
-      // body, detail and action rows.
+      // Opaque, sized to the rows: nothing runs past it and nothing behind
+      // it shows through (it draws after content, depth test off).
       const bt = panel.backing.getSceneObject().getTransform();
-      bt.setLocalScale(new vec3(viroSpecsAngleToMeters(20, d) * CM_PER_METER, step * 8, 1));
-      bt.setLocalPosition(new vec3(0, -step * 0.5, 0));
-      panel.backing.mainPass.baseColor = rgba(content.surface, tokens.opacity.surface);
+      bt.setLocalScale(new vec3(layout.widthMeters * CM_PER_METER, layout.heightMeters * CM_PER_METER, 1));
+      bt.setLocalPosition(vec3.zero());
+      panel.backing.mainPass.baseColor = rgba(content.surface, 1);
     }
-    panel.action.enabled = content.action !== null;
-    if (content.action !== null) {
+    this.drawRing(panel, layout.ring, tokens);
+    panel.action.enabled = layout.action !== undefined && content.action !== null;
+    if (layout.action && content.action !== null) {
       // The action is a PanelButton: same seven-state visual, hover ring and
       // press-commits-on-release rule as scene buttons.
       const visual = resolveViroSpecsButtonVisual(content.action, "idle", { hovered: panel.actionHovered, pressed: panel.actionPressed }, tokens);
       panel.actionText.text = visual.labelText;
       panel.actionText.size = sizeFor(tokens.type.labelDeg, d);
       panel.actionText.textFill.color = rgba(visual.labelColor);
-      panel.action.getTransform().setLocalPosition(new vec3(0, -step * 3, 0.6));
+      wrapText(panel.actionText, layout.action.widthMeters * CM_PER_METER, layout.action.heightMeters * CM_PER_METER);
+      panel.action.getTransform().setLocalPosition(new vec3(0, layout.action.y * CM_PER_METER, 0.6));
       if (panel.actionBacking) {
-        const labelM = viroSpecsAngleToMeters(tokens.type.labelDeg, d);
-        const h = labelM * tokens.type.lineHeight + 2 * viroSpecsAngleToMeters(tokens.space.smDeg, d);
-        const w = Math.max(h * 2.5, content.action.length * 0.55 * labelM + 2 * viroSpecsAngleToMeters(tokens.space.mdDeg, d));
         const bt = panel.actionBacking.getSceneObject().getTransform();
-        bt.setLocalScale(new vec3(w * CM_PER_METER * visual.scale, h * CM_PER_METER * visual.scale, 1));
+        bt.setLocalScale(new vec3(layout.action.widthMeters * CM_PER_METER * visual.scale, layout.action.heightMeters * CM_PER_METER * visual.scale, 1));
         bt.setLocalPosition(new vec3(0, 0, visual.depthMeters * CM_PER_METER));
         panel.actionBacking.mainPass.baseColor = rgba(visual.ring ? visual.border : visual.fill);
       }
@@ -684,37 +785,158 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
     }
   }
 
+  /**
+   * The loading ring: `RING_SEGMENTS` quads on a circle, lit in `color.focus`
+   * by {@linkcode viroSpecsLoadingRing} over a `color.border` track. Static
+   * under reduced motion; only unknown progress without reduced motion spins.
+   */
+  private drawRing(panel: Panel, ring: { readonly y: number; readonly diameterMeters: number; readonly thicknessMeters: number } | undefined, tokens: ViroSpecsSpatialTokens): void {
+    if (!panel.ring) return;
+    panel.ring.root.enabled = ring !== undefined;
+    const view = this.lastRendered?.loading;
+    if (!ring || !view || view.visible === false) return;
+    const state = viroSpecsLoadingRing(view.indicator, view.progress, RING_SEGMENTS, getTime() * 1000 - panel.shownAtMs, tokens);
+    const radiusCm = ((ring.diameterMeters - ring.thicknessMeters) / 2) * CM_PER_METER;
+    const lengthCm = ((Math.PI * ring.diameterMeters) / RING_SEGMENTS) * CM_PER_METER * 0.8;
+    const rt = panel.ring.root.getTransform();
+    rt.setLocalPosition(new vec3(0, ring.y * CM_PER_METER, 0.6));
+    rt.setLocalRotation(quat.angleAxis(-state.turns * 2 * Math.PI, vec3.forward()));
+    panel.ring.segments.forEach((segment, i) => {
+      // Segment 0 at the top, then clockwise as seen by the wearer.
+      const angle = Math.PI / 2 - (i / RING_SEGMENTS) * 2 * Math.PI;
+      const t = segment.getSceneObject().getTransform();
+      t.setLocalPosition(new vec3(Math.cos(angle) * radiusCm, Math.sin(angle) * radiusCm, 0));
+      t.setLocalRotation(quat.angleAxis(angle + Math.PI / 2, vec3.forward()));
+      t.setLocalScale(new vec3(lengthCm, ring.thicknessMeters * CM_PER_METER, 1));
+      segment.mainPass.baseColor = state.lit[i] ? rgba(tokens.color.focus) : rgba(tokens.color.border);
+    });
+  }
+
+  /**
+   * Gaze Scroll up and Scroll down under every committed scroll group while
+   * input is gaze-only (`gazeControls.scrollButtons`). Dwell on one scrolls
+   * the list one row through `scrollByRows`; a pinch does the same when
+   * hands come back. They follow the group's world transform each frame.
+   */
+  private drawScrollButtons(view: ViroSpecsExperienceView): void {
+    const host = this.host;
+    const scene = host?.committedScene ?? null;
+    const live = new Set<string>();
+    if (host && scene && view.gazeControls.scrollButtons && view.sceneVisible) {
+      const d = view.tokens.distance.defaultMeters;
+      for (const node of scene.nodes) {
+        if (node.kind !== "group" || node.scroll === undefined) continue;
+        const object = host.getNode(node.id);
+        if (!object || !object.isEnabledInHierarchy) continue;
+        live.add(node.id);
+        const buttons = this.scrollButtons.get(node.id) ?? this.createScrollButtons(node.id);
+        const layout = layoutViroSpecsScrollButtons(view.tokens, node.scroll, d);
+        const world = object.getTransform();
+        const place = (button: ScrollButton, at: { x: number; y: number }, label: string) => {
+          button.root.enabled = true;
+          const t = button.root.getTransform();
+          t.setWorldPosition(world.getWorldTransform().multiplyPoint(new vec3(at.x * CM_PER_METER, at.y * CM_PER_METER, 0.6)));
+          t.setWorldRotation(world.getWorldRotation());
+          button.label.text = label;
+          button.label.size = sizeFor(view.tokens.type.labelDeg, d);
+          button.label.textFill.color = rgba(view.tokens.color.text);
+          wrapText(button.label, layout.widthMeters * CM_PER_METER, layout.heightMeters * CM_PER_METER);
+          if (button.backing) {
+            button.backing.getSceneObject().getTransform().setLocalScale(new vec3(layout.widthMeters * CM_PER_METER, layout.heightMeters * CM_PER_METER, 1));
+            button.backing.mainPass.baseColor = rgba(view.tokens.color.surfaceRaised);
+          }
+        };
+        place(buttons.up, layout.up, formatViroSpecsCopy("gaze.scrollUp"));
+        place(buttons.down, layout.down, formatViroSpecsCopy("gaze.scrollDown"));
+      }
+    }
+    for (const [id, buttons] of this.scrollButtons) {
+      if (live.has(id)) continue;
+      buttons.up.root.enabled = false;
+      buttons.down.root.enabled = false;
+    }
+  }
+
+  private createScrollButtons(nodeId: string): { up: ScrollButton; down: ScrollButton } {
+    const make = (direction: "up" | "down"): ScrollButton => {
+      const root = global.scene.createSceneObject("ViroSpecsScroll-" + direction + ":" + nodeId);
+      if (this.overlay) root.setParent(this.overlay);
+      // Part of the list, not the overlay: depth-tested with the scene, so
+      // an open notice or error panel covers them like the rest of the list.
+      const backing = this.makeBacking(root);
+      const labelObject = global.scene.createSceneObject("label");
+      labelObject.setParent(root);
+      labelObject.getTransform().setLocalPosition(new vec3(0, 0, 0.6));
+      const label = labelObject.createComponent("Component.Text") as Text;
+      label.depthTest = true;
+      const unbind = bindViroSpecsSik(root, { manipulation: false, root }, (event) => {
+        if (event.phase === "select-end") this.scrollGroup(nodeId, direction === "up" ? -1 : 1);
+      });
+      return { root, backing, label, unbind };
+    };
+    const buttons = { up: make("up"), down: make("down") };
+    this.scrollButtons.set(nodeId, buttons);
+    return buttons;
+  }
+
+  /** One row up (-1) or down (+1) on a committed scroll group. */
+  private scrollGroup(nodeId: string, rows: number): void {
+    this.host?.scrollByRows(nodeId, rows);
+  }
+
   private createPanel(key: "loading" | "notice" | "error" | "permission"): Panel {
     const root = global.scene.createSceneObject("ViroSpecsExperience-" + key);
     if (this.overlay) root.setParent(this.overlay);
-    const backing = this.makeBacking(root);
+    const backing = this.makeBacking(root, OVERLAY_ORDER.backing);
     const text = (name: string): Text => {
       const object = global.scene.createSceneObject(name);
       object.setParent(root);
-      const t = object.createComponent("Component.Text") as Text;
-      t.depthTest = true;
-      return t;
+      return this.overlayText(object);
     };
     const title = text("title");
     const body = text("body");
     const detail = text("detail");
+    let ring: Panel["ring"] = null;
+    if (key === "loading" && this.panelMesh && this.panelMaterial) {
+      const ringRoot = global.scene.createSceneObject("ring");
+      ringRoot.setParent(root);
+      const segments: RenderMeshVisual[] = [];
+      for (let i = 0; i < RING_SEGMENTS; i++) {
+        const visual = this.makeBacking(ringRoot, OVERLAY_ORDER.control);
+        if (visual) segments.push(visual);
+      }
+      ring = { root: ringRoot, segments };
+    }
     const action = global.scene.createSceneObject("action");
     action.setParent(root);
-    const actionBacking = this.makeBacking(action);
+    const actionBacking = this.makeBacking(action, OVERLAY_ORDER.control);
     const actionLabel = global.scene.createSceneObject("label");
     actionLabel.setParent(action);
     actionLabel.getTransform().setLocalPosition(new vec3(0, 0, 0.6));
-    const actionText = actionLabel.createComponent("Component.Text") as Text;
-    actionText.depthTest = true;
+    const actionText = this.overlayText(actionLabel);
     const panel: Panel = {
-      root, backing, title, body, detail, action, actionText, actionBacking,
+      root, backing, ring, title, body, detail, action, actionText, actionBacking,
       actionHovered: false, actionPressed: false, unbind: null, shownAtMs: 0,
     };
     this.panels.set(key, panel);
     return panel;
   }
 
-  private makeBacking(parent: SceneObject): RenderMeshVisual | null {
+  /** Text on the overlay: drawn after its backing, never hidden by scene depth. */
+  private overlayText(object: SceneObject): Text {
+    const text = object.createComponent("Component.Text") as Text;
+    text.depthTest = false;
+    text.renderOrder = OVERLAY_ORDER.text;
+    return text;
+  }
+
+  /**
+   * A unit-plane visual under `parent` with a clone of the panel material.
+   * With `overlayOrder`, it draws at that render order with depth test off
+   * (experience overlay); without, it depth-tests with the scene (node
+   * backings).
+   */
+  private makeBacking(parent: SceneObject, overlayOrder?: number): RenderMeshVisual | null {
     if (!this.panelMesh || !this.panelMaterial) {
       if (!this.warnedNoMesh) {
         this.warnedNoMesh = true;
@@ -727,7 +949,13 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
     const visual = object.createComponent("Component.RenderMeshVisual") as RenderMeshVisual;
     visual.mesh = this.panelMesh;
     visual.clearMaterials();
-    visual.addMaterial(this.panelMaterial.clone());
+    const material = this.panelMaterial.clone();
+    if (overlayOrder !== undefined) {
+      material.mainPass.depthTest = false;
+      material.mainPass.depthWrite = false;
+      visual.renderOrder = overlayOrder;
+    }
+    visual.addMaterial(material);
     return visual;
   }
 
@@ -764,6 +992,11 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
     this.setContentVisible(true);
     for (const panel of this.panels.values()) panel.unbind?.();
     this.panels.clear();
+    for (const buttons of this.scrollButtons.values()) {
+      buttons.up.unbind();
+      buttons.down.unbind();
+    }
+    this.scrollButtons.clear();
     this.hitSession?.stop();
     this.hitSession = null;
     this.experience?.dispose();
