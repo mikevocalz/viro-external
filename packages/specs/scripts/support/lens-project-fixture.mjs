@@ -2,7 +2,7 @@
 // Packages are real zip archives shaped like Asset Library .lspkg files:
 // Package/Assets/package.native holds a NativePackageDescriptor with
 // VersionMajor / VersionMinor / VersionPatch, as Lens Studio 5.24 writes them.
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { crc32, deflateRawSync } from "node:zlib";
@@ -95,17 +95,25 @@ export function lspkg(version) {
   return zip({ "Package/Assets/README.md": "fixture\n", "Package/Assets/package.native": nativePackageDescriptor(version) });
 }
 
+/** Folders to delete when the test process exits. */
+const created = [];
+process.once("exit", () => {
+  for (const root of created) rmSync(root, { recursive: true, force: true });
+});
+
 /**
- * Creates a Lens project folder.
+ * Creates a Lens project folder, deleted when the process exits unless `keep`.
  * @param {{
  *   packages?: Record<string, string | Buffer>,
  *   studio?: string,
  *   prefix?: string,
+ *   keep?: boolean,
  * }} [options] `packages` maps a package file name to a version string
  *   (written as a real archive) or raw bytes (for corrupt archives)
  */
-export function lensProject({ packages = VALIDATED_PACKAGES, studio = "5.24.0", prefix = "viro-specs-lens-" } = {}) {
+export function lensProject({ packages = VALIDATED_PACKAGES, studio = "5.24.0", prefix = "viro-specs-lens-", keep = false } = {}) {
   const root = mkdtempSync(path.join(tmpdir(), prefix));
+  if (!keep) created.push(root);
   mkdirSync(path.join(root, "Assets"));
   mkdirSync(path.join(root, "Packages"));
   const [major, minor, patch] = studio.split(".");
