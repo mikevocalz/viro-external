@@ -128,6 +128,11 @@ async function fixture(t, url, extraEnv = {}) {
   const codexHome = path.join(root, "codex-home");
   await Promise.all([mkdir(path.join(project, "Assets", "ViroSpecs", "lens"), { recursive: true }), mkdir(path.join(project, ".codex"), { recursive: true }), mkdir(bin), mkdir(codexHome)]);
   await writeFile(path.join(project, "Lab.esproj"), "studioVersion:\n  major: 5\n  minor: 24\n  patch: 0\ntargetPlatform: Spectacles\n");
+  // A project with the packages specs:doctor requires (2.x Interaction Kit line).
+  await mkdir(path.join(project, "Packages"));
+  for (const name of ["SpectaclesInteractionKit.lspkg", "SpectaclesUIKit.lspkg", "SurfacePlacement.lspkg", "VolumetricLine.lspkg", "SpecsNavigationKit.lspkg"]) {
+    await writeFile(path.join(project, "Packages", name), "");
+  }
   await writeFile(path.join(project, "Assets", "ViroSpecs", "lens", "ViroSpecsRuntimeHost.ts.meta"), "uuid: preserve-me\n");
   const config = `[mcp_servers.lens-studio]\nurl = ${JSON.stringify(url)}\nhttp_headers = { Authorization = "Bearer ${token}" }\n`;
   await writeFile(path.join(project, ".codex", "config.toml"), config);
