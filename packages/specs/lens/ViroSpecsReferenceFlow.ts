@@ -101,7 +101,7 @@ export function viewViroSpecsReferenceFlow(state: ViroSpecsReferenceFlowState): 
     state.exhibits.forEach((exhibit, index) => {
       const cardId = "card-" + exhibit.id;
       nodes.push(
-        { id: cardId, kind: "panel", parentId: "exhibit-list", position: [0, LIST_HEIGHT / 2 - ROW_HEIGHT * (index + 0.5), 0],
+        { id: cardId, kind: "panel", parentId: "exhibit-list", position: [0, -ROW_HEIGHT * (index + 0.5), 0],
           extents: { width: 0.42, height: ROW_HEIGHT - 0.008 }, materialId: exhibit.id === state.selectedId ? "card-selected" : "card" },
         { id: cardId + "-label", kind: "text", parentId: cardId, text: exhibit.title, position: [0, 0, 0.005],
           style: { fontSize: 22, color: "#f2f2f2", textAlign: "left" }, extents: { width: 0.38, height: 0.04 } }
