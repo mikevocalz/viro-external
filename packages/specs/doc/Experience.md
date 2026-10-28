@@ -140,3 +140,26 @@ sets them. High contrast swaps the surface to black, text to white, focus to
 `#ffd25e`, doubles borders and adds 0.2 degrees to every type size; on an
 additive display black may render transparent, so the white outline carries
 it (verify on device). Reduced motion removes every scale change and rotation.
+
+## Not drawn yet
+
+`ViroSpecsExperienceHost` draws SpatialPanel (backing and title), PanelButton
+(backing, label, glyph, hover scale and depth, error message) and PanelText
+(token color, 1.2 degree minimum from the compiled size). It does not draw
+these yet; each node that uses one is reported once as `VS5019`:
+
+| Component | Not drawn |
+| --- | --- |
+| SpatialScrollView | native scrolling, `itemHeightMeters`, `initialIndex` (the controller keeps scroll state for `group` nodes with `scroll`, not for scroll-view panels) |
+| ModelViewer | `autoRotate`, the Reset model button, the load ring at the model bounds |
+| PanelImage | `radius.card` corners |
+
+`unrenderedViroSpecsComponentFeatures` in `ViroSpecsExperience.ts` is the
+list the host reports from; update it when a feature lands.
+
+## Wearer-relative measurement
+
+The adapter measures every comfort distance from the camera, not from where
+the Lens started: WorldQuery hits and Move steps are converted to
+head-relative meters before they reach the placement session and
+`clampToComfortBand`, and converted back to world meters for listeners.

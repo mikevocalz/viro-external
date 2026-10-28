@@ -130,6 +130,11 @@ export const VIRO_SPECS_HOST_DIAGNOSTICS = {
     title: "Gaze-only input active",
     hint: "Hand tracking is not available, so selection works by gaze dwell and drag is replaced by step buttons. It switches back when hand tracking returns.",
   },
+  VS5019: {
+    severity: "warning",
+    title: "Premium component feature not drawn by this host",
+    hint: "The scene carries the feature but this host version does not render it yet; the message names the node and the features. See doc/Experience.md#not-drawn-yet.",
+  },
 } as const satisfies Record<string, ViroSpecsHostDiagnosticDefinition>;
 
 /** Codes in {@linkcode VIRO_SPECS_HOST_DIAGNOSTICS}. */

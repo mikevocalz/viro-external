@@ -253,7 +253,8 @@ function checkGroup(value: unknown, reference: Record<string, unknown>, path: st
     else if (typeof expected === "number") {
       if (typeof actual !== "number" || !Number.isFinite(actual) || actual < 0) fail(at, "Expected a finite number >= 0.");
     } else if (typeof expected === "string") {
-      if (typeof actual !== "string" || !/^#[0-9a-fA-F]{6}$/.test(actual)) fail(at, "Expected #RRGGBB.");
+      // Same rule as viro's validator and schema: #RRGGBB or #RRGGBBAA.
+      if (typeof actual !== "string" || !/^#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(actual)) fail(at, "Expected #RRGGBB or #RRGGBBAA.");
     } else if (isRecord(expected)) {
       checkGroup(actual, expected, at, fail);
     }

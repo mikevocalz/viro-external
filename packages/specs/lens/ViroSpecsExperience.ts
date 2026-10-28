@@ -25,6 +25,7 @@ import {
   VIRO_SPECS_LENS_TEXT_EM_METERS_PER_SIZE,
   type ViroSpecsButtonAuthoredState,
   type ViroSpecsButtonVisualState,
+  type ViroSpecsComponentSpec,
   type ViroSpecsExperiencePreferences,
   type ViroSpecsSpatialTokens,
   type ViroSpecsTheme,
@@ -160,6 +161,14 @@ export type ViroSpecsExperienceOptions = {
   readonly preferences?: ViroSpecsExperiencePreferences;
 };
 
+/** What {@linkcode ViroSpecsExperienceController.attach} reads from a scene controller or its Lens host. */
+export type ExperienceSource = {
+  readonly lifecycle: ViroSpecsSceneLifecycle;
+  readonly assetProgress: { readonly pending: number; readonly total: number };
+  readonly committedScene: { readonly theme?: ViroSpecsTheme } | null;
+  addOnLifecycleListener(listener: (state: ViroSpecsSceneLifecycle) => void): ViroSpecsSubscription;
+};
+
 const PLACEMENT_CAPABILITIES = ["world-query", "surface-placement"];
 const HAND_CAPABILITIES = ["hand-tracking", "pinch"];
 
@@ -197,6 +206,8 @@ export class ViroSpecsExperienceController {
   private readonly listeners = new Set<(view: ViroSpecsExperienceView) => void>();
   private readonly subscriptions: ViroSpecsSubscription[] = [];
   private cached: ViroSpecsExperienceView | undefined;
+  private source: ExperienceSource | undefined;
+  private clamped = new Set<string>();
 
   constructor(private readonly options: ViroSpecsExperienceOptions) {
     this.preferences = options.preferences ?? VIRO_SPECS_LENS_DEFAULT_THEME.preferences;
@@ -206,12 +217,8 @@ export class ViroSpecsExperienceController {
    * Subscribes to a scene controller: lifecycle, asset progress and host
    * diagnostics. Returns the subscription; {@linkcode dispose} also removes it.
    */
-  attach(controller: {
-    readonly lifecycle: ViroSpecsSceneLifecycle;
-    readonly assetProgress: { readonly pending: number; readonly total: number };
-    readonly committedScene: { readonly theme?: ViroSpecsTheme } | null;
-    addOnLifecycleListener(listener: (state: ViroSpecsSceneLifecycle) => void): ViroSpecsSubscription;
-  }): ViroSpecsSubscription {
+  attach(controller: ExperienceSource): ViroSpecsSubscription {
+    this.source = controller;
     const sync = (state: ViroSpecsSceneLifecycle) => {
       const theme = controller.committedScene?.theme;
       if (theme !== undefined && theme !== this.theme) this.setTheme(theme);
@@ -227,6 +234,7 @@ export class ViroSpecsExperienceController {
       remove: () => {
         lifecycle.remove();
         diagnostics.remove();
+        if (this.source === controller) this.source = undefined;
       },
     };
     this.subscriptions.push(subscription);
@@ -271,6 +279,9 @@ export class ViroSpecsExperienceController {
     const now = this.options.nowMs();
     if (lifecycle === "loading" && this.lifecycle !== "loading") this.loadingSinceMs = now;
     if (lifecycle !== "loading") this.loadingSinceMs = undefined;
+    // A scene committed after a rejected first scene: the rejection no longer
+    // applies. (A rejected update on a live scene keeps its panel until Close.)
+    if (this.lifecycle === "error" && lifecycle !== "error" && lifecycle !== "empty") this.sceneError = undefined;
     if (lifecycle === "ready" || lifecycle === "degraded") {
       this.hadReadyScene = true;
       if (lifecycle === "ready") this.nodeErrors.clear();
@@ -342,8 +353,18 @@ export class ViroSpecsExperienceController {
     this.emit();
   }
 
-  /** Advances time-based rules. Call every frame. */
+  /**
+   * Advances time-based rules and re-reads the attached controller's asset
+   * progress and theme, which change without a lifecycle event while assets
+   * load and when a scene replaces another in the same state. Call every frame.
+   */
   tick(): void {
+    const source = this.source;
+    if (source) {
+      const theme = source.committedScene?.theme;
+      if (theme !== undefined && theme !== this.theme) this.setTheme(theme);
+      this.progress = { pending: source.assetProgress.pending, total: source.assetProgress.total };
+    }
     this.emit();
   }
 
@@ -354,14 +375,20 @@ export class ViroSpecsExperienceController {
   clampToComfortBand(nodeId: string, position: Vec3): Vec3 {
     const band = this.theme.tokens.distance;
     const d = Math.sqrt(position[0] * position[0] + position[1] * position[1] + position[2] * position[2]);
-    if (d >= band.minMeters && d <= band.maxMeters) return position;
+    if (d >= band.minMeters && d <= band.maxMeters) {
+      this.clamped.delete(nodeId);
+      return position;
+    }
+    // Reported once per excursion, not on every drag frame.
+    const first = !this.clamped.has(nodeId);
+    this.clamped.add(nodeId);
     if (d < 1e-9) {
-      this.report("VS5017", nodeId + " was at the wearer; placed " + band.minMeters + " m ahead.", nodeId);
+      if (first) this.report("VS5017", nodeId + " was at the wearer; placed " + band.minMeters + " m ahead.", nodeId);
       return [0, 0, -band.minMeters];
     }
     const target = d < band.minMeters ? band.minMeters : band.maxMeters;
     const k = target / d;
-    this.report("VS5017", nodeId + " would be " + d.toFixed(2) + " m away; stopped at " + target + " m.", nodeId);
+    if (first) this.report("VS5017", nodeId + " would be " + d.toFixed(2) + " m away; stopped at " + target + " m.", nodeId);
     return [position[0] * k, position[1] * k, position[2] * k];
   }
 
@@ -790,8 +817,15 @@ export class ViroSpecsGazeDwell {
       this.fired = false;
       this.progressValue = 0;
     }
-    if (nodeId === undefined || this.fired || !this.canSelect(nodeId)) {
-      return nodeId === undefined ? { progress: 0 } : { nodeId, progress: this.fired ? 1 : 0 };
+    if (nodeId !== undefined && !this.fired && !this.canSelect(nodeId)) {
+      // Not selectable yet: the fill starts when it becomes selectable, not
+      // when the gaze arrived.
+      this.since = nowMs;
+      this.progressValue = 0;
+      return { nodeId, progress: 0 };
+    }
+    if (nodeId === undefined || this.fired) {
+      return nodeId === undefined ? { progress: 0 } : { nodeId, progress: 1 };
     }
     this.progressValue = Math.min(1, (nowMs - this.since) / this.dwellMs());
     if (this.progressValue >= 1) {
@@ -835,6 +869,31 @@ export function stepViroSpecsMove(position: Vec3, direction: "left" | "right" | 
   if (direction === "right") return [position[0] + stepMeters, position[1], position[2]];
   const d = Math.sqrt(position[0] * position[0] + position[1] * position[1] + position[2] * position[2]);
   if (d < 1e-9) return position;
-  const k = (d + (direction === "away" ? stepMeters : -stepMeters)) / d;
+  const k = Math.max(0, d + (direction === "away" ? stepMeters : -stepMeters)) / d;
   return [position[0] * k, position[1] * k, position[2] * k];
+}
+
+/**
+ * Premium component features this host carries but does not draw yet, as
+ * `prop` names, for one node. The Lens adapter reports each node once with
+ * `VS5019` so a dropped prop is never silent.
+ */
+export function unrenderedViroSpecsComponentFeatures(component: ViroSpecsComponentSpec | undefined): readonly string[] {
+  if (!component) return [];
+  switch (component.type) {
+    case "spatial-panel":
+    case "panel-text":
+    case "panel-button":
+      return [];
+    case "panel-image":
+      return ["radius.card corners"];
+    case "scroll-view":
+      return ["native scrolling", "itemHeightMeters", "initialIndex"];
+    case "model-viewer":
+      return [
+        ...(component.autoRotate ? ["autoRotate"] : []),
+        ...(component.resettable ? ["resettable (Reset model button)"] : []),
+        "load progress ring at the model bounds",
+      ];
+  }
 }

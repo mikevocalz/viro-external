@@ -13,6 +13,7 @@
  * under the scene controller's disabled staging root.
  */
 import {
+  unrenderedViroSpecsComponentFeatures,
   resolveViroSpecsButtonVisual,
   stepViroSpecsMove,
   ViroSpecsButtonTracker,
@@ -28,7 +29,9 @@ import {
 } from "./ViroSpecsExperienceTokens";
 import { InteractionManager, InteractorInputType, InteractorTriggerType } from "./ViroSpecsInteractionKit";
 import { ViroSpecsPlacementSession, type ViroSpecsPlacementHit, type ViroSpecsReticleView } from "./ViroSpecsPlacement";
+import { createViroSpecsHostDiagnostic } from "./ViroSpecsHostDiagnostics";
 import type { ViroSpecsCapabilityState } from "./ViroSpecsProtocol";
+import type { ViroSpecsHostScene } from "./ViroSpecsSceneDocument";
 import { ViroSpecsSceneControllerHost } from "./ViroSpecsSceneControllerHost";
 import { parseViroSpecsColor } from "./ViroSpecsSceneDocument";
 import { bindViroSpecsSik } from "./ViroSpecsSikBinding";
@@ -42,8 +45,14 @@ const RAY_CM = 300;
 /** Lens objects the experience layer adds to a committed premium node. */
 type Decoration = {
   readonly type: "spatial-panel" | "panel-button" | "panel-text";
+  /** The node object it was built on; a different object under the same ID means a new scene. */
+  readonly object: SceneObject;
   readonly backing: RenderMeshVisual | null;
   readonly label: Text | null;
+  /** SpatialPanel title, or the PanelButton error message under the button. */
+  readonly extra: Text | null;
+  /** PanelText size as compiled, before the runtime 1.2 degree clamp. */
+  readonly authoredSize: number;
 };
 
 type Panel = {
@@ -54,6 +63,9 @@ type Panel = {
   readonly detail: Text;
   readonly action: SceneObject;
   readonly actionText: Text;
+  readonly actionBacking: RenderMeshVisual | null;
+  actionHovered: boolean;
+  actionPressed: boolean;
   unbind: (() => void) | null;
   shownAtMs: number;
 };
@@ -125,6 +137,12 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
   private hitSession: HitTestSession | null = null;
   private probe: Probe | null = null;
   private decorations = new Map<string, Decoration>();
+  private dwellRoot: SceneObject | null = null;
+  private lastRendered: ViroSpecsExperienceView | null = null;
+  private decoratedScene: ViroSpecsHostScene | null = null;
+  private reportedUnrendered = new Set<string>();
+  private pinchOnInteractable = false;
+  private dwellDisc: RenderMeshVisual | null = null;
   private wasTriggering = false;
   private warnedNoMesh = false;
   private readonly placementListeners = new Set<(pose: { position: [number, number, number]; normal: [number, number, number] }) => void>();
@@ -174,7 +192,14 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
   confirmPlacement(): boolean {
     const result = this.placement?.pinch();
     if (!result || result.placed === false) return false;
-    const position = this.experience?.clampToComfortBand("placement", result.position) ?? result.position;
+    const relative = this.experience?.clampToComfortBand("placement", result.position) ?? result.position;
+    // Listeners get world meters: the wearer-relative pose plus the head position.
+    const head = this.headRay()?.start ?? vec3.zero();
+    const position: [number, number, number] = [
+      relative[0] + head.x / CM_PER_METER,
+      relative[1] + head.y / CM_PER_METER,
+      relative[2] + head.z / CM_PER_METER,
+    ];
     for (const listener of Array.from(this.placementListeners)) listener({ position, normal: result.normal });
     return true;
   }
@@ -196,10 +221,11 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
     const object = this.host?.getNode(nodeId) ?? null;
     const experience = this.experience;
     if (!object || !experience) return;
-    const p = object.getTransform().getWorldPosition();
+    const head = this.headRay()?.start ?? vec3.zero();
+    const p = object.getTransform().getWorldPosition().sub(head);
     const next = stepViroSpecsMove([p.x / CM_PER_METER, p.y / CM_PER_METER, p.z / CM_PER_METER], direction, experience.view().tokens.input.gazeStepMeters);
     const clamped = experience.clampToComfortBand(nodeId, next);
-    object.getTransform().setWorldPosition(new vec3(clamped[0] * CM_PER_METER, clamped[1] * CM_PER_METER, clamped[2] * CM_PER_METER));
+    object.getTransform().setWorldPosition(head.add(new vec3(clamped[0] * CM_PER_METER, clamped[1] * CM_PER_METER, clamped[2] * CM_PER_METER)));
   }
 
   private start(): void {
@@ -248,19 +274,46 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
   /** Adds backings and labels to committed premium nodes, and drops decorations of removed nodes. */
   private decorate(): void {
     const host = this.host;
-    const scene = host?.committedScene;
+    const scene = host?.committedScene ?? null;
+    this.decoratedScene = scene;
     if (!host || !scene) return;
     const live = new Set<string>();
     for (const node of scene.nodes) {
       const component = node.component;
       if (!component) continue;
+      const missing = unrenderedViroSpecsComponentFeatures(component);
+      if (missing.length > 0 && !this.reportedUnrendered.has(node.id + ":" + component.type)) {
+        this.reportedUnrendered.add(node.id + ":" + component.type);
+        host.diagnosticsChannel.report(
+          createViroSpecsHostDiagnostic("VS5019", "experience", node.id + " (" + component.type + "): not drawn yet: " + missing.join(", ") + ".", { nodeId: node.id })
+        );
+      }
       if (component.type !== "spatial-panel" && component.type !== "panel-button" && component.type !== "panel-text") continue;
-      live.add(node.id);
-      if (this.decorations.has(node.id)) continue;
       const object = host.getNode(node.id);
       if (!object) continue;
+      live.add(node.id);
+      // Same ID on a new SceneObject (navigation replaced the scene): rebuild.
+      if (this.decorations.get(node.id)?.object === object) continue;
       let backing: RenderMeshVisual | null = null;
       let label: Text | null = null;
+      let extra: Text | null = null;
+      const addText = (name: string, y: number): Text => {
+        const child = global.scene.createSceneObject(name);
+        child.setParent(object);
+        child.getTransform().setLocalPosition(new vec3(0, y, 0.6));
+        const text = child.createComponent("Component.Text") as Text;
+        text.depthTest = true;
+        return text;
+      };
+      const extentsH = node.kind === "panel" && node.extents ? node.extents.height * CM_PER_METER : 0;
+      if (component.type === "spatial-panel" && component.title !== undefined) {
+        extra = addText("title", extentsH / 2 - 4);
+        extra.text = component.title;
+      }
+      if (component.type === "panel-button" && component.errorMessage !== undefined) {
+        extra = addText("errorMessage", -extentsH);
+        extra.text = component.errorMessage;
+      }
       if (component.type !== "panel-text") {
         backing = this.makeBacking(object);
         const extents = node.kind === "panel" ? node.extents : undefined;
@@ -275,7 +328,8 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
         label = labelObject.createComponent("Component.Text") as Text;
         label.depthTest = true;
       }
-      this.decorations.set(node.id, { type: component.type, backing, label });
+      const textComponent = component.type === "panel-text" ? (object.getComponent("Component.Text") as Text | null) : null;
+      this.decorations.set(node.id, { type: component.type, object, backing, label, extra, authoredSize: textComponent ? textComponent.size : 0 });
     }
     for (const id of Array.from(this.decorations.keys())) {
       if (!live.has(id)) this.decorations.delete(id);
@@ -295,8 +349,13 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
       if (!decoration || !component) continue;
       const object = host.getNode(node.id);
       if (!object) continue;
-      if (component.type === "spatial-panel" && decoration.backing) {
-        decoration.backing.mainPass.baseColor = rgba(tokens.color.surface, tokens.opacity.surface);
+      const distance = this.distanceToWearer(object);
+      if (component.type === "spatial-panel") {
+        if (decoration.backing) decoration.backing.mainPass.baseColor = rgba(tokens.color.surface, tokens.opacity.surface);
+        if (decoration.extra) {
+          decoration.extra.size = sizeFor(tokens.type.titleDeg, distance);
+          decoration.extra.textFill.color = rgba(tokens.color.text);
+        }
       } else if (component.type === "panel-button") {
         const label = node.label ?? "";
         const visual = resolveViroSpecsButtonVisual(label, component.state, tracker.interactionOf(node.id), tokens);
@@ -310,9 +369,12 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
             t.setLocalPosition(new vec3(0, 0, visual.depthMeters * CM_PER_METER));
           }
         }
+        if (decoration.extra) {
+          decoration.extra.getSceneObject().enabled = component.state === "error";
+          decoration.extra.size = sizeFor(tokens.type.labelDeg, distance);
+          decoration.extra.textFill.color = rgba(tokens.color.error);
+        }
         if (decoration.label) {
-          const p = object.getTransform().getWorldPosition();
-          const distance = Math.max(Math.hypot(p.x, p.y, p.z) / CM_PER_METER, 0.01);
           decoration.label.text = (visual.glyph === "check" ? "\u2713 " : visual.glyph === "error" ? "! " : "") + visual.labelText;
           decoration.label.size = sizeFor(tokens.type.labelDeg, distance);
           decoration.label.textFill.color = rgba(visual.labelColor);
@@ -321,9 +383,8 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
         const text = object.getComponent("Component.Text") as Text | null;
         if (!text) continue;
         text.textFill.color = rgba(component.tone === "muted" ? tokens.color.textMuted : tokens.color.text);
-        const p = object.getTransform().getWorldPosition();
-        const distance = Math.max(Math.hypot(p.x, p.y, p.z) / CM_PER_METER, 0.01);
-        const size = this.experience?.minimumTextSize(node.id, text.size, distance) ?? text.size;
+        // Clamp from the compiled size, so text shrinks back when it comes closer.
+        const size = this.experience?.minimumTextSize(node.id, decoration.authoredSize, distance) ?? decoration.authoredSize;
         if (size !== text.size) text.size = size;
       }
     }
@@ -334,12 +395,23 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
     if (!experience) return;
     experience.tick();
     const view = experience.view();
+    // A replacement in the same lifecycle state fires no lifecycle event.
+    if ((this.host?.committedScene ?? null) !== this.decoratedScene) this.decorate();
     this.styleDecorations(view.tokens);
     const ray = this.headRay();
     if (!ray) return;
     if (view.inputMode === "gaze") this.gazeTarget(ray.start, ray.end);
-    else this.dwell?.reset();
+    else {
+      this.dwell?.reset();
+      this.drawDwell(null);
+    }
     this.updatePlacement(ray.start, ray.end, view);
+  }
+
+  /** Distance from the wearer's head to `object`, meters. */
+  private distanceToWearer(object: SceneObject): number {
+    const head = this.headRay()?.start ?? vec3.zero();
+    return Math.max(object.getTransform().getWorldPosition().distance(head) / CM_PER_METER, 0.01);
   }
 
   private headRay(): { start: vec3; end: vec3 } | null {
@@ -371,8 +443,45 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
         target = byObject.get(object);
         object = object.getParent();
       }
-      this.dwell?.update(target, now);
+      const dwell = this.dwell?.update(target, now);
+      this.drawDwell(hit && dwell && dwell.progress > 0 && dwell.progress < 1 ? { point: hit.position, toward: start, progress: dwell.progress } : null);
     });
+  }
+
+  /**
+   * Gaze dwell feedback: a `color.focus` disc on the gazed control that grows
+   * to `input.reticleDeg` as the dwell fills, so the wearer sees a selection
+   * coming and can look away to stop it. Growth, not movement, so it stays
+   * under reduced motion.
+   */
+  private drawDwell(state: { point: vec3; toward: vec3; progress: number } | null): void {
+    const view = this.experience?.view();
+    if (!this.overlay || !view) return;
+    if (!this.dwellDisc) {
+      const object = global.scene.createSceneObject("ViroSpecsDwell");
+      object.setParent(this.overlay);
+      this.dwellDisc = this.makeBacking(object);
+      this.dwellDisc?.getSceneObject().getTransform().setLocalPosition(new vec3(0, 0, 0));
+      this.dwellRoot = object;
+    }
+    const root = this.dwellRoot;
+    if (!root) return;
+    if (!state) {
+      root.enabled = false;
+      return;
+    }
+    root.enabled = true;
+    const direction = state.toward.sub(state.point).normalize();
+    const t = root.getTransform();
+    // 1 cm toward the wearer so the disc never z-fights the control.
+    t.setWorldPosition(state.point.add(direction.uniformScale(1)));
+    t.setWorldRotation(quat.lookAt(direction, vec3.up()));
+    const distance = Math.max(state.point.sub(state.toward).length / CM_PER_METER, 0.01);
+    const diameter = viroSpecsAngleToMeters(view.tokens.input.reticleDeg, distance) * CM_PER_METER * state.progress;
+    if (this.dwellDisc) {
+      this.dwellDisc.getSceneObject().getTransform().setLocalScale(new vec3(diameter, diameter, 1));
+      this.dwellDisc.mainPass.baseColor = rgba(view.tokens.color.focus, 0.85);
+    }
   }
 
   private selectByGaze(id: string): void {
@@ -395,23 +504,30 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
       const now = getTime() * 1000;
       let hit: ViroSpecsPlacementHit | null = null;
       if (result) {
-        const p = result.position;
+        // Relative to the wearer: the comfort band and the floor height are
+        // measured from the head, not from where the Lens started.
+        const p = result.position.sub(start);
         const n = result.normal;
         hit = { position: [p.x / CM_PER_METER, p.y / CM_PER_METER, p.z / CM_PER_METER], normal: [n.x, n.y, n.z] };
       }
       placement.update(hit, now);
-      this.drawReticle(placement.view(), view.tokens);
+      this.drawReticle(placement.view(), view.tokens, start);
     });
     // Pinch release confirms (hands mode). Gaze mode uses "Place here".
     let triggering = false;
     for (const interactor of InteractionManager.getInstance().getInteractorsByType(InteractorInputType.All)) {
-      if (interactor.currentTrigger !== InteractorTriggerType.None) triggering = true;
+      if (interactor.currentTrigger !== InteractorTriggerType.None) {
+        triggering = true;
+        // A pinch on a button or panel action is that control's, not a placement.
+        if (interactor.currentInteractable) this.pinchOnInteractable = true;
+      }
     }
-    if (this.wasTriggering && !triggering && view.inputMode === "hands") this.confirmPlacement();
+    if (this.wasTriggering && !triggering && view.inputMode === "hands" && !this.pinchOnInteractable) this.confirmPlacement();
+    if (!triggering) this.pinchOnInteractable = false;
     this.wasTriggering = triggering;
   }
 
-  private drawReticle(reticle: ViroSpecsReticleView | undefined, tokens: ViroSpecsSpatialTokens): void {
+  private drawReticle(reticle: ViroSpecsReticleView | undefined, tokens: ViroSpecsSpatialTokens, wearer?: vec3): void {
     if (!this.overlay) return;
     if (!this.reticle) {
       const root = global.scene.createSceneObject("ViroSpecsReticle");
@@ -430,7 +546,8 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
     }
     r.root.enabled = true;
     const [x, y, z] = reticle.position;
-    r.root.getTransform().setWorldPosition(new vec3(x * CM_PER_METER, y * CM_PER_METER, z * CM_PER_METER));
+    const origin = wearer ?? vec3.zero();
+    r.root.getTransform().setWorldPosition(origin.add(new vec3(x * CM_PER_METER, y * CM_PER_METER, z * CM_PER_METER)));
     const distance = Math.max(Math.hypot(x, y, z), 0.01);
     const diameterCm = reticle.diameterMeters * CM_PER_METER;
     if (r.disc) {
@@ -444,6 +561,7 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
   }
 
   private render(view: ViroSpecsExperienceView): void {
+    this.lastRendered = view;
     const t = view.tokens;
     if (this.overlay) this.overlay.enabled = true;
     const loading = view.loading;
@@ -510,17 +628,44 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
     line(panel.title, content.title, tokens.type.bodyDeg, content.accent, step * 1.5);
     line(panel.body, content.body, tokens.type.bodyDeg, tokens.color.text, 0);
     line(panel.detail, content.detail, tokens.type.labelDeg, tokens.color.textMuted, -step * 1.5);
-    if (panel.backing) panel.backing.mainPass.baseColor = rgba(content.surface, tokens.opacity.surface);
+    if (panel.backing) {
+      // 20 degrees wide (the handoff panel width) and tall enough for title,
+      // body, detail and action rows.
+      const bt = panel.backing.getSceneObject().getTransform();
+      bt.setLocalScale(new vec3(viroSpecsAngleToMeters(20, d) * CM_PER_METER, step * 8, 1));
+      bt.setLocalPosition(new vec3(0, -step * 0.5, 0));
+      panel.backing.mainPass.baseColor = rgba(content.surface, tokens.opacity.surface);
+    }
     panel.action.enabled = content.action !== null;
     if (content.action !== null) {
-      const visual = resolveViroSpecsButtonVisual(content.action, "idle", { hovered: false, pressed: false }, tokens);
+      // The action is a PanelButton: same seven-state visual, hover ring and
+      // press-commits-on-release rule as scene buttons.
+      const visual = resolveViroSpecsButtonVisual(content.action, "idle", { hovered: panel.actionHovered, pressed: panel.actionPressed }, tokens);
       panel.actionText.text = visual.labelText;
       panel.actionText.size = sizeFor(tokens.type.labelDeg, d);
       panel.actionText.textFill.color = rgba(visual.labelColor);
       panel.action.getTransform().setLocalPosition(new vec3(0, -step * 3, 0.6));
+      if (panel.actionBacking) {
+        const labelM = viroSpecsAngleToMeters(tokens.type.labelDeg, d);
+        const h = labelM * tokens.type.lineHeight + 2 * viroSpecsAngleToMeters(tokens.space.smDeg, d);
+        const w = Math.max(h * 2.5, content.action.length * 0.55 * labelM + 2 * viroSpecsAngleToMeters(tokens.space.mdDeg, d));
+        const bt = panel.actionBacking.getSceneObject().getTransform();
+        bt.setLocalScale(new vec3(w * CM_PER_METER * visual.scale, h * CM_PER_METER * visual.scale, 1));
+        bt.setLocalPosition(new vec3(0, 0, visual.depthMeters * CM_PER_METER));
+        panel.actionBacking.mainPass.baseColor = rgba(visual.ring ? visual.border : visual.fill);
+      }
       if (!panel.unbind) {
         panel.unbind = bindViroSpecsSik(panel.action, { manipulation: false, root: panel.action }, (event) => {
-          if (event.phase === "select-end") this.activatePanel(key);
+          if (event.phase === "hover-enter") panel.actionHovered = true;
+          else if (event.phase === "hover-exit") panel.actionHovered = false;
+          else if (event.phase === "select-start") panel.actionPressed = true;
+          else if (event.phase === "cancel") panel.actionPressed = false;
+          else if (event.phase === "select-end") {
+            const commit = panel.actionPressed;
+            panel.actionPressed = false;
+            if (commit) this.activatePanel(key);
+          }
+          if (this.lastRendered) this.render(this.lastRendered);
         });
       }
     }
@@ -542,9 +687,16 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
     const detail = text("detail");
     const action = global.scene.createSceneObject("action");
     action.setParent(root);
-    const actionText = action.createComponent("Component.Text") as Text;
+    const actionBacking = this.makeBacking(action);
+    const actionLabel = global.scene.createSceneObject("label");
+    actionLabel.setParent(action);
+    actionLabel.getTransform().setLocalPosition(new vec3(0, 0, 0.6));
+    const actionText = actionLabel.createComponent("Component.Text") as Text;
     actionText.depthTest = true;
-    const panel: Panel = { root, backing, title, body, detail, action, actionText, unbind: null, shownAtMs: 0 };
+    const panel: Panel = {
+      root, backing, title, body, detail, action, actionText, actionBacking,
+      actionHovered: false, actionPressed: false, unbind: null, shownAtMs: 0,
+    };
     this.panels.set(key, panel);
     return panel;
   }

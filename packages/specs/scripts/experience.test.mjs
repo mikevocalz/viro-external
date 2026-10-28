@@ -15,6 +15,7 @@ import {
   resolveViroSpecsButtonVisual,
   stepViroSpecsMove,
   stepViroSpecsScroll,
+  unrenderedViroSpecsComponentFeatures,
 } from "../build/lens-core/ViroSpecsExperience.js";
 import { VIRO_SPECS_LENS_COPY, formatViroSpecsCopy } from "../build/lens-core/ViroSpecsExperienceCopy.js";
 import {
@@ -586,9 +587,9 @@ test("placement: the surface label changes no faster than motion.base; reduced m
 test("drag and placement stop at the band edge with VS5017; small text is raised with VS5016", () => {
   const { experience, diagnostics } = setup("interaction");
   assert.deepEqual(experience.clampToComfortBand("m", [0, 0, -1.5]), [0, 0, -1.5]);
-  const far = experience.clampToComfortBand("m", [0, 0, -4]);
+  const far = experience.clampToComfortBand("far", [0, 0, -4]);
   assert.ok(Math.abs(Math.hypot(...far) - 3) < 1e-9);
-  const near = experience.clampToComfortBand("m", [0.1, 0, -0.2]);
+  const near = experience.clampToComfortBand("near", [0.1, 0, -0.2]);
   assert.ok(Math.abs(Math.hypot(...near) - 0.6) < 1e-9);
   assert.equal(diagnostics.filter((d) => d.code === "VS5017").length, 2);
 
@@ -618,4 +619,81 @@ test("the experience controller detaches cleanly", () => {
   experience.dispose();
   controller.present(fixture("hello"));
   assert.equal(views.length, 1, "no views after dispose");
+});
+
+// --- Review fixes --------------------------------------------------------------
+
+test("the loading line advances as assets arrive, without a lifecycle change", async () => {
+  const backend = new MockBackend();
+  const scheduler = new ManualScheduler();
+  const pending = [];
+  backend.images.set(CARD_IMAGE, () => {
+    const d = deferred();
+    pending.push(d);
+    return d.promise;
+  });
+  const controller = new ViroSpecsSceneController(backend, scheduler);
+  const experience = new ViroSpecsExperienceController({ requirements: REQUIREMENTS.navigation, diagnostics: controller.diagnostics, nowMs: () => scheduler.nowMs() });
+  experience.attach(controller);
+  controller.present(fixture("navigation"));
+  scheduler.tick(200);
+  experience.tick();
+  const total = controller.assetProgress.total;
+  assert.equal(experience.view().loading.line, "Loading 0 of " + total);
+  pending[0].resolve({ asset: "one" });
+  await flush();
+  assert.equal(controller.lifecycle, "loading");
+  experience.tick();
+  assert.equal(experience.view().loading.line, "Loading 1 of " + total);
+});
+
+test("a scene that commits after a rejected first scene clears the no-fallback panel", async () => {
+  const { controller, experience } = setup("hello");
+  controller.present({ version: 2, nodes: [{ id: "x", kind: "nope" }] });
+  assert.equal(experience.view().errorPanel.kind, "scene-no-fallback");
+  controller.present(fixture("hello"));
+  await flush();
+  assert.equal(experience.view().errorPanel, undefined);
+  assert.equal(experience.view().sceneVisible, true);
+});
+
+test("the host reads #RRGGBBAA theme colors, like viro's validator and schema", () => {
+  const theme = structuredClone(VIRO_SPECS_LENS_DEFAULT_THEME);
+  theme.tokens.color.focus = "#f2b544cc";
+  assert.equal(readViroSpecsSceneInput({ version: 2, nodes: [], theme }, 1).ok, true);
+});
+
+test("gaze dwell starts filling when a target becomes selectable, not when the gaze arrived", () => {
+  let selectable = false;
+  const selected = [];
+  const dwell = new ViroSpecsGazeDwell(() => 1000, () => selectable, (id) => selected.push(id));
+  dwell.update("retry", 0);
+  dwell.update("retry", 3000);
+  selectable = true;
+  assert.equal(dwell.update("retry", 3001).progress, 0.001);
+  assert.deepEqual(selected, []);
+  dwell.update("retry", 4001);
+  assert.deepEqual(selected, ["retry"]);
+});
+
+test("Move closer never passes through the wearer, and a drag excursion reports VS5017 once", () => {
+  const closer = stepViroSpecsMove([0, 0, -0.05], "closer", 0.1);
+  assert.deepEqual(closer.map((v) => Math.abs(v)), [0, 0, 0]);
+  const { experience, diagnostics } = setup("interaction");
+  for (let i = 0; i < 30; i++) experience.clampToComfortBand("m", [0, 0, -4 - i * 0.01]);
+  experience.clampToComfortBand("m", [0, 0, -1.5]);
+  experience.clampToComfortBand("m", [0, 0, -5]);
+  assert.equal(diagnostics.filter((d) => d.code === "VS5017").length, 2);
+});
+
+test("premium features the host does not draw yet are named for VS5019", () => {
+  for (const name of GALLERY) {
+    for (const node of fixture(name).nodes) {
+      const missing = unrenderedViroSpecsComponentFeatures(node.component);
+      if (node.component?.type === "scroll-view") assert.ok(missing.includes("native scrolling"));
+      if (node.component?.type === "model-viewer") assert.ok(missing.includes("resettable (Reset model button)"));
+      if (["spatial-panel", "panel-text", "panel-button"].includes(node.component?.type)) assert.deepEqual(missing, []);
+    }
+  }
+  assert.deepEqual(unrenderedViroSpecsComponentFeatures(undefined), []);
 });
