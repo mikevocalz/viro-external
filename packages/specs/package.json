@@ -1,6 +1,6 @@
 {
   "name": "@viro-external/specs",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Portable Viro scene and interaction adapter foundation for Snap Specs / Spectacles Lens Studio runtimes.",
   "main": "./dist/cjs/index.js",
   "react-native": "./src/index.ts",

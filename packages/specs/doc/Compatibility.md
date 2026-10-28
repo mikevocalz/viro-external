@@ -1,14 +1,17 @@
 # SPECS backend compatibility matrix
 
 This document records the supported/validated combination for
-`@viro-external/specs` 0.2.x.
+`@viro-external/specs` 0.3.x. The authoring side (React, React Native,
+Expo, `@reactvision/react-viro`) is in the viro repo,
+`docs/specs-compatibility.md`.
 
 | Layer | Supported / validated |
 | --- | --- |
-| Viro SPECS package | `@viro-external/specs@0.2.x` |
+| Viro SPECS package | `@viro-external/specs@0.3.x` |
+| Authoring package | `@reactvision/react-viro` with peer `@viro-external/specs` ^0.3.0; its `viro-specs-compile --format lens-ts` host needs `ViroSpecsSceneControllerHost`, which 0.2.x lacks |
 | XR contract | `@viro-external/xr-contract@^0.3.0` (renderer-neutral TypeScript contract). `src/render.ts` imports `PortableXRTextStyle` and `PortableXRScroll`, which are not in 0.2.0, so the peer is `^0.3.0`. |
 | Scene protocols | 1 (`ViroSpecsSceneSnapshot`) and 2 (`ViroSpecsSceneDocumentV2`), read by `ViroSpecsSceneController` |
-| Previous release candidate | `@viro-external/specs@0.2.0-rc.1` + `@viro-external/xr-contract@0.2.0-rc.1`, simulator validated |
+| Previous releases | `@viro-external/specs@0.2.0` and `0.2.0-rc.1` with `@viro-external/xr-contract@0.2.0-rc.1`, Preview validated, protocol 1 host only |
 | Module formats | ESM (`import`), CommonJS (`require`), TypeScript source under the `react-native` condition for Metro |
 | Lens Studio minimum | 5.22.0+ |
 | Simulator validation | Lens Studio 5.24.0.26090816 |

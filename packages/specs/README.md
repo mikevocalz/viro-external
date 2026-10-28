@@ -7,7 +7,7 @@ Two renderers consume the same description:
 - **Native Viro (iOS, Android, Quest, PICO):** ViroCore renders the panel. ViroCore and any Eskiu-backed surface live on this side only.
 - **Specs:** Lens Studio renders it. ViroCore does not run on the glasses, and nothing from Eskiu, React or React Native ships in the Lens. The Lens runtime in [`lens/`](./lens) is plain Lens Studio TypeScript, and `specs:validate-lens` fails the build if any file in it imports `@viro-external/*`, `react` or `react-native`.
 
-Version `0.2.0-rc.1`. Targets SPECS 27, Lens Studio 5.22.0 or later. The release was validated in Lens Studio 5.24.0 Preview, not on hardware (see [Status](#status-and-what-is-not-validated)).
+Version `0.3.0`. Targets SPECS 27, Lens Studio 5.22.0 or later. Lens Studio Preview is the validation tier (see [Status](#status-and-what-is-not-validated)). Supported combinations are in [doc/Compatibility.md](./doc/Compatibility.md); changes since 0.2.0 are in [CHANGELOG.md](./CHANGELOG.md).
 
 ## Contents
 
@@ -101,7 +101,7 @@ From another package in the workspace:
 }
 ```
 
-`@viro-external/xr-contract` is a peer dependency (`^0.2.0`). `pnpm --filter @viro-external/specs build` emits ESM to `dist/` and CommonJS to `dist/cjs/`. The export map sends `import` to ESM, `require` to CommonJS, and the `react-native` condition (Metro) to `src/index.ts`. The package's `types` entry points at `src/index.ts`.
+`@viro-external/xr-contract` is a peer dependency (`^0.3.0`). `pnpm --filter @viro-external/specs build` emits ESM and declarations to `dist/` and CommonJS to `dist/cjs/`. The published export map sends `types` to `dist/index.d.ts`, `import` to ESM, `require` to CommonJS, and the `react-native` condition (Metro) to `src/index.ts`. Inside this workspace `types` points at `src/index.ts`; `pnpm pack` swaps in the published map from `publishConfig`, so publish the packed tarball, never the folder. `pnpm specs:test-consumer` packs both packages, installs them into a clean npm project and checks what a consumer gets.
 
 ## Authoring a scene
 
