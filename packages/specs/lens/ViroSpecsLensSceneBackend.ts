@@ -428,13 +428,16 @@ export class ViroSpecsLensSceneBackend
     component.radius = line.radiusMeters * CM_PER_METER;
     component.useWorldPosition = true;
     component.useRelativeToComponent = true;
-    component.autoCorrectOffset = false;
     component.continuousUpdate = false;
     component.smoothUpdate = false;
     // Runtime-created script components can receive lifecycle callbacks
     // before their inputs are assigned; build the mesh one frame later.
     this.deferFrame(() => {
       if (isNull(root)) return;
+      // VolumetricLine's autoCorrectOffset setter logs through a logger it
+      // creates in onAwake, and onAwake does not run under the disabled staging
+      // root. Set it here, after commit has enabled the root.
+      component.autoCorrectOffset = false;
       if (root.getComponent("Component.RenderMeshVisual")) component.updateMesh();
       else component.onStart();
     });
