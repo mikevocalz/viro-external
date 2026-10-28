@@ -40,6 +40,8 @@ export type ViroSpecsLensNode = {
   imageSurface?: SceneObject;
   /** Text fill color before opacity. */
   textColor?: vec4;
+  /** Last opacity set, re-applied after a material or asset swap. */
+  opacity?: number;
 };
 
 /** Lens asset handle: a texture for images, a prefab for models. */
@@ -113,7 +115,11 @@ export class ViroSpecsLensSceneBackend
         const image = surface.createComponent("Component.Image") as Image;
         // Image materials are shared assets; each image owns a clone so
         // setting baseTex or opacity changes only this node.
-        if (this.assets.defaultImageMaterial) image.mainMaterial = this.assets.defaultImageMaterial.clone();
+        if (this.assets.defaultImageMaterial) {
+          const own = this.assets.defaultImageMaterial.clone();
+          own.name = "viro-node:" + spec.id;
+          image.mainMaterial = own;
+        }
         node.image = image;
         break;
       }
@@ -151,6 +157,7 @@ export class ViroSpecsLensSceneBackend
   }
 
   setOpacity(node: ViroSpecsLensNode, opacity: number): void {
+    node.opacity = opacity;
     if (node.text) {
       const c = node.text.textFill.color;
       node.text.textFill.color = new vec4(c.x, c.y, c.z, (node.textColor?.w ?? 1) * opacity);
@@ -160,13 +167,14 @@ export class ViroSpecsLensSceneBackend
       node.image.mainPass.baseColor = new vec4(c.x, c.y, c.z, opacity);
     }
     if (node.model && !isNull(node.model)) {
-      // Model materials are prefab assets; clone per visual before fading so
-      // other instances of the prefab keep their opacity.
+      // Prefab, registry and cached scene materials are shared; clone once per
+      // visual (marked with this node's ID) before fading, so other nodes keep
+      // their opacity.
       for (const visual of collectMeshVisuals(node.model)) {
         if (!visual.mainMaterial) continue;
-        if (!visual.mainMaterial.name.startsWith("viro-owned:")) {
+        if (visual.mainMaterial.name !== nodeMaterialName(node)) {
           const clone = visual.mainMaterial.clone();
-          clone.name = "viro-owned:" + node.id;
+          clone.name = nodeMaterialName(node);
           visual.mainMaterial = clone;
         }
         const c = visual.mainPass.baseColor;
@@ -287,6 +295,7 @@ export class ViroSpecsLensSceneBackend
       if (node.model && !isNull(node.model)) node.model.destroy();
       node.model = (asset as ObjectPrefab).instantiate(node.object);
       node.model.name = "viro-model:" + node.id;
+      if (node.opacity !== undefined && node.opacity !== 1) this.setOpacity(node, node.opacity);
       return;
     }
     throw new Error("Assets are only valid on image and model nodes: " + node.id);
@@ -318,11 +327,20 @@ export class ViroSpecsLensSceneBackend
   }
 
   setMaterial(node: ViroSpecsLensNode, material: Material | null): void {
-    const resolved = material ?? (node.kind === "image" ? this.assets.defaultImageMaterial?.clone() ?? null : null);
+    this.applyMaterial(node, material);
+    if (node.opacity !== undefined && node.opacity !== 1) this.setOpacity(node, node.opacity);
+  }
+
+  private applyMaterial(node: ViroSpecsLensNode, material: Material | null): void {
+    const resolved = material ?? (node.kind === "image" ? this.assets.defaultImageMaterial ?? null : null);
     if (node.image) {
       if (resolved) {
+        // The image writes baseTex and opacity into its material, so it gets
+        // its own clone rather than the shared registry or cached material.
         const texture = node.image.mainMaterial ? node.image.mainPass.baseTex : null;
-        node.image.mainMaterial = resolved;
+        const own = resolved.clone();
+        own.name = nodeMaterialName(node);
+        node.image.mainMaterial = own;
         if (texture) node.image.mainPass.baseTex = texture;
       }
       return;
@@ -462,6 +480,11 @@ export class ViroSpecsLensSceneBackend
     if (!scroll || isNull(scroll) || !state.scrollNormalized) return;
     scroll.scrollPositionNormalized = new vec2(state.scrollNormalized[0], state.scrollNormalized[1]);
   }
+}
+
+/** Name of a material clone that belongs to one node only. */
+function nodeMaterialName(node: ViroSpecsLensNode): string {
+  return "viro-node:" + node.id;
 }
 
 function collectMeshVisuals(root: SceneObject): RenderMeshVisual[] {

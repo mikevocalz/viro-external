@@ -40,7 +40,7 @@ export class ViroSpecsSceneControllerHost extends BaseScriptComponent {
   maxCachedMaterials: number = 32;
 
   private controller: ViroSpecsSceneController<ViroSpecsLensNode, ViroSpecsLensAsset, Material> | null = null;
-  private readonly diagnostics = new ViroSpecsHostDiagnostics({ log: (line) => print(line) });
+  private readonly diagnostics = new ViroSpecsHostDiagnostics({ log: (line) => console.log(line) });
 
   onAwake(): void {
     (globalThis as unknown as { __VIRO_SPECS_BUILD__?: boolean }).__VIRO_SPECS_BUILD__ = true;
@@ -50,7 +50,7 @@ export class ViroSpecsSceneControllerHost extends BaseScriptComponent {
     if (!registry) {
       // Without a registry nothing can render; report instead of throwing so
       // the Lens and its other components keep running.
-      print("[viro-specs-host] error: ViroSpecsSceneControllerHost needs ViroSpecsAssetRegistry on assetRegistryObject.");
+      console.error("[viro-specs-host] error: ViroSpecsSceneControllerHost needs ViroSpecsAssetRegistry on assetRegistryObject.");
       return;
     }
     const scheduler = this.createScheduler();
@@ -148,7 +148,7 @@ export class ViroSpecsSceneControllerHost extends BaseScriptComponent {
 }
 
 function notReady(): ViroSpecsApplyResult {
-  print(formatViroSpecsHostDiagnostic({
+  console.error(formatViroSpecsHostDiagnostic({
     code: "VS5005",
     severity: "error",
     phase: "stage",

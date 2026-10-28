@@ -1,8 +1,11 @@
-import { Interactable } from "SpectaclesInteractionKit.lspkg/Components/Interaction/Interactable/Interactable";
-import { InteractableManipulation } from "SpectaclesInteractionKit.lspkg/Components/Interaction/InteractableManipulation/InteractableManipulation";
-import { InteractionManager } from "SpectaclesInteractionKit.lspkg/Core/InteractionManager/InteractionManager";
-import { InteractorInputType, type Interactor } from "SpectaclesInteractionKit.lspkg/Core/Interactor/Interactor";
-import type { InteractorEvent } from "SpectaclesInteractionKit.lspkg/Core/Interactor/InteractorEvent";
+import {
+  Interactable,
+  InteractableManipulation,
+  InteractionManager,
+  InteractorInputType,
+  type Interactor,
+  type InteractorEvent,
+} from "./ViroSpecsInteractionKit";
 import type {
   ViroSpecsHostInteractionSource,
   ViroSpecsInteractionPhase,

@@ -1,4 +1,4 @@
-import { setTimeout, clearTimeout } from "SpectaclesInteractionKit.lspkg/Utils/FunctionTimingUtils";
+import { setTimeout, clearTimeout } from "./ViroSpecsInteractionKit";
 import {
   PlacementMode,
   PlacementSettings,

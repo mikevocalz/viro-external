@@ -180,7 +180,7 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
         try {
           listener(action);
         } catch (error) {
-          print("[viro-specs-host] error VS5009 (listener): action listener threw: " +
+          console.error("[viro-specs-host] error VS5009 (listener): action listener threw: " +
             (error instanceof Error ? error.message : String(error)));
         }
       }

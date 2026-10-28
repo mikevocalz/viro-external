@@ -1,4 +1,4 @@
-import { setTimeout } from "SpectaclesInteractionKit.lspkg/Utils/FunctionTimingUtils";
+import { setTimeout } from "./ViroSpecsInteractionKit";
 import type {
   ViroSpecsAnimationEasing,
   ViroSpecsAnimationTrackPlan,

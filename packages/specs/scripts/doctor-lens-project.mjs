@@ -71,8 +71,10 @@ if (major < 5 || (major === 5 && minor < 22)) {
   );
 }
 
+// The Interaction Kit is required under either Asset Library name: 2.x
+// SpectaclesInteractionKit.lspkg or 4.0.0 InteractionKit.lspkg.
+const interactionKits = ["SpectaclesInteractionKit.lspkg", "InteractionKit.lspkg"];
 const requiredPackages = [
-  "SpectaclesInteractionKit.lspkg",
   "SpectaclesUIKit.lspkg",
   "SurfacePlacement.lspkg",
   "VolumetricLine.lspkg",
@@ -86,14 +88,45 @@ const previewPackages = [
 ];
 
 const packageEntries = existsSync(packages) ? await readdir(packages) : [];
+const kits = interactionKits.filter((name) => packageEntries.includes(name));
+if (kits.length === 0) {
+  errors.push("Required Lens package not found in Packages/: SpectaclesInteractionKit.lspkg (2.x) or InteractionKit.lspkg (4.0.0)");
+} else if (kits.length > 1) {
+  errors.push("Both Interaction Kit packages are installed (" + kits.join(", ") + "); keep one line.");
+}
 for (const name of requiredPackages) {
   if (!packageEntries.includes(name)) {
-    warnings.push("Required Lens package not found in Packages/: " + name);
+    errors.push("Required Lens package not found in Packages/: " + name);
   }
 }
 for (const name of previewPackages) {
   if (!packageEntries.includes(name)) {
     warnings.push("Preview validation package not found in Packages/: " + name);
+  }
+}
+
+// The synced runtime imports the kit through one seam file. Check that the
+// seam names the installed kit and that every path it imports exists in
+// Lens Studio's unpacked package cache (present once the project has been
+// opened). A missing cache means the paths are unverified, not wrong.
+const seamFile = path.join(assets, "ViroSpecs", "lens", "ViroSpecsInteractionKit.ts");
+if (kits.length === 1 && existsSync(seamFile)) {
+  const seam = await readFile(seamFile, "utf8");
+  const specifiers = [...seam.matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1]);
+  const wrong = specifiers.filter((s) => !s.startsWith(kits[0] + "/"));
+  if (wrong.length) {
+    errors.push("ViroSpecsInteractionKit.ts imports " + wrong[0].split("/")[0] + " but the project has " + kits[0] +
+      ". Re-run specs:sync (it detects the kit) or pass --interaction-kit " + (kits[0] === "InteractionKit.lspkg" ? "4" : "2") + ".");
+  }
+  const cache = path.join(project, "Cache", "TypeScript", "Src", "Packages");
+  if (existsSync(path.join(cache, kits[0]))) {
+    for (const specifier of specifiers.filter((s) => s.startsWith(kits[0] + "/"))) {
+      if (!existsSync(path.join(cache, specifier + ".ts"))) {
+        errors.push("Installed " + kits[0] + " has no module " + specifier + " (imported by ViroSpecsInteractionKit.ts).");
+      }
+    }
+  } else {
+    warnings.push("Interaction Kit module paths not verified: open the project in Lens Studio once so Cache/TypeScript/Src/Packages exists.");
   }
 }
 
@@ -111,6 +144,7 @@ console.log("Project file:", esprojFiles[0]);
 console.log("Lens Studio:", [major, minor, patch].join("."));
 console.log("Target:", target);
 console.log("Packages present:", packageEntries.length);
+console.log("Interaction Kit:", kits.join(", ") || "missing");
 console.log("Runtime synced:", existsSync(runtimeDir) ? "yes" : "no");
 
 if (warnings.length) {
@@ -123,7 +157,7 @@ if (errors.length) {
   for (const error of errors) console.error(" -", error);
   process.exitCode = 1;
 } else {
-  console.log("\nCore project checks passed.");
+  console.log("\nProject checks passed.");
 }
 
 void matchInt;

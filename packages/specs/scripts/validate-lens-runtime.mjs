@@ -34,7 +34,13 @@ const requiredFiles = [
   "ViroSpecsSikBinding.ts",
   "ViroSpecsLensSceneBackend.ts",
   "ViroSpecsSceneControllerHost.ts",
+  "ViroSpecsInteractionKit.ts",
 ];
+
+// Only this file may import the Interaction Kit, under either Asset Library
+// name, so specs:sync can switch between 2.x and 4.0.0 by rewriting it.
+const INTERACTION_KIT_SEAM = "ViroSpecsInteractionKit.ts";
+const INTERACTION_KIT_PREFIXES = ["SpectaclesInteractionKit.lspkg/", "InteractionKit.lspkg/"];
 
 const forbiddenImports = [
   "@viro-external/",
@@ -62,6 +68,10 @@ for (const file of tsFiles) {
   );
 
   for (const source of imports) {
+    if (file !== INTERACTION_KIT_SEAM && INTERACTION_KIT_PREFIXES.some((prefix) => source.startsWith(prefix))) {
+      violations.push(file + " -> " + source + " (import it from ./ViroSpecsInteractionKit)");
+    }
+
     if (forbiddenImports.some((forbidden) => source.startsWith(forbidden))) {
       violations.push(file + " -> " + source);
     }
