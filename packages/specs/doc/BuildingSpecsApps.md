@@ -22,7 +22,7 @@ Lens Studio draws everything. Your script builds a JSON page of portable nodes a
 | `group` | empty `SceneObject` (`viro:<id>`) | parent for layout and the pinch target for buttons |
 | `group` + `scroll` | child `viro-scroll:<id>` with a vertical UI Kit `ScrollWindow` | children go into the window's content |
 | `model` | instance of a prefab from `modelIds` / `modelPrefabs` | |
-| `targets[]` | SIK `Interactable` on the target node (`viro-interactable:<id>`) | `select-end` fires the target's action string |
+| `targets[]` | SIK `Interactable` on the target node (`viro-interactable:<id>`) | `select-end` fires the target's action string. When the node's own object carries the visual (text, image), that object is the target and is renamed from `viro:<id>` to `viro-interactable:<id>`, so look it up with `getNode(id)`, not by name. Hover phases reach the app only when the node declares `hover`. |
 
 Build these yourself, outside Viro, as ordinary Lens components:
 
