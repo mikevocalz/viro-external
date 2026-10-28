@@ -54,9 +54,11 @@ jobs:
       - name: Report validation scope
         if: always()
         run: |
-          echo "### Portable checks only" >> "$GITHUB_STEP_SUMMARY"
-          echo "This job does not install the private Viro fork, typecheck the full workspace, build native modules, or test devices. Individual step results above remain authoritative." >> "$GITHUB_STEP_SUMMARY"
-          echo "Private validation is a separate, main-only protected-environment job. A skipped private job is NOT a passing native/full-workspace test." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Portable checks only"
+            echo "This job does not install the private Viro fork, typecheck the full workspace, build native modules, or test devices. Individual step results above remain authoritative."
+            echo "Private validation is a separate, main-only protected-environment job. A skipped private job is NOT a passing native/full-workspace test."
+          } >> "$GITHUB_STEP_SUMMARY"
 
   private:
     name: Private Viro validation (${{ inputs.suite }})
