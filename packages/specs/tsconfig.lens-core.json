@@ -23,6 +23,8 @@
     "lens/ViroSpecsSceneDocument.ts",
     "lens/ViroSpecsSceneBackend.ts",
     "lens/ViroSpecsResourceCache.ts",
-    "lens/ViroSpecsSceneController.ts"
+    "lens/ViroSpecsSceneController.ts",
+    "lens/ViroSpecsActionRuntime.ts",
+    "lens/ViroSpecsReferenceFlow.ts"
   ]
 }

@@ -495,12 +495,13 @@ export class ViroSpecsSceneController<N, A, M> {
         createViroSpecsHostDiagnostic("VS5005", "commit", "Could not enable the staged scene.", { sceneRevision: revision }),
       ]);
     }
+    // Returning to a remembered route: nodes that did not carry over from
+    // the previous scene get the scroll position they had when it was left.
+    // Read it before remembering the route being left, which may evict it.
+    const remembered = staged.scene.route !== undefined ? this.routeMemory.get(staged.scene.route) : undefined;
     if (previous && previous.scene.route !== undefined && previous.scene.route !== staged.scene.route) {
       this.rememberRoute(previous);
     }
-    // Returning to a remembered route: nodes that did not carry over from
-    // the previous scene get the scroll position they had when it was left.
-    const remembered = staged.scene.route !== undefined ? this.routeMemory.get(staged.scene.route) : undefined;
     if (remembered) {
       for (const [id, ui] of remembered) {
         const record = staged.nodes.get(id);
