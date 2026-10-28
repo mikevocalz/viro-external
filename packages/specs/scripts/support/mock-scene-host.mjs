@@ -166,10 +166,24 @@ export class MockBackend {
     handle.state.extents = extents;
   }
 
-  setScroll(handle, scroll) {
+  // Mirrors ScrollWindow: normalized y is 1 at the content top, -1 at the bottom.
+  setScroll(handle, scroll, rows) {
     this.record("setScroll", handle);
     handle.state.scroll = scroll;
-    if (!handle.state.scrollNormalized) handle.state.scrollNormalized = [0, 1];
+    if (rows) handle.state.scrollRows = rows;
+    if (!handle.state.scrollNormalized) {
+      handle.state.scrollNormalized = [0, mockNormalizedFromTop(rows?.initialOffsetMeters ?? 0, scroll)];
+    }
+  }
+
+  scrollBy(handle, deltaMeters) {
+    this.record("scrollBy", handle);
+    const scroll = handle.state.scroll;
+    if (!scroll) throw new Error("not a scroll group");
+    const range = scroll.contentHeight - scroll.height;
+    if (range <= 0) return;
+    const offset = ((1 - handle.state.scrollNormalized[1]) / 2) * range;
+    handle.state.scrollNormalized = [0, mockNormalizedFromTop(offset + deltaMeters, scroll)];
   }
 
   setAsset(handle, asset) {
@@ -269,4 +283,10 @@ export class MockBackend {
     this.record("restoreUiState", handle);
     if (state.scrollNormalized) handle.state.scrollNormalized = state.scrollNormalized.slice();
   }
+}
+
+function mockNormalizedFromTop(offset, scroll) {
+  const range = scroll.contentHeight - scroll.height;
+  if (range <= 0) return 1;
+  return 1 - (2 * Math.min(range, Math.max(0, offset))) / range;
 }

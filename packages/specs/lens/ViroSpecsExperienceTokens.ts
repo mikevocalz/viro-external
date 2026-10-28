@@ -128,7 +128,7 @@ export const VIRO_SPECS_COMPONENT_NODE_KIND = {
   "panel-text": "text",
   "panel-button": "panel",
   "panel-image": "image",
-  "scroll-view": "panel",
+  "scroll-view": "group",
   "model-viewer": "model",
 } as const;
 

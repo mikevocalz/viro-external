@@ -145,12 +145,19 @@ it (verify on device). Reduced motion removes every scale change and rotation.
 
 `ViroSpecsExperienceHost` draws SpatialPanel (backing and title), PanelButton
 (backing, label, glyph, hover scale and depth, error message) and PanelText
-(token color, 1.2 degree minimum from the compiled size). It does not draw
-these yet; each node that uses one is reported once as `VS5025`:
+(token color, 1.2 degree minimum from the compiled size). SpatialScrollView
+arrives as a `group` with `scroll`, so the scene controller draws it like any
+scroll group: a UI Kit ScrollWindow that clips at the window edge, settles
+drags on `itemHeightMeters` rows (`snapRegion`), opens `initialIndex` rows
+down, and keeps its position across patches and, per route, across back
+navigation. `scrollByRows(id, rows)` on the controller and on
+`ViroSpecsSceneControllerHost` moves it by whole rows; the gaze Scroll
+up/down buttons that should call it are not drawn yet.
+
+The host does not draw these yet; each node that uses one is reported once as `VS5025`:
 
 | Component | Not drawn |
 | --- | --- |
-| SpatialScrollView | native scrolling, `itemHeightMeters`, `initialIndex` (the controller keeps scroll state for `group` nodes with `scroll`, not for scroll-view panels) |
 | ModelViewer | `autoRotate`, the Reset model button, the load ring at the model bounds |
 | PanelImage | `radius.card` corners |
 

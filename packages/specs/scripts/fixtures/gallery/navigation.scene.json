@@ -46,16 +46,17 @@
     },
     {
       "id": "nav-list",
-      "kind": "panel",
+      "kind": "group",
       "parentId": "nav-list-view",
       "position": [
         0,
         -0.01,
         0.005
       ],
-      "extents": {
+      "scroll": {
         "width": 0.48,
-        "height": 0.3
+        "height": 0.3,
+        "contentHeight": 0.56
       },
       "component": {
         "initialIndex": 0,
@@ -70,7 +71,7 @@
       "parentId": "nav-list",
       "position": [
         -0.12,
-        0.085,
+        -0.065,
         0
       ],
       "extents": {
@@ -107,7 +108,7 @@
       "parentId": "nav-list",
       "position": [
         0.12,
-        0.085,
+        -0.065,
         0
       ],
       "extents": {
@@ -144,7 +145,7 @@
       "parentId": "nav-list",
       "position": [
         -0.12,
-        -0.045,
+        -0.195,
         0
       ],
       "extents": {
@@ -181,7 +182,7 @@
       "parentId": "nav-list",
       "position": [
         0.12,
-        -0.045,
+        -0.195,
         0
       ],
       "extents": {
@@ -218,7 +219,7 @@
       "parentId": "nav-list",
       "position": [
         -0.12,
-        -0.175,
+        -0.325,
         0
       ],
       "extents": {
@@ -255,7 +256,7 @@
       "parentId": "nav-list",
       "position": [
         0.12,
-        -0.175,
+        -0.325,
         0
       ],
       "extents": {
@@ -292,7 +293,7 @@
       "parentId": "nav-list",
       "position": [
         -0.12,
-        -0.305,
+        -0.455,
         0
       ],
       "extents": {
@@ -329,7 +330,7 @@
       "parentId": "nav-list",
       "position": [
         0.12,
-        -0.305,
+        -0.455,
         0
       ],
       "extents": {

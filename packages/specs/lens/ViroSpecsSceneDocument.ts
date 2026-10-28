@@ -232,6 +232,7 @@ function checkNodeV2(c: Checker, node: Json, path: string, id: string, kind: str
   switch (kind) {
     case "group":
       if (node.scroll !== undefined) checkScroll(c, node.scroll, path + "/scroll", id);
+      else if (isScrollView(node.component)) c.fail(path + "/scroll", "A scroll-view group needs its `scroll` window.", id);
       return;
     case "text":
       if (typeof node.text !== "string") c.fail(path + "/text", "Text nodes need a string `text`.", id);
@@ -660,3 +661,7 @@ export type ViroSpecsResolvedTextStyle = ViroSpecsDocumentTextStyle & {
   /** Protocol 1 RGBA, used when `color` is absent. */
   rgba?: [number, number, number, number];
 };
+
+function isScrollView(component: unknown): boolean {
+  return typeof component === "object" && component !== null && (component as Json).type === "scroll-view";
+}

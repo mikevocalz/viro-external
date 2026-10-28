@@ -17,6 +17,7 @@ import type {
   ViroSpecsCancel,
   ViroSpecsNodeUiState,
   ViroSpecsSceneBackend,
+  ViroSpecsScrollRows,
 } from "./ViroSpecsSceneBackend";
 import type { ViroSpecsHostNode } from "./ViroSpecsSceneDocument";
 import { parseViroSpecsColor } from "./ViroSpecsSceneDocument";
@@ -251,7 +252,7 @@ export class ViroSpecsLensSceneBackend
     }
   }
 
-  setScroll(node: ViroSpecsLensNode, scroll: ViroSpecsScroll): void {
+  setScroll(node: ViroSpecsLensNode, scroll: ViroSpecsScroll, rows?: ViroSpecsScrollRows): void {
     const width = scroll.width * CM_PER_METER;
     const height = scroll.height * CM_PER_METER;
     const contentHeight = Math.max(height, scroll.contentHeight * CM_PER_METER);
@@ -265,6 +266,11 @@ export class ViroSpecsLensSceneBackend
       const created = scrollObject.createComponent(ScrollWindow.getTypeName()) as ScrollWindow;
       created.vertical = true;
       created.horizontal = false;
+      // Snapping is read when the window initializes and on every drag release.
+      if (rows) {
+        created.scrollSnapping = true;
+        created.snapRegion = new vec2(0, rows.stepMeters * CM_PER_METER);
+      }
       created.initialize();
       const anchor = global.scene.createSceneObject("viro-scroll-content:" + node.id);
       anchor.layer = node.object.layer;
@@ -277,11 +283,25 @@ export class ViroSpecsLensSceneBackend
       content = anchor;
     }
     if (!scrollWindow || !content) return;
-    const keep = fresh ? new vec2(0, 1) : scrollWindow.scrollPositionNormalized;
+    const keep = fresh ? new vec2(0, normalizedFromTop((rows?.initialOffsetMeters ?? 0) * CM_PER_METER, height, contentHeight)) : scrollWindow.scrollPositionNormalized;
     scrollWindow.windowSize = new vec2(width, height);
     scrollWindow.scrollDimensions = new vec2(width, contentHeight);
+    if (rows) scrollWindow.snapRegion = new vec2(0, rows.stepMeters * CM_PER_METER);
     content.getTransform().setLocalPosition(new vec3(0, contentHeight / 2, 0));
     scrollWindow.scrollPositionNormalized = keep;
+  }
+
+  scrollBy(node: ViroSpecsLensNode, deltaMeters: number): void {
+    const scroll = node.scrollWindow;
+    if (!scroll || isNull(scroll)) throw new Error("Node " + node.id + " is not a scroll group.");
+    const height = scroll.windowSize.y;
+    const contentHeight = scroll.scrollDimensions.y;
+    const range = contentHeight - height;
+    if (range <= 0) return;
+    // ScrollWindow's normalized y is 1 at the content top and -1 at the bottom.
+    const offset = ((1 - scroll.scrollPositionNormalized.y) / 2) * range;
+    const next = Math.min(range, Math.max(0, offset + deltaMeters * CM_PER_METER));
+    scroll.scrollPositionNormalized = new vec2(0, normalizedFromTop(next, height, contentHeight));
   }
 
   setAsset(node: ViroSpecsLensNode, asset: ViroSpecsLensAsset): void {
@@ -532,4 +552,14 @@ function buildBoxMesh(w: number, h: number, d: number): RenderMesh {
   });
   builder.updateMesh();
   return builder.getMesh();
+}
+
+/**
+ * ScrollWindow's normalized y for a content offset from the top, in the same
+ * units as the window: 1 shows the content top, -1 its bottom.
+ */
+function normalizedFromTop(offset: number, windowHeight: number, contentHeight: number): number {
+  const range = contentHeight - windowHeight;
+  if (range <= 0) return 1;
+  return 1 - (2 * Math.min(range, Math.max(0, offset))) / range;
 }

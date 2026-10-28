@@ -60,6 +60,7 @@ import type {
   ViroSpecsHostScheduler,
   ViroSpecsNodeUiState,
   ViroSpecsSceneBackend,
+  ViroSpecsScrollRows,
 } from "./ViroSpecsSceneBackend";
 import { ViroSpecsResourceCache } from "./ViroSpecsResourceCache";
 
@@ -290,6 +291,21 @@ export class ViroSpecsSceneController<N, A, M> {
     if (!record) return undefined;
     const ui = this.guard("interaction", "captureUiState", () => this.backend.captureUiState(record.handle)) ?? {};
     return { ...ui, focused: this.focusedId === id, selected: this.selectedId === id };
+  }
+
+  /**
+   * Scrolls a committed scroll group by `rows` rows: positive moves further
+   * down the list. A SpatialScrollView row is its `itemHeightMeters`; a plain
+   * scroll group moves a window height per row. Returns false, and changes
+   * nothing, when `id` is not a committed scroll group. Gaze Scroll up/down
+   * buttons call this.
+   */
+  scrollByRows(id: string, rows: number): boolean {
+    const record = this.current?.nodes.get(id);
+    const node = record?.spec;
+    if (!record || !node || node.kind !== "group" || node.scroll === undefined || !Number.isFinite(rows)) return false;
+    const step = scrollRows(node)?.stepMeters ?? node.scroll.height;
+    return this.guard("interaction", "scrollBy", () => this.backend.scrollBy(record.handle, rows * step), id) !== undefined;
   }
 
   /** Sets or clears the selected node. Ignored for unknown IDs. */
@@ -929,7 +945,8 @@ export class ViroSpecsSceneController<N, A, M> {
       const before = prev?.kind === "group" ? prev.scroll : undefined;
       if (changed(before, next.scroll)) {
         const scroll = next.scroll;
-        run("setScroll", () => this.backend.setScroll(record.handle, scroll));
+        const rows = scrollRows(next);
+        run("setScroll", () => this.backend.setScroll(record.handle, scroll, rows));
       }
     }
     if (next.kind === "image" || next.kind === "model") {
@@ -1467,4 +1484,15 @@ function subscribe<T>(set: Set<T>, listener: T): ViroSpecsSubscription {
       set.delete(listener);
     },
   };
+}
+
+/**
+ * Row stepping for a SpatialScrollView group: one `itemHeightMeters` per step,
+ * starting `initialIndex` rows down, never past the end of the content.
+ */
+function scrollRows(node: ViroSpecsHostNode): ViroSpecsScrollRows | undefined {
+  if (node.kind !== "group" || node.scroll === undefined || node.component?.type !== "scroll-view") return undefined;
+  const step = node.component.itemHeightMeters;
+  const range = Math.max(0, node.scroll.contentHeight - node.scroll.height);
+  return { stepMeters: step, initialOffsetMeters: Math.min(range, node.component.initialIndex * step) };
 }

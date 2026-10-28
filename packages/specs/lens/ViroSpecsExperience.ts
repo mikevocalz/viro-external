@@ -888,7 +888,9 @@ export function unrenderedViroSpecsComponentFeatures(component: ViroSpecsCompone
     case "panel-image":
       return ["radius.card corners"];
     case "scroll-view":
-      return ["native scrolling", "itemHeightMeters", "initialIndex"];
+      // Drawn as a scroll group: ScrollWindow scrolling, itemHeightMeters as the
+      // snap step and initialIndex as the first position.
+      return [];
     case "model-viewer":
       return [
         ...(component.autoRotate ? ["autoRotate"] : []),

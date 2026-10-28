@@ -9,6 +9,7 @@ import type { ViroSpecsCancel, ViroSpecsHostScheduler } from "./ViroSpecsSceneBa
 import {
   ViroSpecsSceneController,
   type ViroSpecsApplyResult,
+  type ViroSpecsNodeState,
   type ViroSpecsPatchOp,
   type ViroSpecsSceneLifecycle,
 } from "./ViroSpecsSceneController";
@@ -145,6 +146,19 @@ export class ViroSpecsSceneControllerHost extends BaseScriptComponent {
   /** The SceneObject of a committed node, for app code that adds components. */
   getNode(id: string): SceneObject | null {
     return this.controller?.getNodeHandle(id)?.object ?? null;
+  }
+
+  /**
+   * Scrolls a committed scroll group by `rows` rows (positive is further down
+   * the list). False when `id` is not a committed scroll group.
+   */
+  scrollByRows(id: string, rows: number): boolean {
+    return this.controller?.scrollByRows(id, rows) ?? false;
+  }
+
+  /** Focus, selection and scroll position of a committed node. Undefined when absent. */
+  getNodeState(id: string): ViroSpecsNodeState | undefined {
+    return this.controller?.getNodeState(id);
   }
 
   clear(): void {

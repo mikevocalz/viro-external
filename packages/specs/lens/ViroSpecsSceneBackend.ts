@@ -67,6 +67,17 @@ export type ViroSpecsNodeUiState = {
   scrollNormalized?: [number, number];
 };
 
+/**
+ * Row stepping of a SpatialScrollView group (`component.type` "scroll-view"),
+ * passed to {@linkcode ViroSpecsSceneBackend.setScroll}.
+ */
+export type ViroSpecsScrollRows = {
+  /** One row in meters; drags settle on whole rows. */
+  stepMeters: number;
+  /** Distance from the content top shown when the backend creates the window. */
+  initialOffsetMeters: number;
+};
+
 /** Raw interaction a backend reports for one bound node. */
 export type ViroSpecsBackendInteraction = {
   phase: ViroSpecsInteractionPhase;
@@ -99,7 +110,14 @@ export interface ViroSpecsSceneBackend<N, A, M> {
   setText(node: N, text: ViroSpecsBackendText): void;
   /** Size of an image or panel surface in meters. */
   setExtents(node: N, extents: ViroSpecsExtents): void;
-  setScroll(node: N, scroll: ViroSpecsScroll): void;
+  /**
+   * Makes `node` a vertical scroll window. Content `y = 0` is the window's top
+   * edge. The first call creates the window at the content top, or at
+   * `rows.initialOffsetMeters`; later calls resize it and keep the position.
+   */
+  setScroll(node: N, scroll: ViroSpecsScroll, rows?: ViroSpecsScrollRows): void;
+  /** Moves a scroll window's content by `deltaMeters` (positive is further down the list), clamped to its ends. */
+  scrollBy(node: N, deltaMeters: number): void;
   /** Binds a loaded image texture or model prefab. */
   setAsset(node: N, asset: A): void;
   /**

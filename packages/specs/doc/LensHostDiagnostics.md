@@ -190,6 +190,6 @@ gaze dwell (1000 ms, provisional) and adds step buttons for drag and scroll.
 
 Premium component feature not drawn by this host. The scene document carries
 a premium component feature that `ViroSpecsExperienceHost` does not render
-yet (scroll-view native scrolling, model-viewer reset button and load ring,
+yet (model-viewer reset button and load ring,
 image corner radius). Reported once per node; the message names the
 features. See `Experience.md#not-drawn-yet`.

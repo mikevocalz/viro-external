@@ -690,10 +690,85 @@ test("premium features the host does not draw yet are named for VS5025", () => {
   for (const name of GALLERY) {
     for (const node of fixture(name).nodes) {
       const missing = unrenderedViroSpecsComponentFeatures(node.component);
-      if (node.component?.type === "scroll-view") assert.ok(missing.includes("native scrolling"));
+      if (node.component?.type === "scroll-view") assert.deepEqual(missing, [], "scroll-view draws as a scroll group");
       if (node.component?.type === "model-viewer") assert.ok(missing.includes("resettable (Reset model button)"));
       if (["spatial-panel", "panel-text", "panel-button"].includes(node.component?.type)) assert.deepEqual(missing, []);
     }
   }
   assert.deepEqual(unrenderedViroSpecsComponentFeatures(undefined), []);
+});
+
+// SpatialScrollView: the gallery's nav-list is a scroll group, so the host
+// scrolls it with ScrollWindow (mocked here with the same normalized range:
+// 1 at the content top, -1 at the bottom).
+const offsetOf = (state, scroll) => ((1 - state.scrollNormalized[1]) / 2) * (scroll.contentHeight - scroll.height);
+
+test("navigation: nav-list is a scroll group stepping by itemHeightMeters from initialIndex", () => {
+  const backend = new MockBackend();
+  const scheduler = new ManualScheduler();
+  const controller = new ViroSpecsSceneController(backend, scheduler);
+  const doc = fixture("navigation");
+  const list = doc.nodes.find((n) => n.id === "nav-list");
+  assert.equal(list.kind, "group");
+  assert.deepEqual(list.scroll, { width: 0.48, height: 0.3, contentHeight: 0.56 });
+  assert.equal(controller.present(doc).status, "committed");
+  const handle = controller.getNodeHandle("nav-list");
+  assert.deepEqual(handle.state.scrollRows, { stepMeters: 0.13, initialOffsetMeters: 0 });
+  assert.deepEqual(handle.state.scrollNormalized, [0, 1], "initialIndex 0 starts at the top");
+
+  // initialIndex 1 starts one row down; an index past the end stops at the bottom.
+  for (const [index, offset] of [[1, 0.13], [9, 0.26]]) {
+    const other = new ViroSpecsSceneController(new MockBackend(), new ManualScheduler());
+    const moved = JSON.parse(JSON.stringify(doc));
+    moved.nodes.find((n) => n.id === "nav-list").component.initialIndex = index;
+    other.present(moved);
+    const state = other.getNodeHandle("nav-list").state;
+    assert.ok(Math.abs(offsetOf(state, list.scroll) - offset) < 1e-9, "initialIndex " + index);
+  }
+});
+
+test("navigation: cards 5-8 scroll into the window, and the position survives an update", () => {
+  const backend = new MockBackend();
+  const controller = new ViroSpecsSceneController(backend, new ManualScheduler());
+  const doc = fixture("navigation");
+  controller.present(doc);
+  const list = doc.nodes.find((n) => n.id === "nav-list");
+  const visible = () => {
+    // Content y = 0 is the window top; the window shows [-offset - height, -offset].
+    const offset = offsetOf(controller.getNodeState("nav-list"), list.scroll);
+    const top = -offset;
+    const bottom = top - list.scroll.height;
+    return doc.nodes
+      .filter((n) => n.parentId === "nav-list")
+      .filter((n) => n.position[1] + n.extents.height / 2 <= top + 1e-9 && n.position[1] - n.extents.height / 2 >= bottom - 1e-9)
+      .map((n) => n.id);
+  };
+  assert.deepEqual(visible(), ["nav-card-1", "nav-card-2", "nav-card-3", "nav-card-4"]);
+  assert.equal(controller.scrollByRows("nav-list", 2), true);
+  assert.deepEqual(visible(), ["nav-card-5", "nav-card-6", "nav-card-7", "nav-card-8"]);
+  // Past the end clamps; a non-scroll node is refused.
+  controller.scrollByRows("nav-list", 5);
+  assert.deepEqual(visible(), ["nav-card-5", "nav-card-6", "nav-card-7", "nav-card-8"]);
+  assert.equal(controller.scrollByRows("nav-card-1", 1), false);
+  assert.equal(controller.scrollByRows("missing", 1), false);
+
+  const patched = JSON.parse(JSON.stringify(doc));
+  patched.nodes.find((n) => n.id === "nav-title").text = "Exhibits";
+  controller.update(patched);
+  assert.deepEqual(visible(), ["nav-card-5", "nav-card-6", "nav-card-7", "nav-card-8"], "kept across a patch");
+  controller.scrollByRows("nav-list", -1);
+  assert.deepEqual(visible(), ["nav-card-3", "nav-card-4", "nav-card-5", "nav-card-6"]);
+});
+
+test("navigation: the scroll position is kept per route across navigation and back", () => {
+  const controller = new ViroSpecsSceneController(new MockBackend(), new ManualScheduler());
+  const list = { ...fixture("navigation"), route: "list" };
+  const details = { version: 2, route: "details", nodes: [{ id: "detail-title", kind: "text", text: "Card 6", position: [0, 0, -1.5] }] };
+  controller.present(list);
+  controller.scrollByRows("nav-list", 2);
+  const kept = controller.getNodeState("nav-list").scrollNormalized.slice();
+  assert.ok(Math.abs(kept[1] + 1) < 1e-9, "scrolled to the bottom");
+  assert.equal(controller.present(details).status, "committed");
+  assert.equal(controller.present(list).status, "committed");
+  assert.deepEqual(controller.getNodeState("nav-list").scrollNormalized, kept, "back restores the remembered position, not initialIndex");
 });
