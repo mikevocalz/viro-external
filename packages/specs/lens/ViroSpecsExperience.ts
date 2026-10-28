@@ -278,6 +278,9 @@ export class ViroSpecsExperienceController {
   onSceneLifecycle(lifecycle: ViroSpecsSceneLifecycle, progress: { readonly pending: number; readonly total: number }): void {
     const now = this.options.nowMs();
     if (lifecycle === "loading" && this.lifecycle !== "loading") this.loadingSinceMs = now;
+    // clear() leaves nothing to fall back to: the next rejected scene is a
+    // first scene again.
+    if (lifecycle === "empty") this.hadReadyScene = false;
     if (lifecycle !== "loading") this.loadingSinceMs = undefined;
     // A scene committed after a rejected first scene: the rejection no longer
     // applies. (A rejected update on a live scene keeps its panel until Close.)

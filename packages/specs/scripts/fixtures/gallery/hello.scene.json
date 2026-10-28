@@ -150,6 +150,7 @@
       "interactable": true,
       "manipulation": false,
       "events": [
+        "hover",
         "select"
       ]
     }

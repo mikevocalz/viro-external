@@ -152,6 +152,12 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
     this.createEvent("OnStartEvent").bind(() => this.start());
     this.createEvent("UpdateEvent").bind(() => this.update());
     this.createEvent("OnDestroyEvent").bind(() => this.dispose());
+    // Disabled, the experience layer stops gating the scene; enabled again,
+    // the last view applies.
+    this.createEvent("OnDisableEvent").bind(() => this.setContentVisible(true));
+    this.createEvent("OnEnableEvent").bind(() => {
+      if (this.lastRendered) this.setContentVisible(this.lastRendered.sceneVisible);
+    });
   }
 
   /** The portable controller, for app code and LEAF scenarios. Null until start. */
@@ -305,6 +311,16 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
         text.depthTest = true;
         return text;
       };
+      // The backing goes first. SIK binds a node's interaction a frame after
+      // commit, on the node's first drawing child, so a button's target is
+      // its backing (sized to the button) and never its title or error line.
+      if (component.type !== "panel-text") {
+        backing = this.makeBacking(object);
+        const extents = node.kind === "panel" ? node.extents : undefined;
+        if (backing && extents) {
+          backing.getSceneObject().getTransform().setLocalScale(new vec3(extents.width * CM_PER_METER, extents.height * CM_PER_METER, 1));
+        }
+      }
       const extentsH = node.kind === "panel" && node.extents ? node.extents.height * CM_PER_METER : 0;
       if (component.type === "spatial-panel" && component.title !== undefined) {
         extra = addText("title", extentsH / 2 - 4);
@@ -313,13 +329,6 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
       if (component.type === "panel-button" && component.errorMessage !== undefined) {
         extra = addText("errorMessage", -extentsH);
         extra.text = component.errorMessage;
-      }
-      if (component.type !== "panel-text") {
-        backing = this.makeBacking(object);
-        const extents = node.kind === "panel" ? node.extents : undefined;
-        if (backing && extents) {
-          backing.getSceneObject().getTransform().setLocalScale(new vec3(extents.width * CM_PER_METER, extents.height * CM_PER_METER, 1));
-        }
       }
       if (component.type === "panel-button") {
         const labelObject = global.scene.createSceneObject("label");
@@ -564,6 +573,10 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
     this.lastRendered = view;
     const t = view.tokens;
     if (this.overlay) this.overlay.enabled = true;
+    // A-check L4: scene content and its interactables appear only once the
+    // scene is ready to use. Hiding the controller's content root disables
+    // every node under it, SIK targets included; loading continues.
+    this.setContentVisible(view.sceneVisible);
     const loading = view.loading;
     this.showPanel("loading", loading.visible === false ? null : {
       title: loading.title,
@@ -742,7 +755,13 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
     }
   }
 
+  private setContentVisible(visible: boolean): void {
+    const root = this.host?.root ?? null;
+    if (root && !isNull(root) && root.enabled !== visible) root.enabled = visible;
+  }
+
   private dispose(): void {
+    this.setContentVisible(true);
     for (const panel of this.panels.values()) panel.unbind?.();
     this.panels.clear();
     this.hitSession?.stop();

@@ -213,6 +213,7 @@
       "interactable": true,
       "manipulation": false,
       "events": [
+        "hover",
         "select"
       ]
     },
@@ -221,7 +222,16 @@
       "interactable": true,
       "manipulation": false,
       "events": [
+        "hover",
         "select"
+      ]
+    },
+    {
+      "nodeId": "ix-btn-disabled",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "hover"
       ]
     },
     {
@@ -229,6 +239,7 @@
       "interactable": true,
       "manipulation": false,
       "events": [
+        "hover",
         "select"
       ]
     },
@@ -245,6 +256,7 @@
       "interactable": true,
       "manipulation": false,
       "events": [
+        "hover",
         "select"
       ]
     },
@@ -253,6 +265,7 @@
       "interactable": true,
       "manipulation": false,
       "events": [
+        "hover",
         "select"
       ]
     }

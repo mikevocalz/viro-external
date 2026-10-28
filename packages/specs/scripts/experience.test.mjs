@@ -282,6 +282,22 @@ test("a rejected update keeps the last scene and shows Close; a rejected first s
   assert.equal(fresh.experience.view().errorPanel.kind, "scene-no-fallback", "never a blank view");
 });
 
+test("after clear() a rejected scene has no fallback, so its panel says so and stays up", async () => {
+  // Found in Lens Studio Preview (viro_ws4_scene_rejection): after clear()
+  // the panel still said "The last working scene is still here." over an
+  // empty lens.
+  const { controller, experience } = setup("hello");
+  controller.present(fixture("hello"));
+  await flush();
+  controller.clear();
+  assert.equal(controller.lifecycle, "empty");
+  controller.present({ version: 2, nodes: [{ id: "x", kind: "nope" }] });
+  const panel = experience.view().errorPanel;
+  assert.equal(panel.kind, "scene-no-fallback");
+  experience.activateErrorAction();
+  assert.equal(experience.view().errorPanel.kind, "scene-no-fallback", "never a blank view");
+});
+
 test("errors during loading wait until the scene is visible", async () => {
   const { controller, experience, scheduler, pending, backend } = setup("hello", { assets: "slow" });
   controller.present(fixture("hello"));

@@ -499,6 +499,7 @@
       "interactable": true,
       "manipulation": false,
       "events": [
+        "hover",
         "select"
       ]
     },
@@ -507,6 +508,7 @@
       "interactable": true,
       "manipulation": false,
       "events": [
+        "hover",
         "select"
       ]
     },
@@ -515,6 +517,7 @@
       "interactable": true,
       "manipulation": false,
       "events": [
+        "hover",
         "select"
       ]
     },
@@ -523,6 +526,7 @@
       "interactable": true,
       "manipulation": false,
       "events": [
+        "hover",
         "select"
       ]
     },
@@ -531,6 +535,7 @@
       "interactable": true,
       "manipulation": false,
       "events": [
+        "hover",
         "select"
       ]
     },
@@ -539,6 +544,7 @@
       "interactable": true,
       "manipulation": false,
       "events": [
+        "hover",
         "select"
       ]
     },
@@ -547,6 +553,7 @@
       "interactable": true,
       "manipulation": false,
       "events": [
+        "hover",
         "select"
       ]
     },
@@ -555,6 +562,7 @@
       "interactable": true,
       "manipulation": false,
       "events": [
+        "hover",
         "select"
       ]
     },
@@ -563,6 +571,7 @@
       "interactable": true,
       "manipulation": false,
       "events": [
+        "hover",
         "select"
       ]
     },
@@ -571,6 +580,7 @@
       "interactable": true,
       "manipulation": false,
       "events": [
+        "hover",
         "select"
       ]
     },
@@ -579,6 +589,7 @@
       "interactable": true,
       "manipulation": false,
       "events": [
+        "hover",
         "select"
       ]
     }
