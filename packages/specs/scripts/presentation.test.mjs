@@ -211,8 +211,9 @@ test("initializes runtime ScrollWindows and declares the UI Kit dependency", () 
   const created = runtime.indexOf("createComponent(ScrollWindow.getTypeName())");
   const init = runtime.indexOf("scrollWindow.initialize();");
   assert.ok(created > 0 && init > created && init < runtime.indexOf("scrollWindow.addObject(content)"));
-  const sync = readFileSync(new URL("./sync-lens-runtime.mjs", import.meta.url), "utf8");
-  assert.match(sync, /"SpectaclesUIKit\.lspkg"/);
+  // specs:sync and specs:doctor take the required package list from lens-runtime.json.
+  const manifest = JSON.parse(readFileSync(new URL("../lens-runtime.json", import.meta.url), "utf8"));
+  assert.ok(manifest.requiredPackages.some((item) => item.package === "SpectaclesUIKit.lspkg"));
 });
 
 test("registers runtime textures without mutating Inspector arrays", () => {
