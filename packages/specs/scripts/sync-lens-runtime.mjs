@@ -9,9 +9,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   DEPENDENCIES_FILE,
+  isMainModule,
   PRODUCTION_FOLDER,
   VALIDATION_FOLDER,
   assertClassified,
@@ -217,7 +217,7 @@ export async function main(argv = process.argv.slice(2)) {
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   main().catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;

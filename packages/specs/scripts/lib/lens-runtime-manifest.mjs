@@ -2,7 +2,7 @@
 // editor validation, and the Lens packages (with minimum versions) each set
 // needs. specs:sync, specs:doctor and specs:validate-lens all read this file,
 // so the lists cannot drift apart.
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -100,4 +100,19 @@ export function localModuleFile(specifier) {
 export function lensPackageOf(specifier) {
   const head = specifier.split("/")[0];
   return head.endsWith(".lspkg") || head.endsWith(".lsc") ? head : undefined;
+}
+
+/**
+ * True when `moduleUrl` is the script Node was started with. Compares real
+ * paths, so a symlinked checkout or temp folder (macOS /var -> /private/var)
+ * still runs the CLI.
+ * @param {string} moduleUrl import.meta.url of the caller
+ */
+export function isMainModule(moduleUrl) {
+  if (!process.argv[1]) return false;
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(moduleUrl));
+  } catch {
+    return false;
+  }
 }
