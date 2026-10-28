@@ -37,6 +37,7 @@ jobs:
           pnpm --filter @viro-external/xr-contract typecheck
           pnpm --filter @viro-external/specs typecheck
           pnpm --filter @viro-external/specs specs:validate-lens
+          pnpm --filter @viro-external/specs specs:test-lens
           pnpm --filter @viro-external/specs specs:test-runner
           pnpm --filter @viro-external/specs specs:test-host
 

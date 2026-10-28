@@ -21,8 +21,18 @@ This document records the supported/validated combination for
 | VolumetricLine | 2.0.0 validated |
 | SpecsNavigationKit | 2.0.0 validated |
 | Leaf | 2.0.2 validated |
-| AiPreviewAgentInspect | 2.0.2 validated |
+| AiPreviewAgentInspect | 2.0.1 installed in the validated project (see note) |
 | AiPreviewAgentInteract | 2.0.1 validated |
+
+`specs:doctor` enforces these as minimums. They live in `lens-runtime.json`
+(`interactionKit`, `requiredPackages`, `validationPackages`).
+
+AiPreviewAgentInspect: the 2026-10-02 report lists 2.0.2, but on 2026-10-28
+the `package.native` in `examples/specs-platform-lab/lens` reads
+`VersionMajor 2 / VersionMinor 0 / VersionPatch 1`, and every archive in that
+`Packages/` folder has a modification time of 2026-10-28 06:58 to 07:02. The SDK imports one symbol
+from the package, `AgentInspectScript`, and 2.0.1 exports it. The minimum is
+2.0.1. Which version the 2026-10-02 preview run used is not recoverable.
 
 ## Interaction Kit 2.x and 4.0.0
 

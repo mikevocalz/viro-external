@@ -7,6 +7,7 @@ import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { VALIDATED_PACKAGES, lspkg } from "./support/lens-project-fixture.mjs";
 
 const scripts = path.dirname(fileURLToPath(import.meta.url));
 const lens = path.join(scripts, "..", "lens");
@@ -16,7 +17,10 @@ function project(packages, { cacheKit } = {}) {
   const root = mkdtempSync(path.join(tmpdir(), "viro-specs-kit-"));
   mkdirSync(path.join(root, "Assets"));
   mkdirSync(path.join(root, "Packages"));
-  for (const name of packages) writeFileSync(path.join(root, "Packages", name), "");
+  // Real archives, so the doctor's version check reads them: validated
+  // versions for the 2.x set, 4.0.0 for InteractionKit.lspkg.
+  const versions = { ...VALIDATED_PACKAGES, "InteractionKit.lspkg": "4.0.0" };
+  for (const name of packages) writeFileSync(path.join(root, "Packages", name), lspkg(versions[name]));
   writeFileSync(path.join(root, "Lab.esproj"), "studioVersion:\n  major: 5\n  minor: 24\n  patch: 0\ntargetPlatform: Spectacles\n");
   if (cacheKit) {
     const seam = readFileSync(SEAM, "utf8");
@@ -83,7 +87,7 @@ test("doctor fails on a seam that names the other kit, a missing module, or miss
   const bare = project([]);
   result = doctor(bare);
   assert.equal(result.status, 1, "missing required packages are errors, not warnings");
-  assert.match(result.stderr, /SpectaclesInteractionKit\.lspkg \(2\.x\) or InteractionKit\.lspkg \(4\.0\.0\)/);
+  assert.match(result.stderr, /SpectaclesInteractionKit\.lspkg \(minimum 2\.0\.0\) or InteractionKit\.lspkg \(minimum 4\.0\.0\)/);
   assert.match(result.stderr, /SpectaclesUIKit\.lspkg/);
 });
 

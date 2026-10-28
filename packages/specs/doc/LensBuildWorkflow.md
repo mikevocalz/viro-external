@@ -40,12 +40,16 @@ VolumetricLine.lspkg
 SpecsNavigationKit.lspkg
 ```
 
-For editor-driven Platform Lab validation also install:
+For editor-driven Platform Lab validation (`specs:sync --with-validation`) also install:
 
 ```text
+Leaf.lspkg
 AiPreviewAgentInspect.lspkg
 AiPreviewAgentInteract.lspkg
 ```
+
+`specs:doctor` reads each installed version and fails below the minimums in
+`lens-runtime.json`; see [SyncAndDoctor.md](./SyncAndDoctor.md#minimums).
 
 The upstream versions are pinned by `upstream/specs-27.json`.
 
@@ -53,9 +57,11 @@ The upstream versions are pinned by `upstream/specs-27.json`.
 
 ```bash
 pnpm --filter @viro-external/specs specs:sync -- \
-  --project /absolute/path/to/MySpecsLens \
-  --clean
+  --project /absolute/path/to/MySpecsLens
 ```
+
+Add `--with-validation` for the LEAF and Platform Lab files. Resyncing keeps
+`.meta` files and your edits; see [SyncAndDoctor.md](./SyncAndDoctor.md).
 
 This writes:
 
@@ -68,6 +74,12 @@ MySpecsLens/
         ViroSpecsRuntimeHost.ts
         ...
       viro-specs.dependencies.json
+      viro-specs.owned.json
+    ViroSpecsValidation/        (only with --with-validation)
+      lens/
+        ViroSpecsLeafIndex.ts
+        ...
+      viro-specs.owned.json
 ```
 
 The generated dependency manifest records the SPECS target, Lens Studio

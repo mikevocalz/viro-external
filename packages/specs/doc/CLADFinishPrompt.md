@@ -8,7 +8,8 @@ performance trace.
 
 The Viro Specs runtime is already synced under:
 
-`Assets/ViroSpecs/lens/`
+`Assets/ViroSpecs/lens/` (production runtime)
+`Assets/ViroSpecsValidation/lens/` (ViroSpecsPlatformLab, ViroSpecsAgentValidation, ViroSpecsLeafIndex and the LEAF scenarios)
 
 Use those files as the authoritative implementation. Do not rewrite the backend
 from scratch and do not introduce React Native, Metro, npm runtime imports, or

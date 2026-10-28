@@ -44,7 +44,7 @@ Short version of the runbook:
    npx -y pnpm@12.8.1 --filter @viro-external/specs specs:sync -- --project "/abs/path/MyAppSpecs"
    ```
 
-   Never `--clean` a wired project. The synced `requiredPackages` list includes `SpectaclesUIKit.lspkg`, because the runtime imports `ScrollWindow`.
+   Resyncing a wired project keeps its `.meta` files and your edits. The doctor fails if a required package is missing or below its minimum; [SyncAndDoctor.md](./SyncAndDoctor.md) lists the checks.
 
 2. Wire the four hosts. In the Platform Lab they sit on `ViroSpecsRuntime` and its children:
 
@@ -791,6 +791,6 @@ Test the page builder the same way: unique node ids, parents before children, ev
 - **Dates are wrong:** Lens has no `Intl` time zones.
 - **Text runs off the card:** Lens Text doesn't wrap. Wrap and clip strings yourself, and step title sizes down before clipping.
 - **Black looks like a hole:** the display is additive. Back text with a frame and use light colours.
-- **Stale scripts fail the compile:** `specs:sync` without `--clean` never deletes. Move old files out of `Assets/`. A file deleted while Lens Studio runs can stay registered; restore it or install its missing dependency.
+- **Stale scripts fail the compile:** `specs:sync` deletes only files its ledger owns and you did not edit. Move other old files out of `Assets/`. A file deleted while Lens Studio runs can stay registered; restore it or install its missing dependency.
 - **Demo objects appear:** installing an Asset Library package through the MCP instantiates its demo into the scene. Delete it.
 - **`openProject` refuses:** Lens Studio won't reopen the project that is already open. Switch to another project and back.
