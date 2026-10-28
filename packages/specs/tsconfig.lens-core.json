@@ -18,6 +18,10 @@
   },
   "files": [
     "lens/ViroSpecsProtocol.ts",
-    "lens/ViroSpecsHostDiagnostics.ts"
+    "lens/ViroSpecsHostDiagnostics.ts",
+    "lens/ViroSpecsSceneDocument.ts",
+    "lens/ViroSpecsSceneBackend.ts",
+    "lens/ViroSpecsResourceCache.ts",
+    "lens/ViroSpecsSceneController.ts"
   ]
 }
