@@ -35,6 +35,7 @@ const requiredFiles = [
   "ViroSpecsLensSceneBackend.ts",
   "ViroSpecsSceneControllerHost.ts",
   "ViroSpecsInteractionKit.ts",
+  "ViroSpecsActionContract.ts",
 ];
 
 // Only this file may import the Interaction Kit, under either Asset Library

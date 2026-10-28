@@ -117,3 +117,42 @@ the patch applied.
 Backend operation failed. A Lens call threw while updating a committed node.
 The node keeps its previous state for that field; the message names the
 operation.
+
+### VS5015 · error
+
+Action is not declared. A trigger in the scene names an action ID that the
+scene's `actions` list does not declare (the scene is rejected), or app code
+dispatched an ID the `ViroSpecsActionRegistry` does not declare (the action
+is dropped). See `ActionsAndState.md`.
+
+### VS5016 · error
+
+Action is declared or handled twice. Two entries in a scene's `actions` list
+share an ID (the scene is rejected), or `ViroSpecsActionRegistry.on` was
+called twice for one ID (the second handler is not registered).
+
+### VS5017 · error
+
+Action payload does not match its declaration. `fieldPath` names the field
+that is missing, unknown, of the wrong type, not a whole number for an
+`integer` field, or not in `enum`. In a scene this rejects the scene; at
+dispatch the action is dropped and state is unchanged.
+
+### VS5018 · info
+
+Queued action invalidated by navigation. Triggered actions run one frame
+after the pinch. If the scene that showed the node is retired first, the
+action is dropped instead of running against the new scene.
+
+### VS5019 · warning
+
+Declared action has no handler. `ViroSpecsActionRuntime` received an action
+the registry declares but no handler was registered for, and no `forward`
+sink is set. State is unchanged.
+
+### VS5020 · info
+
+Route memory is full; least recently used route forgotten. The controller
+remembers scroll positions for at most `maxRememberedRoutes` routes
+(default 16). A forgotten route shows its scroll groups at their initial
+position the next time it is presented.

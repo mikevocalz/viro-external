@@ -19,6 +19,7 @@
   "files": [
     "lens/ViroSpecsProtocol.ts",
     "lens/ViroSpecsHostDiagnostics.ts",
+    "lens/ViroSpecsActionContract.ts",
     "lens/ViroSpecsSceneDocument.ts",
     "lens/ViroSpecsSceneBackend.ts",
     "lens/ViroSpecsResourceCache.ts",

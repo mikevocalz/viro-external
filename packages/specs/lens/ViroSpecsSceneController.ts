@@ -26,6 +26,8 @@
  * ViroSpecsLensSceneBackend plus ViroSpecsSceneControllerHost.
  */
 import type {
+  ViroSpecsActionEvent,
+  ViroSpecsActionTriggerEvent,
   ViroSpecsDocumentAnimation,
   ViroSpecsDocumentInteraction,
   ViroSpecsDocumentLight,
@@ -114,6 +116,8 @@ export type ViroSpecsSceneControllerOptions = {
   readonly maxCachedMaterials?: number;
   /** Placeholder size when a missing asset has no extents. Default 0.2 m square. */
   readonly placeholderExtents?: ViroSpecsExtents;
+  /** Routes whose scroll positions are remembered for back navigation. Default 16. */
+  readonly maxRememberedRoutes?: number;
 };
 
 type NodeRecord<N> = {
@@ -209,6 +213,10 @@ export class ViroSpecsSceneController<N, A, M> {
   private readonly interactionListeners = new Set<(event: ViroSpecsHostInteraction) => void>();
   private readonly lifecycleListeners = new Set<(state: ViroSpecsSceneLifecycle) => void>();
   private readonly completionListeners = new Set<(nodeId: string, name: string) => void>();
+  private readonly actionListeners = new Set<(event: ViroSpecsActionEvent) => void>();
+  /** Route key to the UI state of its scroll groups when the route was left. Insertion order is recency. */
+  private readonly routeMemory = new Map<string, Map<string, ViroSpecsNodeUiState>>();
+  private readonly maxRememberedRoutes: number;
   private collecting: ViroSpecsHostDiagnostic[] | null = null;
 
   constructor(
@@ -218,6 +226,7 @@ export class ViroSpecsSceneController<N, A, M> {
   ) {
     this.diagnostics = options.diagnostics ?? new ViroSpecsHostDiagnostics();
     this.placeholderExtents = options.placeholderExtents ?? { width: 0.2, height: 0.2 };
+    this.maxRememberedRoutes = Math.max(0, options.maxRememberedRoutes ?? 16);
     this.materialCache = new ViroSpecsResourceCache<M>(
       Math.max(0, options.maxCachedMaterials ?? 32),
       (material) => this.guard("dispose", "disposeMaterial", () => this.backend.disposeMaterial(material)),
@@ -283,6 +292,25 @@ export class ViroSpecsSceneController<N, A, M> {
     return subscribe(this.lifecycleListeners, listener);
   }
 
+  /** Route of the committed scene, when it declares one. */
+  get route(): string | undefined {
+    return this.current?.scene.route;
+  }
+
+  /** Routes with remembered scroll positions, least recently left first. */
+  get rememberedRoutes(): readonly string[] {
+    return Array.from(this.routeMemory.keys());
+  }
+
+  /**
+   * Typed actions fired by triggers on the committed scene. Each is
+   * delivered one frame after its interaction, and only while the scene that
+   * showed the node is still committed; otherwise it is dropped with VS5018.
+   */
+  addOnActionListener(listener: (event: ViroSpecsActionEvent) => void): ViroSpecsSubscription {
+    return subscribe(this.actionListeners, listener);
+  }
+
   /** `single` animations that played to the end on the committed scene. */
   addOnAnimationCompleteListener(listener: (nodeId: string, name: string) => void): ViroSpecsSubscription {
     return subscribe(this.completionListeners, listener);
@@ -331,6 +359,8 @@ export class ViroSpecsSceneController<N, A, M> {
       const revision = ++this.revisionCounter;
       const read = readViroSpecsSceneInput(input, revision);
       if (read.ok === false) return this.reject(revision, read.diagnostics);
+      // A different route is navigation: replace transactionally, never patch.
+      if (read.scene.route !== state.scene.route) return this.presentScene(read.scene, revision);
       return this.patchTo(state, read.scene, revision);
     });
   }
@@ -347,6 +377,8 @@ export class ViroSpecsSceneController<N, A, M> {
       const nodes = this.applyOpsToSpecs(state.scene.nodes, ops, revision);
       const document = {
         version: 2,
+        ...(state.scene.route !== undefined ? { route: state.scene.route } : {}),
+        ...(state.scene.actions.length > 0 ? { actions: state.scene.actions } : {}),
         nodes,
         polylines: state.scene.polylines,
         lights: state.scene.lights,
@@ -381,6 +413,8 @@ export class ViroSpecsSceneController<N, A, M> {
     this.interactionListeners.clear();
     this.lifecycleListeners.clear();
     this.completionListeners.clear();
+    this.actionListeners.clear();
+    this.routeMemory.clear();
   }
 
   // ---------------------------------------------------------------------------
@@ -395,7 +429,10 @@ export class ViroSpecsSceneController<N, A, M> {
     }
     const read = readViroSpecsSceneInput(input, revision);
     if (read.ok === false) return this.reject(revision, read.diagnostics);
+    return this.presentScene(read.scene, revision);
+  }
 
+  private presentScene(scene: ViroSpecsHostScene, revision: number): ViroSpecsApplyResult {
     // Stage: build the whole scene under a disabled root.
     const ownership = new Ownership();
     let root: N | null = null;
@@ -407,7 +444,7 @@ export class ViroSpecsSceneController<N, A, M> {
         revision,
         holder: revision,
         materialApplied: null,
-        scene: read.scene,
+        scene: scene,
         root,
         ownership,
         nodes: new Map(),
@@ -419,9 +456,9 @@ export class ViroSpecsSceneController<N, A, M> {
         pendingAssets: new Map(),
         animationsStarted: false,
       };
-      for (const spec of read.scene.nodes) this.createNodeRecord(staged, spec, "stage");
-      for (const light of read.scene.lights) this.createLight(staged, light, "stage");
-      for (const line of read.scene.polylines) this.createPolyline(staged, line, "stage");
+      for (const spec of scene.nodes) this.createNodeRecord(staged, spec, "stage");
+      for (const light of scene.lights) this.createLight(staged, light, "stage");
+      for (const line of scene.polylines) this.createPolyline(staged, line, "stage");
     } catch (error) {
       ownership.retire();
       if (root !== null) {
@@ -436,12 +473,14 @@ export class ViroSpecsSceneController<N, A, M> {
 
     // Commit: carry UI state of stable nodes, show the new root, retire the old one.
     const previous = this.current;
+    const carried = new Set<string>();
     if (previous) {
       for (const [id, record] of staged.nodes) {
         const old = previous.nodes.get(id);
         if (!old || old.spec.kind !== record.spec.kind) continue;
         const ui = this.guard("commit", "captureUiState", () => this.backend.captureUiState(old.handle));
         if (ui) this.guard("commit", "restoreUiState", () => this.backend.restoreUiState(record.handle, ui));
+        carried.add(id);
       }
       if (this.focusedId !== undefined && !this.isStable(previous, staged, this.focusedId)) this.focusedId = undefined;
       if (this.selectedId !== undefined && !this.isStable(previous, staged, this.selectedId)) this.selectedId = undefined;
@@ -456,12 +495,44 @@ export class ViroSpecsSceneController<N, A, M> {
         createViroSpecsHostDiagnostic("VS5005", "commit", "Could not enable the staged scene.", { sceneRevision: revision }),
       ]);
     }
+    if (previous && previous.scene.route !== undefined && previous.scene.route !== staged.scene.route) {
+      this.rememberRoute(previous);
+    }
+    // Returning to a remembered route: nodes that did not carry over from
+    // the previous scene get the scroll position they had when it was left.
+    const remembered = staged.scene.route !== undefined ? this.routeMemory.get(staged.scene.route) : undefined;
+    if (remembered) {
+      for (const [id, ui] of remembered) {
+        const record = staged.nodes.get(id);
+        if (!record || carried.has(id)) continue;
+        this.guard("commit", "restoreUiState", () => this.backend.restoreUiState(record.handle, ui), id);
+      }
+    }
     this.current = staged;
     if (previous) this.retireScene(previous);
 
     this.scheduleBindings(staged, staged.scene.interactions);
     this.refreshLifecycle(staged);
     return { status: "committed", revision, ops: [], diagnostics: [] };
+  }
+
+  /** Captures scroll state of the scene's nodes under its route, evicting the oldest route beyond the limit. */
+  private rememberRoute(state: SceneState<N, M>): void {
+    const route = state.scene.route;
+    if (route === undefined || this.maxRememberedRoutes === 0) return;
+    const states = new Map<string, ViroSpecsNodeUiState>();
+    for (const [id, record] of state.nodes) {
+      const ui = this.guard("commit", "captureUiState", () => this.backend.captureUiState(record.handle), id);
+      if (typeof ui === "object" && Object.keys(ui).length > 0) states.set(id, ui);
+    }
+    this.routeMemory.delete(route);
+    this.routeMemory.set(route, states);
+    while (this.routeMemory.size > this.maxRememberedRoutes) {
+      const oldest = this.routeMemory.keys().next().value;
+      if (oldest === undefined) break;
+      this.routeMemory.delete(oldest);
+      this.report("VS5020", "commit", "Forgot scroll positions of route " + JSON.stringify(oldest) + ".");
+    }
   }
 
   private isStable(previous: SceneState<N, M>, next: SceneState<N, M>, id: string): boolean {
@@ -705,10 +776,14 @@ export class ViroSpecsSceneController<N, A, M> {
     before: readonly ViroSpecsDocumentInteraction[],
     after: readonly ViroSpecsDocumentInteraction[]
   ): void {
-    const previous = new Map(before.map((i) => [i.nodeId, JSON.stringify(i)] as const));
+    // Triggers are read when an interaction is delivered, so changing one
+    // does not rebind SIK.
+    const bindingKey = (i: ViroSpecsDocumentInteraction): string =>
+      JSON.stringify([i.nodeId, i.interactable, i.manipulation, i.events]);
+    const previous = new Map(before.map((i) => [i.nodeId, bindingKey(i)] as const));
     const changed: ViroSpecsDocumentInteraction[] = [];
     for (const interaction of after) {
-      const unchanged = previous.get(interaction.nodeId) === JSON.stringify(interaction) && state.bindings.has(interaction.nodeId);
+      const unchanged = previous.get(interaction.nodeId) === bindingKey(interaction) && state.bindings.has(interaction.nodeId);
       previous.delete(interaction.nodeId);
       if (unchanged) continue;
       state.bindings.get(interaction.nodeId)?.();
@@ -1081,6 +1156,51 @@ export class ViroSpecsSceneController<N, A, M> {
     for (const listener of Array.from(this.interactionListeners)) {
       this.safeCall("interaction listener", state.revision, () => listener(event));
     }
+    const on = triggerEventOf(raw.phase);
+    if (on === undefined) return;
+    const triggers = state.scene.interactions.find((i) => i.nodeId === nodeId)?.triggers ?? [];
+    for (const trigger of triggers) {
+      if (trigger.on !== on) continue;
+      this.queueTriggeredAction(state, {
+        actionId: trigger.actionId,
+        payload: { ...(trigger.payload ?? {}) },
+        nodeId,
+        on,
+        source: raw.source,
+        sceneRevision: state.revision,
+        timestampMs: event.timestampMs,
+      });
+    }
+  }
+
+  /**
+   * Delivers a triggered action on the next frame, owned by `state`. SIK is
+   * mid-callback when the trigger fires, and the action usually replaces
+   * the scene that holds the Interactable, so it never runs synchronously.
+   * Retiring `state` first drops it with VS5018.
+   */
+  private queueTriggeredAction(state: SceneState<N, M>, action: ViroSpecsActionEvent): void {
+    let ran = false;
+    let release: ViroSpecsCancel = () => undefined;
+    const cancelFrame = this.scheduler.nextFrame(() => {
+      ran = true;
+      release();
+      if (!state.ownership.alive || this.current !== state) return;
+      for (const listener of Array.from(this.actionListeners)) {
+        this.safeCall("action listener " + action.actionId, state.revision, () => listener(action));
+      }
+    });
+    release = state.ownership.own(() => {
+      cancelFrame();
+      if (!ran) {
+        this.report("VS5018", "action", "Action " + action.actionId + " from node " + JSON.stringify(action.nodeId) +
+          " was dropped: scene " + state.revision + " was retired before it ran.", {
+          ...(action.nodeId !== undefined ? { nodeId: action.nodeId } : {}),
+          sceneRevision: state.revision,
+        });
+      }
+    });
+    if (ran) release();
   }
 
   // ---------------------------------------------------------------------------
@@ -1285,6 +1405,19 @@ export function diffViroSpecsScenes(
   // node to the scene root before the remove, and the reparent puts them
   // under their new parent once creates have run.
   return [...ops, ...creates, ...reparents, ...updates];
+}
+
+function triggerEventOf(phase: ViroSpecsBackendInteraction["phase"]): ViroSpecsActionTriggerEvent | undefined {
+  switch (phase) {
+    case "select-end":
+      return "select";
+    case "hover-enter":
+      return "hover-enter";
+    case "hover-exit":
+      return "hover-exit";
+    default:
+      return undefined;
+  }
 }
 
 function transformOf(spec: ViroSpecsHostNode) {
