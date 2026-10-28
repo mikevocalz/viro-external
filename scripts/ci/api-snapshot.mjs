@@ -71,7 +71,7 @@ function render(surface) {
       const body = readFileSync(file, "utf8").replace(/\n?\/\/# sourceMappingURL=.*\n?/g, "\n").trimEnd();
       parts.push(`// ---- ${path.relative(out, file).split(path.sep).join("/")}`, body, "");
     }
-    return parts.join("\n");
+    return parts.join("\n").replace(/[ \t]+$/gm, ""); // tsc keeps trailing spaces from source doc comments; git diff --check rejects them
   } finally {
     rmSync(out, { recursive: true, force: true });
   }

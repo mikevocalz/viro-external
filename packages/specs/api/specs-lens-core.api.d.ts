@@ -54,7 +54,7 @@ import type { ViroSpecsApplyResult } from "./ViroSpecsSceneController";
 /** Reducer for one action: returns the next state, or the same object for no change. */
 export type ViroSpecsActionHandler<S> = (state: S, payload: ViroSpecsActionPayload, event: ViroSpecsActionEvent) => S;
 /** Outcome of {@linkcode ViroSpecsActionRegistry.reduce}. */
-export type ViroSpecsActionReduction<S> = 
+export type ViroSpecsActionReduction<S> =
 /** The handler ran. `state` may be the input object when nothing changed. */
 {
     readonly status: "handled";
@@ -1948,7 +1948,7 @@ import { ViroSpecsHostDiagnostics, type ViroSpecsHostDiagnostic, type ViroSpecsS
 import { type ViroSpecsHostNode, type ViroSpecsHostScene } from "./ViroSpecsSceneDocument";
 import type { ViroSpecsCancel, ViroSpecsHostScheduler, ViroSpecsNodeUiState, ViroSpecsSceneBackend } from "./ViroSpecsSceneBackend";
 /** Lifecycle of the committed scene, for loading, degraded and error visuals. */
-export type ViroSpecsSceneLifecycle = 
+export type ViroSpecsSceneLifecycle =
 /** Nothing committed yet. */
 "empty"
 /** Committed; some assets are still loading. Animations wait. */
@@ -1960,7 +1960,7 @@ export type ViroSpecsSceneLifecycle =
 /** The first scene was rejected; nothing is on screen. */
  | "error";
 /** Explicit change to the committed scene. */
-export type ViroSpecsPatchOp = 
+export type ViroSpecsPatchOp =
 /** Adds a node. Its parent must exist or be created earlier in the same patch. */
 {
     op: "create";
