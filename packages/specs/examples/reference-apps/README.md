@@ -126,8 +126,8 @@ it does not draw the ModelViewer load ring yet, for every ModelViewer.
 
 Preview has no SPECS depth, so the placement scenarios replace the
 experience host's WorldQuery session with one that reports a fixed hit, as
-the WS4 placement scenarios do. A run on hardware needs a real table in view
-instead.
+the WS4 placement scenarios do.
 
-Evidence: the Node test is `portable-test-passed`. These scenarios have not
-been run in Lens Studio Preview or on SPECS hardware yet.
+Evidence: the Node test is `portable-test-passed`. The LEAF scenarios have
+not been run in Lens Studio Preview yet; Preview is the validation tier for
+this release.
