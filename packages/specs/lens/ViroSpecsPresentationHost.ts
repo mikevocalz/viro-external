@@ -1,4 +1,6 @@
 import { compileLensRenderPlan, type ViroSpecsSceneSnapshot } from "./ViroSpecsProtocol";
+import { formatViroSpecsHostDiagnostic } from "./ViroSpecsHostDiagnostics";
+import { readViroSpecsSceneInput } from "./ViroSpecsSceneDocument";
 import { ViroSpecsInteractionHost } from "./ViroSpecsInteractionHost";
 import { ViroSpecsRuntimeHost } from "./ViroSpecsRuntimeHost";
 
@@ -53,6 +55,12 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
     if (!snapshot.scene || snapshot.scene.version !== 1 ||
         !Array.isArray(snapshot.scene.nodes) || snapshot.scene.nodes.length === 0) {
       throw new Error("Specs presentation requires a non-empty version 1 scene.");
+    }
+    // Same field checks as ViroSpecsSceneController, so raw wire JSON cannot
+    // pass with a kind, field or reference this host would trip over later.
+    const read = readViroSpecsSceneInput(snapshot.scene, this.generation + 1);
+    if (read.ok === false) {
+      throw new Error("Invalid Specs scene: " + read.diagnostics.map(formatViroSpecsHostDiagnostic).join("; "));
     }
     const plan = compileLensRenderPlan(snapshot.scene);
     if (plan.diagnostics.some((d) => d.level === "error")) {
@@ -160,10 +168,22 @@ export class ViroSpecsPresentationHost extends BaseScriptComponent {
   // Listeners usually call present(), which destroys the selected Interactable.
   // Doing that inside SIK's trigger-end dispatch leaves SIK walking dead objects,
   // so actions are delivered on the next frame instead.
+  // The action belongs to the page that was live when it was selected: if
+  // present() or clear() replaces that page before the next frame, the
+  // action is dropped instead of firing against the new page.
   private emitDeferred(action: string): void {
+    const generation = this.generation;
     const delayed = this.createEvent("DelayedCallbackEvent");
     delayed.bind(() => {
-      for (const listener of this.listeners) listener(action);
+      if (generation !== this.generation) return;
+      for (const listener of Array.from(this.listeners)) {
+        try {
+          listener(action);
+        } catch (error) {
+          console.error("[viro-specs-host] error VS5009 (listener): action listener threw: " +
+            (error instanceof Error ? error.message : String(error)));
+        }
+      }
     });
     delayed.reset(0);
   }

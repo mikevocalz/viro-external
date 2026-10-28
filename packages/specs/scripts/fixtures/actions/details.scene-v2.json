@@ -1,0 +1,158 @@
+{
+  "version": 2,
+  "route": "details",
+  "actions": [
+    {
+      "id": "exhibit.open",
+      "payload": {
+        "exhibitId": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "id": "settings.set-units",
+      "payload": {
+        "units": {
+          "type": "string",
+          "enum": [
+            "metric",
+            "imperial"
+          ]
+        }
+      }
+    },
+    {
+      "id": "nav.back"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "flow-root",
+      "position": [
+        0,
+        0,
+        -1.2
+      ],
+      "kind": "group"
+    },
+    {
+      "id": "details-title",
+      "parentId": "flow-root",
+      "position": [
+        0,
+        0.15,
+        0.01
+      ],
+      "kind": "text",
+      "text": "Planetarium",
+      "style": {
+        "fontSize": 140,
+        "fontWeight": "bold",
+        "color": "#f2f2f2"
+      },
+      "extents": {
+        "width": 0.44,
+        "height": 0.05
+      }
+    },
+    {
+      "id": "details-distance",
+      "parentId": "flow-root",
+      "position": [
+        0,
+        0.07,
+        0.01
+      ],
+      "kind": "text",
+      "text": "120 m away",
+      "style": {
+        "fontSize": 120,
+        "color": "#d0d0d0"
+      },
+      "extents": {
+        "width": 0.44,
+        "height": 0.04
+      }
+    },
+    {
+      "id": "units-toggle",
+      "label": "Show distance in feet",
+      "parentId": "flow-root",
+      "position": [
+        0,
+        -0.04,
+        0.01
+      ],
+      "kind": "text",
+      "text": "Show feet",
+      "style": {
+        "fontSize": 120,
+        "color": "#7aa2ff",
+        "textAlign": "center"
+      },
+      "extents": {
+        "width": 0.3,
+        "height": 0.06
+      }
+    },
+    {
+      "id": "back-button",
+      "label": "Back to exhibits",
+      "parentId": "flow-root",
+      "position": [
+        0,
+        -0.14,
+        0.01
+      ],
+      "kind": "text",
+      "text": "Back to exhibits",
+      "style": {
+        "fontSize": 120,
+        "color": "#7aa2ff",
+        "textAlign": "center"
+      },
+      "extents": {
+        "width": 0.3,
+        "height": 0.06
+      }
+    }
+  ],
+  "polylines": [],
+  "lights": [],
+  "materials": [],
+  "interactions": [
+    {
+      "nodeId": "units-toggle",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ],
+      "triggers": [
+        {
+          "on": "select",
+          "actionId": "settings.set-units",
+          "payload": {
+            "units": "imperial"
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "back-button",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ],
+      "triggers": [
+        {
+          "on": "select",
+          "actionId": "nav.back"
+        }
+      ]
+    }
+  ],
+  "animations": []
+}

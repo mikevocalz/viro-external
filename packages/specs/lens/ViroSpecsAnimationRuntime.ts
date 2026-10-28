@@ -1,4 +1,4 @@
-import { setTimeout } from "SpectaclesInteractionKit.lspkg/Utils/FunctionTimingUtils";
+import { setTimeout } from "./ViroSpecsInteractionKit";
 import type {
   ViroSpecsAnimationEasing,
   ViroSpecsAnimationTrackPlan,
@@ -12,27 +12,75 @@ const DEG_TO_RAD = Math.PI / 180;
 
 export class ViroSpecsAnimationRuntime {
   private clipCounter = 0;
+  private readonly running = new Map<string, Set<() => void>>();
 
-  constructor(private readonly host: ViroSpecsRuntimeHost) {}
+  /** `host` resolves node IDs for {@linkcode play}; {@linkcode playOn} needs none. */
+  constructor(private readonly host: ViroSpecsRuntimeHost | null) {}
 
   play(
     nodeId: string,
     plan: ViroSpecsNativeAnimationPlan,
     onComplete?: () => void
-  ): void {
-    const object = this.host.getNode(nodeId);
+  ): () => void {
+    const object = this.host?.getNode(nodeId) ?? null;
     if (!object) {
       throw new Error("Cannot animate missing Specs node: " + nodeId);
     }
+    let stops = this.running.get(nodeId);
+    if (!stops) {
+      stops = new Set();
+      this.running.set(nodeId, stops);
+    }
+    const set = stops;
+    const stopOne = this.playOn(object, plan, onComplete);
+    const stop = (): void => {
+      set.delete(stop);
+      stopOne();
+    };
+    set.add(stop);
+    return stop;
+  }
+
+  /** Stops every animation started with {@linkcode play} on `nodeId`. */
+  stop(nodeId: string): void {
+    const stops = this.running.get(nodeId);
+    if (!stops) return;
+    this.running.delete(nodeId);
+    for (const stop of Array.from(stops)) stop();
+  }
+
+  /**
+   * Plays `plan` on `object` and returns a stop function. Stopping before
+   * the delay elapses cancels the start; stopping later stops and removes
+   * the clip. `onComplete` never fires after stop.
+   */
+  playOn(
+    object: SceneObject,
+    plan: ViroSpecsNativeAnimationPlan,
+    onComplete?: () => void
+  ): () => void {
+    let stopped = false;
+    let player: AnimationPlayer | null = null;
+    let clipName: string | null = null;
+    const stop = (): void => {
+      if (stopped) return;
+      stopped = true;
+      if (player && clipName && !isNull(player)) {
+        player.stopClip(clipName);
+        player.removeClip(clipName);
+      }
+    };
 
     if (plan.durationSeconds === 0) {
       this.applyImmediate(object, plan.tracks);
       onComplete?.();
-      return;
+      return stop;
     }
 
     const start = () => {
-      const clipName = "viro-" + nodeId + "-" + ++this.clipCounter;
+      if (stopped || isNull(object)) return;
+      const name = "viro-" + object.name + "-" + ++this.clipCounter;
+      clipName = name;
       const transform = object.getTransform();
       const layer = AnimationPropertyLayer.create();
       const easing = this.resolveEasing(plan.easing);
@@ -44,36 +92,37 @@ export class ViroSpecsAnimationRuntime {
 
       const asset = AnimationAsset.create();
       asset.addLayer(object.name, layer);
-      const completionEvent = plan.completionEvent + ":" + clipName;
+      const completionEvent = plan.completionEvent + ":" + name;
       asset.createEvent(completionEvent, 1.0);
 
-      const clip = AnimationClip.createFromAnimation(clipName, asset);
+      const clip = AnimationClip.createFromAnimation(name, asset);
       clip.playbackMode =
         plan.playbackMode === "loop" ? PlaybackMode.Loop : PlaybackMode.Single;
       clip.playbackSpeed = 1 / plan.durationSeconds;
 
-      let player = object.getComponent(
+      let found = object.getComponent(
         "Component.AnimationPlayer"
       ) as AnimationPlayer | null;
 
-      if (!player) {
-        player = object.createComponent(
+      if (!found) {
+        found = object.createComponent(
           "Component.AnimationPlayer"
         ) as AnimationPlayer;
       }
+      player = found;
 
       if (onComplete && plan.playbackMode === "single") {
-        const completionPlayer = player;
-        const registration = player.onEvent.add((args: AnimationPlayerOnEventArgs) => {
+        const completionPlayer = found;
+        const registration = found.onEvent.add((args: AnimationPlayerOnEventArgs) => {
           if (args.eventName === completionEvent) {
             completionPlayer.onEvent.remove(registration);
-            onComplete();
+            if (!stopped) onComplete();
           }
         });
       }
 
-      player.addClip(clip);
-      player.playClip(clipName);
+      found.addClip(clip);
+      found.playClip(name);
     };
 
     if (plan.delaySeconds > 0) {
@@ -81,6 +130,7 @@ export class ViroSpecsAnimationRuntime {
     } else {
       start();
     }
+    return stop;
   }
 
   private addPositionTrack(

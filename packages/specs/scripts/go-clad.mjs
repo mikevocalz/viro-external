@@ -318,7 +318,7 @@ export async function main(argv = process.argv.slice(2)) {
   const project = path.resolve(options.project);
   const configPath = path.join(project, ".codex", "config.toml");
   const userConfigPath = path.join(process.env.CODEX_HOME ?? path.join(os.homedir(), ".codex"), "config.toml");
-  requireSuccess(run(process.execPath, [path.join(here, "doctor-lens-project.mjs"), "--project", project], { stdio: "inherit" }), "Specs project doctor");
+  requireSuccess(run(process.execPath, [path.join(here, "doctor-lens-project.mjs"), "--project", project, "--with-validation", "--before-sync"], { stdio: "inherit" }), "Specs project doctor");
   const version = run("codex", ["--version"], { cwd: project });
   if (version.error || version.status !== 0) throw new Error("Codex CLI is unavailable. Install Codex using the official OpenAI setup, then rerun specs:go.");
   let execArgs;

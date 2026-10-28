@@ -1,4 +1,4 @@
-import { setTimeout } from "SpectaclesInteractionKit.lspkg/Utils/FunctionTimingUtils";
+import { setTimeout } from "./ViroSpecsInteractionKit";
 import { VolumetricLine } from "VolumetricLine.lspkg/Scripts/VolumetricLine";
 import { GeoLocationPlace } from "SpecsNavigationKit.lspkg/NavigationDataComponent/GeoLocationPlace";
 import { NavigationDataComponent } from "SpecsNavigationKit.lspkg/NavigationDataComponent/NavigationDataComponent";

@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": [
+      "ES2021"
+    ],
+    "types": [],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitOverride": true,
+    "isolatedModules": true,
+    "noEmit": false,
+    "declaration": false,
+    "sourceMap": false,
+    "rootDir": "lens",
+    "outDir": "build/lens-core"
+  },
+  "files": [
+    "lens/ViroSpecsProtocol.ts",
+    "lens/ViroSpecsHostDiagnostics.ts",
+    "lens/ViroSpecsActionContract.ts",
+    "lens/ViroSpecsSceneDocument.ts",
+    "lens/ViroSpecsSceneBackend.ts",
+    "lens/ViroSpecsResourceCache.ts",
+    "lens/ViroSpecsSceneController.ts",
+    "lens/ViroSpecsActionRuntime.ts",
+    "lens/ViroSpecsReferenceFlow.ts",
+    "lens/ViroSpecsExperienceTokens.ts",
+    "lens/ViroSpecsExperienceCopy.ts",
+    "lens/ViroSpecsPlacement.ts",
+    "lens/ViroSpecsExperience.ts"
+  ]
+}

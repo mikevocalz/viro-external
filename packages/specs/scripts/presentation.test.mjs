@@ -211,8 +211,9 @@ test("initializes runtime ScrollWindows and declares the UI Kit dependency", () 
   const created = runtime.indexOf("createComponent(ScrollWindow.getTypeName())");
   const init = runtime.indexOf("scrollWindow.initialize();");
   assert.ok(created > 0 && init > created && init < runtime.indexOf("scrollWindow.addObject(content)"));
-  const sync = readFileSync(new URL("./sync-lens-runtime.mjs", import.meta.url), "utf8");
-  assert.match(sync, /"SpectaclesUIKit\.lspkg"/);
+  // specs:sync and specs:doctor take the required package list from lens-runtime.json.
+  const manifest = JSON.parse(readFileSync(new URL("../lens-runtime.json", import.meta.url), "utf8"));
+  assert.ok(manifest.requiredPackages.some((item) => item.package === "SpectaclesUIKit.lspkg"));
 });
 
 test("registers runtime textures without mutating Inspector arrays", () => {
@@ -221,4 +222,19 @@ test("registers runtime textures without mutating Inspector arrays", () => {
   assert.match(registry, /const ids = this\.imageIds\.slice\(\)/);
   assert.match(registry, /this\.imageIds = ids;\s*this\.imageTextures = textures;/);
   assert.doesNotMatch(registry, /this\.imageIds\.push\(/);
+});
+
+test("legacy Lens entry points validate like the controller and drop actions of replaced pages", () => {
+  const host = readFileSync(new URL("../lens/ViroSpecsPresentationHost.ts", import.meta.url), "utf8");
+  // Validation runs before anything is cleared.
+  assert.ok(host.indexOf("readViroSpecsSceneInput(snapshot.scene") < host.indexOf("renderer.clear();\n    this.actions.clear();\n    try"));
+  // A deferred action carries its page's generation and is dropped after replacement.
+  const emit = host.slice(host.indexOf("private emitDeferred"));
+  assert.match(emit, /const generation = this\.generation;/);
+  assert.match(emit, /if \(generation !== this\.generation\) return;/);
+  assert.match(emit, /catch \(error\)/);
+  const runtimeHost = readFileSync(new URL("../lens/ViroSpecsRuntimeHost.ts", import.meta.url), "utf8");
+  const apply = runtimeHost.slice(runtimeHost.indexOf("applySceneSnapshot(scene"));
+  assert.ok(apply.indexOf("readViroSpecsSceneInput(scene, 0)") < apply.indexOf("this.applyRenderPlan"));
+  assert.match(apply, /read\.scene\.protocol !== 1/);
 });

@@ -1,0 +1,224 @@
+# Experience layer
+
+What the wearer sees around a Specs scene: the loading ring, the one-line
+notice when a capability is missing, the error panel when something fails,
+the placement reticle, PanelButton states, gaze dwell and the comfort clamps.
+Design sources are in viro: `docs/ux/spatial-tokens.md`, `docs/ux/copy.md`,
+`docs/ux/accessibility.md` and `docs/ux/handoff/*.md`. The compile-time side
+(comfort checks, labels, premium components) is viro `docs/specs-experience.md`.
+
+Evidence: `portable-test-passed` (`scripts/experience.test.mjs`, run by
+`specs:test-host`). The Lens adapter (`ViroSpecsExperienceLensView.ts`) is
+`implemented` only: it has not been compiled in Lens Studio or run in Preview.
+
+## Files
+
+| File | Lens globals | What it does |
+| --- | --- | --- |
+| `lens/ViroSpecsExperienceTokens.ts` | no | Token types and defaults (mirror of viro `tokens.ts`), theme and component validation, angle helpers |
+| `lens/ViroSpecsExperienceCopy.ts` | no | Copy table generated from viro `copy.ts` |
+| `lens/ViroSpecsExperience.ts` | no | `ViroSpecsExperienceController`, `resolveViroSpecsButtonVisual`, `ViroSpecsButtonTracker`, `ViroSpecsGazeDwell`, scroll and move steps |
+| `lens/ViroSpecsPlacement.ts` | no | `ViroSpecsPlacementSession`, `classifyViroSpecsSurface` |
+| `lens/ViroSpecsExperienceLensView.ts` | yes | Draws an experience view with Lens Text and the scene controller's backend |
+
+The four portable files are in `tsconfig.lens-core.json`, so Node tests run
+the same code Lens Studio runs.
+
+## Lifecycle
+
+`ViroSpecsExperienceController.attach(controller)` follows the scene
+controller's lifecycle, asset progress and diagnostics.
+
+| Scene controller | Wearer sees |
+| --- | --- |
+| `loading` | Nothing for the first `motion.fast` (120 ms), so a cached scene does not flash. Then the loading panel: "Loading scene", a ring filling by `done/total` assets, "Loading {done} of {total}". After 2000 ms, "Still loading. Large models can take a moment." The scene and its interactables stay hidden. |
+| `ready` | The scene. |
+| `degraded` (asset missing) | The scene with a placeholder box, and the `error.asset` panel with Retry. |
+| `error` (first scene rejected) | The `error.sceneNoFallback` panel. Close keeps it up; the wearer leaves with the system gesture. |
+| rejected update after a ready scene | The last scene plus the `error.scene` panel with Close. |
+
+The slow threshold is the pack's 2 s first-frame target; WS3 has not
+measured first-frame time on device yet.
+
+Reduced motion: the determinate ring grows without rotating; an unknown total
+shows three dots that change opacity.
+
+## Degraded (a capability is missing)
+
+`setCapabilities(report)` takes the Lens capability report. Changes apply
+without a restart.
+
+| Capability | State | Hidden | Replacement |
+| --- | --- | --- | --- |
+| `world-query` / `surface-placement` | unsupported | reticle, tint, placement label | model 1.5 m in front (`placeInFront`) |
+| same | temporarily-unavailable | nothing; searching continues | notice |
+| `hand-tracking` / `pinch` | permission-required | pinch hints, drag | gaze dwell, Move and Scroll buttons, "Place here"; on a scene without a gaze path, the permission panel |
+| same | temporarily-unavailable | same | same, back to hands when tracking returns |
+| `drag-manipulation` | unsupported | drag | Move buttons, no notice |
+| any | unverified | nothing | builder mode only |
+
+One notice at a time; placement beats hand tracking. A dismissed notice does
+not return for that capability this session. Each change is reported once as
+`VS5021`; switching to gaze is `VS5024`.
+
+## Errors
+
+At most one panel, with exactly one action:
+
+| Kind | Title | Action |
+| --- | --- | --- |
+| `asset` | "Model didn't load" or "{n} models didn't load" | Retry: returns the node IDs to reload |
+| `scene` | "Scene couldn't open" | Close |
+| `scene-no-fallback` | "Scene couldn't open" | Close (panel stays) |
+| `transport` | "Lost connection to the app" | Got it |
+
+Each panel lists `{code} ({nodeId})` lines, de-duplicated. Node errors wait
+until the scene is visible.
+
+## PanelButton
+
+`resolveViroSpecsButtonVisual(label, authored, { hovered, pressed }, tokens)`
+returns the fill, border, ring, depth, scale, label text, glyph and accessible
+name for the seven states in viro `docs/ux/spatial-tokens.md#panelbutton`.
+Selected carries a check glyph and error an error glyph, so color is never the
+only cue. Disabled and loading accept nothing.
+
+`ViroSpecsButtonTracker` turns host interaction events into hover and press:
+the press commits on release inside the button, release elsewhere or `cancel`
+drops it, the last select-start wins, and the press stays on its button when
+hover moves. The hover hook (haptic/audio) fires once per hover-enter; the app
+can turn it off.
+
+## Gaze dwell
+
+`ViroSpecsGazeDwell` selects a target after `input.gazeDwellMs` (1000 ms,
+provisional; sources in viro `docs/specs-experience.md#gaze-dwell`). It fires
+once until the gaze leaves, and never on disabled or loading buttons. The host
+turns a dwell into `select-start` and `select-end` with source `gaze` through
+`dispatchInteraction`, so the app sees an ordinary select.
+
+## Placement
+
+`ViroSpecsPlacementSession` takes WorldQuery hits (about 5 Hz on SPECS) and
+pinches:
+
+- **searching**: no reticle; "Look at a table or the floor".
+- **aiming**: a 2 degree ring on the surface, tinted by class at 35%;
+  "{Surface}. Pinch to place.". The first time, "Look away to cancel".
+- **countdown**: no valid hit for up to 1.5 s; the ring drains. Under reduced
+  motion it reads "Cancelling". A valid hit resets it.
+- **confirmed**: `color.success` ring, "Placed".
+- **cancelled**: "Placement cancelled"; `restart()` for Place again.
+
+A valid hit is a classified surface 0.6-3.0 m away. WorldQuery on SPECS only
+classifies ground, so `classifyViroSpecsSurface` derives the rest from the
+normal and the height above a known floor:
+
+| Class | Rule |
+| --- | --- |
+| floor | WorldQuery ground, or horizontal under 0.2 m above the floor |
+| seat | horizontal, 0.3-0.6 m above the floor |
+| table | horizontal, 0.6-1.2 m above the floor, or any horizontal surface before a floor is known |
+| wall | normal within 0.3 of horizontal |
+| ceiling | normal pointing down |
+| unknown | slopes and other heights; no tint, no placement |
+
+These thresholds are starting values, not measured.
+
+## Comfort clamps
+
+- `clampToComfortBand(nodeId, position)` stops placement and drag at 0.6 or
+  3.0 m (`VS5023`).
+- `minimumTextSize(nodeId, size, distance)` raises Lens Text to 1.2 degrees
+  at its current distance (`VS5022`).
+
+## Preferences
+
+`setPreferences({ highContrast, reducedMotion })` applies on the next view.
+Whether Snap OS exposes a system setting for either is unverified, so the app
+sets them. High contrast swaps the surface to `#42525f` at full opacity,
+text to white (8.07:1), focus to `#ffd25e` (5.62:1), doubles borders and adds
+0.2 degrees to every type size. The surface is a mid slate rather than black
+because SPECS is an additive display: black adds no light, so a black panel
+shows as the room. `experience.test.mjs` fails if any resolved high-contrast
+surface is near-black or text drops under 7:1. Reduced motion removes every
+scale change and rotation.
+
+## Not drawn yet
+
+`ViroSpecsExperienceHost` draws SpatialPanel (backing and title), PanelButton
+(backing, label, glyph, hover scale and depth, error message) and PanelText
+(token color, 1.2 degree minimum from the compiled size). SpatialScrollView
+arrives as a `group` with `scroll`, so the scene controller draws it like any
+scroll group: a UI Kit ScrollWindow that clips at the window edge, settles
+drags on `itemHeightMeters` rows (`snapRegion`), opens `initialIndex` rows
+down, and keeps its position across patches and, per route, across back
+navigation. `scrollByRows(id, rows)` on the controller and on
+`ViroSpecsSceneControllerHost` moves it by whole rows. In gaze mode the
+host draws Scroll up and Scroll down side by side under each scroll window;
+a dwell on one calls `scrollByRows` with -1 or +1.
+
+State panels (loading, notice, error, permission) lay out from
+`layoutViroSpecsStatePanel`: rows wrap at the panel width less `space.md`
+on each side, the backing grows to fit them, and the loading panel has a
+progress ring above its title. Row heights come from the lines the text
+really wraps to: the Lens host lays each string out in an invisible Text at
+the row's size and width and counts its highlight rectangles (one per line),
+so "VS5003 (platform-lab-model)" takes one line. Node tests use the 0.55 em
+per character estimate (`estimateViroSpecsLines`), which errs toward more
+lines.
+
+Panels draw after scene content with depth test off and an opaque backing
+(blend mode disabled, alpha 1), so no virtual content behind a panel shows
+through it. The backing also stops rays: it carries a collider and a SIK
+Interactable with no listeners, so neither a hand ray (SIK targets the
+nearest Interactable) nor gaze (the nearest collider) reaches a control
+behind an open panel. The panel's own action sits in front of the backing
+and stays reachable. SPECS is an additive display: the room behind a panel
+always shows through, brightened by the panel color, and Lens Studio's
+SPECS 27 Preview simulates that. Opaque here means opaque to the Lens's own
+content.
+
+A PanelButton error message is a row under the button across its
+SpatialPanel's inner width (`layoutViroSpecsButtonError`); scenes leave that
+row free. A PanelButton's label sits `depth.hover` plus 0.2 cm in front of
+the button, so a hovered backing never covers it; content an app puts inside
+a PanelButton (a card's PanelImage) belongs at least that far forward too.
+
+Hand drags are held inside the comfort band like gaze Move and placement,
+with one `VS5023` per excursion. The clamp runs as the scene controller's
+drag constraint (`setDragConstraint`), before any interaction listener, so
+an app's drag listener receives the clamped position the node is at.
+
+The reticle and the gaze dwell indicator draw on a disc mesh, not the
+square unit plane.
+
+ModelViewer:
+
+- Load ring: while the model's asset loads, a ring three body ems across turns
+  at the model's origin (the bounds are unknown until the model arrives),
+  dots without movement under reduced motion.
+- Reset model (`resettable`, on by default): a button `space.sm` under the
+  model's bounds, measured once when it first draws. A pinch or a gaze dwell
+  returns the model to its authored position, rotation and scale over
+  `motion.base` with ease-in-out, at once under reduced motion. Scenes that
+  author their own Reset model button set `resettable={false}`.
+- `autoRotate`: 18 degrees a second about the model's up axis, paused while
+  the wearer holds or drags it and during a Reset, off under reduced motion.
+
+PanelImage draws on a rounded-rectangle mesh with `radius.card` corners,
+capped at a quarter of the shorter side so a small thumbnail stays a rounded
+square, sharing the Image's material; the square Image quad is switched off
+while a texture is set, and the missing-image placeholder box is unchanged.
+
+The host draws every premium feature, so `VS5025` lists none.
+`unrenderedViroSpecsComponentFeatures` in `ViroSpecsExperience.ts` is the
+list the host reports from; a feature a future compiler adds goes there until
+the host draws it.
+
+## Wearer-relative measurement
+
+The adapter measures every comfort distance from the camera, not from where
+the Lens started: WorldQuery hits and Move steps are converted to
+head-relative meters before they reach the placement session and
+`clampToComfortBand`, and converted back to world meters for listeners.

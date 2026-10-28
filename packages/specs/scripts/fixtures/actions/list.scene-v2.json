@@ -1,0 +1,385 @@
+{
+  "version": 2,
+  "route": "list",
+  "actions": [
+    {
+      "id": "exhibit.open",
+      "payload": {
+        "exhibitId": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "id": "settings.set-units",
+      "payload": {
+        "units": {
+          "type": "string",
+          "enum": [
+            "metric",
+            "imperial"
+          ]
+        }
+      }
+    },
+    {
+      "id": "nav.back"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "flow-root",
+      "position": [
+        0,
+        0,
+        -1.2
+      ],
+      "kind": "group"
+    },
+    {
+      "id": "list-title",
+      "parentId": "flow-root",
+      "position": [
+        0,
+        0.17,
+        0.01
+      ],
+      "kind": "text",
+      "text": "Exhibits",
+      "style": {
+        "fontSize": 140,
+        "fontWeight": "bold",
+        "color": "#f2f2f2"
+      },
+      "extents": {
+        "width": 0.44,
+        "height": 0.05
+      }
+    },
+    {
+      "id": "exhibit-list",
+      "parentId": "flow-root",
+      "position": [
+        0,
+        -0.02,
+        0.01
+      ],
+      "kind": "group",
+      "scroll": {
+        "width": 0.44,
+        "height": 0.28,
+        "contentHeight": 0.56
+      }
+    },
+    {
+      "id": "card-orrery",
+      "label": "Open Orrery",
+      "parentId": "exhibit-list",
+      "position": [
+        0,
+        -0.035,
+        0
+      ],
+      "kind": "text",
+      "text": "Orrery",
+      "style": {
+        "fontSize": 120,
+        "color": "#f2f2f2",
+        "textAlign": "left"
+      },
+      "extents": {
+        "width": 0.42,
+        "height": 0.05
+      }
+    },
+    {
+      "id": "card-pendulum",
+      "label": "Open Foucault Pendulum",
+      "parentId": "exhibit-list",
+      "position": [
+        0,
+        -0.10500000000000001,
+        0
+      ],
+      "kind": "text",
+      "text": "Foucault Pendulum",
+      "style": {
+        "fontSize": 120,
+        "color": "#f2f2f2",
+        "textAlign": "left"
+      },
+      "extents": {
+        "width": 0.42,
+        "height": 0.05
+      }
+    },
+    {
+      "id": "card-tesla-coil",
+      "label": "Open Tesla Coil",
+      "parentId": "exhibit-list",
+      "position": [
+        0,
+        -0.17500000000000002,
+        0
+      ],
+      "kind": "text",
+      "text": "Tesla Coil",
+      "style": {
+        "fontSize": 120,
+        "color": "#f2f2f2",
+        "textAlign": "left"
+      },
+      "extents": {
+        "width": 0.42,
+        "height": 0.05
+      }
+    },
+    {
+      "id": "card-planetarium",
+      "label": "Open Planetarium",
+      "parentId": "exhibit-list",
+      "position": [
+        0,
+        -0.24500000000000002,
+        0
+      ],
+      "kind": "text",
+      "text": "Planetarium",
+      "style": {
+        "fontSize": 120,
+        "color": "#f2f2f2",
+        "textAlign": "left"
+      },
+      "extents": {
+        "width": 0.42,
+        "height": 0.05
+      }
+    },
+    {
+      "id": "card-wind-tunnel",
+      "label": "Open Wind Tunnel",
+      "parentId": "exhibit-list",
+      "position": [
+        0,
+        -0.31500000000000006,
+        0
+      ],
+      "kind": "text",
+      "text": "Wind Tunnel",
+      "style": {
+        "fontSize": 120,
+        "color": "#f2f2f2",
+        "textAlign": "left"
+      },
+      "extents": {
+        "width": 0.42,
+        "height": 0.05
+      }
+    },
+    {
+      "id": "card-seismograph",
+      "label": "Open Seismograph",
+      "parentId": "exhibit-list",
+      "position": [
+        0,
+        -0.385,
+        0
+      ],
+      "kind": "text",
+      "text": "Seismograph",
+      "style": {
+        "fontSize": 120,
+        "color": "#f2f2f2",
+        "textAlign": "left"
+      },
+      "extents": {
+        "width": 0.42,
+        "height": 0.05
+      }
+    },
+    {
+      "id": "card-cloud-chamber",
+      "label": "Open Cloud Chamber",
+      "parentId": "exhibit-list",
+      "position": [
+        0,
+        -0.45500000000000007,
+        0
+      ],
+      "kind": "text",
+      "text": "Cloud Chamber",
+      "style": {
+        "fontSize": 120,
+        "color": "#f2f2f2",
+        "textAlign": "left"
+      },
+      "extents": {
+        "width": 0.42,
+        "height": 0.05
+      }
+    },
+    {
+      "id": "card-lighthouse-lens",
+      "label": "Open Lighthouse Lens",
+      "parentId": "exhibit-list",
+      "position": [
+        0,
+        -0.525,
+        0
+      ],
+      "kind": "text",
+      "text": "Lighthouse Lens",
+      "style": {
+        "fontSize": 120,
+        "color": "#f2f2f2",
+        "textAlign": "left"
+      },
+      "extents": {
+        "width": 0.42,
+        "height": 0.05
+      }
+    }
+  ],
+  "polylines": [],
+  "lights": [],
+  "materials": [],
+  "interactions": [
+    {
+      "nodeId": "card-orrery",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ],
+      "triggers": [
+        {
+          "on": "select",
+          "actionId": "exhibit.open",
+          "payload": {
+            "exhibitId": "orrery"
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "card-pendulum",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ],
+      "triggers": [
+        {
+          "on": "select",
+          "actionId": "exhibit.open",
+          "payload": {
+            "exhibitId": "pendulum"
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "card-tesla-coil",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ],
+      "triggers": [
+        {
+          "on": "select",
+          "actionId": "exhibit.open",
+          "payload": {
+            "exhibitId": "tesla-coil"
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "card-planetarium",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ],
+      "triggers": [
+        {
+          "on": "select",
+          "actionId": "exhibit.open",
+          "payload": {
+            "exhibitId": "planetarium"
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "card-wind-tunnel",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ],
+      "triggers": [
+        {
+          "on": "select",
+          "actionId": "exhibit.open",
+          "payload": {
+            "exhibitId": "wind-tunnel"
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "card-seismograph",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ],
+      "triggers": [
+        {
+          "on": "select",
+          "actionId": "exhibit.open",
+          "payload": {
+            "exhibitId": "seismograph"
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "card-cloud-chamber",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ],
+      "triggers": [
+        {
+          "on": "select",
+          "actionId": "exhibit.open",
+          "payload": {
+            "exhibitId": "cloud-chamber"
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "card-lighthouse-lens",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ],
+      "triggers": [
+        {
+          "on": "select",
+          "actionId": "exhibit.open",
+          "payload": {
+            "exhibitId": "lighthouse-lens"
+          }
+        }
+      ]
+    }
+  ],
+  "animations": []
+}

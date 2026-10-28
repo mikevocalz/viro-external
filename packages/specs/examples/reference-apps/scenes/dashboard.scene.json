@@ -1,0 +1,509 @@
+{
+  "version": 2,
+  "route": "dashboard",
+  "actions": [
+    {
+      "id": "dashboard.set-range",
+      "payload": {
+        "range": {
+          "type": "string",
+          "enum": [
+            "1h",
+            "24h",
+            "7d"
+          ]
+        }
+      }
+    },
+    {
+      "id": "dashboard.refresh"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "dash-panel",
+      "kind": "panel",
+      "position": [
+        0,
+        -0.22,
+        -1.5
+      ],
+      "extents": {
+        "width": 0.8,
+        "height": 0.52
+      },
+      "component": {
+        "type": "spatial-panel"
+      }
+    },
+    {
+      "id": "dash-title",
+      "kind": "text",
+      "parentId": "dash-panel",
+      "position": [
+        0,
+        0.2,
+        0.005
+      ],
+      "text": "Workshop sensors",
+      "style": {
+        "fontSize": 229.1,
+        "fontWeight": "600",
+        "color": "#eef2f0"
+      },
+      "maxLines": 2,
+      "component": {
+        "role": "title",
+        "tone": "default",
+        "type": "panel-text"
+      }
+    },
+    {
+      "id": "dash-card-temp",
+      "kind": "group",
+      "parentId": "dash-panel",
+      "position": [
+        -0.25,
+        0,
+        0.005
+      ]
+    },
+    {
+      "id": "dash-card-temp-label",
+      "kind": "text",
+      "parentId": "dash-card-temp",
+      "position": [
+        0,
+        0.1,
+        0
+      ],
+      "text": "Temperature",
+      "style": {
+        "fontSize": 139.8,
+        "fontWeight": "500",
+        "color": "#a9b6bf"
+      },
+      "maxLines": 2,
+      "component": {
+        "role": "label",
+        "tone": "muted",
+        "type": "panel-text"
+      }
+    },
+    {
+      "id": "dash-card-temp-value",
+      "kind": "text",
+      "parentId": "dash-card-temp",
+      "position": [
+        0,
+        0.03,
+        0
+      ],
+      "text": "20.8 °C",
+      "style": {
+        "fontSize": 234.1,
+        "fontWeight": "600",
+        "color": "#eef2f0"
+      },
+      "maxLines": 2,
+      "component": {
+        "role": "title",
+        "tone": "default",
+        "type": "panel-text"
+      }
+    },
+    {
+      "id": "dash-card-humidity",
+      "kind": "group",
+      "parentId": "dash-panel",
+      "position": [
+        0,
+        0,
+        0.005
+      ]
+    },
+    {
+      "id": "dash-card-humidity-label",
+      "kind": "text",
+      "parentId": "dash-card-humidity",
+      "position": [
+        0,
+        0.1,
+        0
+      ],
+      "text": "Humidity",
+      "style": {
+        "fontSize": 137.9,
+        "fontWeight": "500",
+        "color": "#a9b6bf"
+      },
+      "maxLines": 2,
+      "component": {
+        "role": "label",
+        "tone": "muted",
+        "type": "panel-text"
+      }
+    },
+    {
+      "id": "dash-card-humidity-value",
+      "kind": "text",
+      "parentId": "dash-card-humidity",
+      "position": [
+        0,
+        0.03,
+        0
+      ],
+      "text": "51 %",
+      "style": {
+        "fontSize": 230.9,
+        "fontWeight": "600",
+        "color": "#eef2f0"
+      },
+      "maxLines": 2,
+      "component": {
+        "role": "title",
+        "tone": "default",
+        "type": "panel-text"
+      }
+    },
+    {
+      "id": "dash-card-co2",
+      "kind": "group",
+      "parentId": "dash-panel",
+      "position": [
+        0.25,
+        0,
+        0.005
+      ]
+    },
+    {
+      "id": "dash-card-co2-label",
+      "kind": "text",
+      "parentId": "dash-card-co2",
+      "position": [
+        0,
+        0.1,
+        0
+      ],
+      "text": "CO2",
+      "style": {
+        "fontSize": 139.8,
+        "fontWeight": "500",
+        "color": "#a9b6bf"
+      },
+      "maxLines": 2,
+      "component": {
+        "role": "label",
+        "tone": "muted",
+        "type": "panel-text"
+      }
+    },
+    {
+      "id": "dash-card-co2-value",
+      "kind": "text",
+      "parentId": "dash-card-co2",
+      "position": [
+        0,
+        0.03,
+        0
+      ],
+      "text": "580 ppm",
+      "style": {
+        "fontSize": 234.1,
+        "fontWeight": "600",
+        "color": "#eef2f0"
+      },
+      "maxLines": 2,
+      "component": {
+        "role": "title",
+        "tone": "default",
+        "type": "panel-text"
+      }
+    },
+    {
+      "id": "dash-range-1h",
+      "kind": "text",
+      "label": "Show the last hour",
+      "parentId": "dash-panel",
+      "position": [
+        -0.27,
+        -0.08,
+        0.005
+      ],
+      "text": "1 h",
+      "style": {
+        "fontSize": 150,
+        "fontWeight": "600",
+        "color": "#eef2f0",
+        "textAlign": "center"
+      },
+      "extents": {
+        "width": 0.11,
+        "height": 0.05
+      }
+    },
+    {
+      "id": "dash-range-24h",
+      "kind": "text",
+      "label": "Show the last 24 hours",
+      "parentId": "dash-panel",
+      "position": [
+        -0.14,
+        -0.08,
+        0.005
+      ],
+      "text": "24 h",
+      "style": {
+        "fontSize": 150,
+        "fontWeight": "600",
+        "color": "#f2b544",
+        "textAlign": "center"
+      },
+      "extents": {
+        "width": 0.11,
+        "height": 0.05
+      }
+    },
+    {
+      "id": "dash-range-7d",
+      "kind": "text",
+      "label": "Show the last 7 days",
+      "parentId": "dash-panel",
+      "position": [
+        -0.01,
+        -0.08,
+        0.005
+      ],
+      "text": "7 d",
+      "style": {
+        "fontSize": 150,
+        "fontWeight": "600",
+        "color": "#eef2f0",
+        "textAlign": "center"
+      },
+      "extents": {
+        "width": 0.11,
+        "height": 0.05
+      }
+    },
+    {
+      "id": "dash-refresh",
+      "kind": "text",
+      "label": "Refresh readings",
+      "parentId": "dash-panel",
+      "position": [
+        0.24,
+        -0.08,
+        0.005
+      ],
+      "text": "Refresh",
+      "style": {
+        "fontSize": 150,
+        "fontWeight": "600",
+        "color": "#f2b544",
+        "textAlign": "center"
+      },
+      "extents": {
+        "width": 0.2,
+        "height": 0.05
+      }
+    },
+    {
+      "id": "dash-status",
+      "kind": "text",
+      "parentId": "dash-panel",
+      "position": [
+        0,
+        -0.18,
+        0.005
+      ],
+      "text": "Averages over the last 24 hours",
+      "style": {
+        "fontSize": 166,
+        "fontWeight": "400",
+        "color": "#a9b6bf"
+      },
+      "extents": {
+        "width": 0.7,
+        "height": 0.06
+      },
+      "maxLines": 1,
+      "component": {
+        "role": "body",
+        "tone": "muted",
+        "type": "panel-text"
+      }
+    }
+  ],
+  "polylines": [],
+  "lights": [],
+  "materials": [],
+  "interactions": [
+    {
+      "nodeId": "dash-range-1h",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ],
+      "triggers": [
+        {
+          "on": "select",
+          "actionId": "dashboard.set-range",
+          "payload": {
+            "range": "1h"
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "dash-range-24h",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ],
+      "triggers": [
+        {
+          "on": "select",
+          "actionId": "dashboard.set-range",
+          "payload": {
+            "range": "24h"
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "dash-range-7d",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ],
+      "triggers": [
+        {
+          "on": "select",
+          "actionId": "dashboard.set-range",
+          "payload": {
+            "range": "7d"
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "dash-refresh",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "select"
+      ],
+      "triggers": [
+        {
+          "on": "select",
+          "actionId": "dashboard.refresh"
+        }
+      ]
+    }
+  ],
+  "animations": [],
+  "theme": {
+    "highContrast": {
+      "borderScale": 2,
+      "color": {
+        "border": "#ffffff",
+        "focus": "#ffd25e",
+        "surface": "#42525f",
+        "text": "#ffffff",
+        "textMuted": "#ffffff"
+      },
+      "surfaceOpacity": 1,
+      "typeBoostDeg": 0.2
+    },
+    "preferences": {
+      "highContrast": false,
+      "reducedMotion": false
+    },
+    "tokens": {
+      "color": {
+        "border": "#6b7d8c",
+        "borderStrong": "#c4d0d8",
+        "degraded": "#9cc8ff",
+        "degradedSurface": "#1e2c3d",
+        "error": "#ff8a7a",
+        "errorSurface": "#3a1f1e",
+        "focus": "#f2b544",
+        "onFocus": "#14202a",
+        "placeholder": "#6b7d8c",
+        "selectedFill": "#3b3320",
+        "success": "#8fd9b6",
+        "surface": "#1b2630",
+        "surfacePressed": "#33444f",
+        "surfaceRaised": "#26343f",
+        "text": "#eef2f0",
+        "textDisabled": "#808d96",
+        "textMuted": "#a9b6bf"
+      },
+      "depth": {
+        "baseMeters": 0,
+        "hoverMeters": 0.01,
+        "overlayMeters": 0.03,
+        "raisedMeters": 0.005
+      },
+      "distance": {
+        "defaultMeters": 1.5,
+        "maxMeters": 3,
+        "minMeters": 0.6
+      },
+      "input": {
+        "gazeDwellMs": 1000,
+        "gazeStepMeters": 0.1,
+        "lookAwayCancelMs": 1500,
+        "reticleDeg": 2
+      },
+      "motion": {
+        "appearScaleFrom": 0.96,
+        "baseMs": 240,
+        "fastMs": 120,
+        "hoverScale": 1.04,
+        "maxMs": 500,
+        "progressLoopMs": 1200,
+        "slowMs": 400
+      },
+      "opacity": {
+        "disabledBorder": 0.5,
+        "placeholder": 0.4,
+        "surface": 0.92
+      },
+      "shape": {
+        "borderWidthDeg": 0.15,
+        "borderWidthFocusDeg": 0.3,
+        "radiusButtonDeg": 0.8,
+        "radiusCardDeg": 0.8,
+        "radiusPanelDeg": 1.2
+      },
+      "space": {
+        "lgDeg": 2,
+        "mdDeg": 1.2,
+        "smDeg": 0.8,
+        "xlDeg": 3.2,
+        "xsDeg": 0.4
+      },
+      "tint": {
+        "ceiling": "#a9b6bf",
+        "floor": "#8fd9b6",
+        "opacity": 0.35,
+        "seat": "#d9a6f2",
+        "table": "#f2b544",
+        "wall": "#9cc8ff"
+      },
+      "type": {
+        "bodyDeg": 1.4,
+        "labelDeg": 1.2,
+        "lineHeight": 1.3,
+        "minAngleDeg": 1.2,
+        "titleDeg": 2
+      }
+    },
+    "version": 1
+  }
+}

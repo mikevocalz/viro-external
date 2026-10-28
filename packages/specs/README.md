@@ -7,7 +7,7 @@ Two renderers consume the same description:
 - **Native Viro (iOS, Android, Quest, PICO):** ViroCore renders the panel. ViroCore and any Eskiu-backed surface live on this side only.
 - **Specs:** Lens Studio renders it. ViroCore does not run on the glasses, and nothing from Eskiu, React or React Native ships in the Lens. The Lens runtime in [`lens/`](./lens) is plain Lens Studio TypeScript, and `specs:validate-lens` fails the build if any file in it imports `@viro-external/*`, `react` or `react-native`.
 
-Version `0.2.0-rc.1`. Targets SPECS 27, Lens Studio 5.22.0 or later. The release was validated in Lens Studio 5.24.0 Preview, not on hardware (see [Status](#status-and-what-is-not-validated)).
+Version `0.3.0`. Targets SPECS 27, Lens Studio 5.22.0 or later. Lens Studio Preview is the validation tier (see [Status](#status-and-what-is-not-validated)). Supported combinations are in [doc/Compatibility.md](./doc/Compatibility.md); changes since 0.2.0 are in [CHANGELOG.md](./CHANGELOG.md).
 
 ## Contents
 
@@ -74,7 +74,7 @@ Moving the snapshot between processes is your job. `SpecsRuntimeTransport` defin
 | pnpm | 12.8.1 | root `packageManager` |
 | Lens Studio | 5.22.0+ (validated on 5.24.0.26090816) | `specs:doctor` reads `studioVersion` from the `.esproj` |
 | Lens project target | `Spectacles` | `specs:doctor` reads `targetPlatform` |
-| Lens packages | see [step 3](#3-install-lens-packages) | `specs:doctor` warns if missing from `Packages/` |
+| Lens packages | see [step 3](#3-install-lens-packages) | `specs:doctor` reads each installed version and fails below the minimum |
 | Codex CLI with plugin support | only for `specs:go` | `specs:go` probes `codex --version` and `codex plugin list --json` |
 
 The upstream Snap package set is pinned to `specs-devs/packages` commit `df8820c0c4970f052e545b8da1dd288c2516d912` in [`upstream/specs-27.json`](./upstream/specs-27.json). [`doc/UpstreamIntegration.md`](./doc/UpstreamIntegration.md) covers the upgrade rules.
@@ -101,7 +101,7 @@ From another package in the workspace:
 }
 ```
 
-`@viro-external/xr-contract` is a peer dependency (`^0.2.0`). `pnpm --filter @viro-external/specs build` emits ESM to `dist/` and CommonJS to `dist/cjs/`. The export map sends `import` to ESM, `require` to CommonJS, and the `react-native` condition (Metro) to `src/index.ts`. The package's `types` entry points at `src/index.ts`.
+`@viro-external/xr-contract` is a peer dependency (`^0.3.0`). `pnpm --filter @viro-external/specs build` emits ESM and declarations to `dist/` and CommonJS to `dist/cjs/`. The published export map sends `types` to `dist/index.d.ts`, `import` to ESM, `require` to CommonJS, and the `react-native` condition (Metro) to `src/index.ts`. Inside this workspace `types` points at `src/index.ts`; `pnpm pack` swaps in the published map from `publishConfig`, so publish the packed tarball, never the folder. `pnpm specs:test-consumer` packs both packages, installs them into a clean npm project and checks what a consumer gets.
 
 ## Authoring a scene
 
@@ -212,13 +212,14 @@ Run every script from the repo root with `pnpm --filter @viro-external/specs <sc
 | --- | --- | --- | --- |
 | `typecheck` | `tsc --noEmit` | none | Type-checks `src/`. Does not cover `lens/` (that needs Lens Studio globals) |
 | `build` | `tsc -p tsconfig.build.json && tsc -p tsconfig.build.cjs.json` | none | Emits ESM to `dist/` and CommonJS to `dist/cjs/` |
-| `specs:validate-lens` | `scripts/validate-lens-runtime.mjs` | none | Checks that 18 required `lens/*.ts` files exist, no Lens file imports `@viro-external/`, `react`, `react-native` or `../src/`, and every `./` import resolves |
-| `specs:sync` | `scripts/sync-lens-runtime.mjs` | `--project <path>` (required), `--clean` | Copies `lens/` to `<project>/Assets/ViroSpecs/lens/` and writes `viro-specs.dependencies.json`. `--clean` deletes `Assets/ViroSpecs` first, **including Lens `.meta` files**, which gives the scripts new asset identities and breaks scene references |
-| `specs:doctor` | `scripts/doctor-lens-project.mjs` | `--project <path>` (required) | Requires exactly one `.esproj`, `targetPlatform: Spectacles` and Lens Studio 5.22+ (errors, exit 1). Warns on missing packages and an unsynced runtime |
-| `specs:bootstrap` | `scripts/bootstrap-platform-lab.mjs` | `--project <path>` (required) | Runs `specs:doctor`, then `specs:sync` without `--clean`, then writes `VIRO_SPECS_CLAD_FINISH.md` into the project |
-| `specs:go` | `scripts/go-clad.mjs` | `--project <path>` (required), `--mcp-url <url>`, `--exec`, `--no-auto-review` (alias `--no-full-auto`) | Runs the doctor, probes the Lens Studio MCP server with an authenticated `initialize`, merges the endpoint into `<project>/.codex/config.toml`, installs the `ls-clad@ls-extensions` Codex plugin if absent, then runs `specs:bootstrap`. `--exec` also pipes the finish prompt into `codex exec` |
+| `specs:validate-lens` | `scripts/validate-lens-runtime.mjs` | none | Checks that 27 required `lens/*.ts` files exist, no Lens file imports `@viro-external/`, `react`, `react-native` or `../src/`, and every `./` import resolves |
+| `specs:sync` | `scripts/sync-lens-runtime.mjs` | `--project <path>` (required), `--with-validation`, `--interaction-kit 2\|4`, `--force-overwrite <path>`, `--adopt-existing` | Copies the production runtime to `<project>/Assets/ViroSpecs/lens/` and writes `viro-specs.dependencies.json`. `--with-validation` also copies the LEAF, AiPreviewAgent and Platform Lab files to `Assets/ViroSpecsValidation/lens/`. Updates files in place, keeps `.meta` files and your edits. See [doc/SyncAndDoctor.md](./doc/SyncAndDoctor.md) |
+| `specs:doctor` | `scripts/doctor-lens-project.mjs` | `--project <path>` (required), `--with-validation`, `--before-sync` | Exits 1 unless the folder has one `.esproj`, `targetPlatform: Spectacles`, Lens Studio 5.22+, and every required Lens package installed at or above its minimum (read from the package's `package.native`). Also checks the synced runtime against its ledger and dependency record. See [doc/SyncAndDoctor.md](./doc/SyncAndDoctor.md) |
+| `specs:bootstrap` | `scripts/bootstrap-platform-lab.mjs` | `--project <path>` (required) | Runs `specs:doctor --with-validation --before-sync`, `specs:sync --with-validation` and the full `specs:doctor --with-validation`, then writes `VIRO_SPECS_CLAD_FINISH.md` into the project |
+| `specs:go` | `scripts/go-clad.mjs` | `--project <path>` (required), `--mcp-url <url>`, `--exec`, `--no-auto-review` (alias `--no-full-auto`) | Runs `specs:doctor --with-validation --before-sync`, probes the Lens Studio MCP server with an authenticated `initialize`, merges the endpoint into `<project>/.codex/config.toml`, installs the `ls-clad@ls-extensions` Codex plugin if absent, then runs `specs:bootstrap`. `--exec` also pipes the finish prompt into `codex exec` |
+| `specs:test-lens` | `node --test scripts/lens-files.test.mjs scripts/lens-doctor.test.mjs` | none | The production/validation split, sync ownership and every doctor check, against throwaway Lens projects with real package archives |
 | `specs:test-runner` | `node --test scripts/go-clad.test.mjs` | none | 13 tests for `specs:go` against a fixture MCP server and a mock Codex binary |
-| `prepack` | build + checks | none | Builds `xr-contract` and this package, `require`s `dist/cjs/index.js`, `import`s `dist/index.js`, then runs `specs:validate-lens`, `specs:test-runner` and `scripts/viro-bundle.test.mjs` |
+| `prepack` | build + checks | none | Builds `xr-contract` and this package, `require`s `dist/cjs/index.js`, `import`s `dist/index.js`, then runs `specs:validate-lens`, `specs:test-lens`, `specs:test-runner`, `specs:test-presentation`, `specs:test-host` and `scripts/viro-bundle.test.mjs` |
 
 `specs:go` picks the MCP endpoint in this order: `--mcp-url`, `VIRO_SPECS_MCP_URL`, the `lens-studio` server in project or user Codex config, then `http://localhost:50040/mcp`. It never prints credentials. [`doc/OneCommandCLAD.md`](./doc/OneCommandCLAD.md) is the full reference.
 
@@ -236,20 +237,20 @@ pnpm --filter @viro-external/specs specs:doctor -- --project "/abs/path/MySpecsL
 
 ### 3. Install Lens packages
 
-Install through the Asset Library so they land in `Packages/`. The versions below are the ones recorded in the 2026-10-02 validation run.
+Install through the Asset Library so they land in `Packages/`. `specs:doctor` fails if a package is missing or below its minimum; the minimums live in [`lens-runtime.json`](./lens-runtime.json).
 
-| Package | Needed for | Validated version |
+| Package | Needed for | Minimum |
 | --- | --- | --- |
 | `SpectaclesInteractionKit.lspkg` | interaction | 2.0.0 |
 | `SpectaclesUIKit.lspkg` | panel prefab | 2.0.0 |
 | `SurfacePlacement.lspkg` | placement | 2.0.0 |
 | `VolumetricLine.lspkg` | routes and polylines | 2.0.0 |
 | `SpecsNavigationKit.lspkg` | GPS routes | 2.0.0 |
-| `Leaf.lspkg` | Preview regression scenarios (editor only) | 2.0.2 |
-| `AiPreviewAgentInspect.lspkg` | Preview inspection (editor only) | 2.0.2 |
-| `AiPreviewAgentInteract.lspkg` | Preview synthetic input (editor only) | 2.0.1 |
+| `Leaf.lspkg` | Preview regression scenarios (validation only) | 2.0.2 |
+| `AiPreviewAgentInspect.lspkg` | Preview inspection (validation only) | 2.0.1 |
+| `AiPreviewAgentInteract.lspkg` | Preview synthetic input (validation only) | 2.0.1 |
 
-`specs:sync` copies all 19 files in `lens/`, and between them they import from all eight packages above. The LEAF and AiPreviewAgent packages only do work in the editor, but the Lens still fails to compile without them. Install all eight before you sync.
+A default `specs:sync` copies only the production runtime, which imports the first five packages. The last three are needed only if you sync with `--with-validation` (LEAF scenarios, AiPreviewAgent checks, the Platform Lab). Use `InteractionKit.lspkg` 4.0.0 instead of `SpectaclesInteractionKit.lspkg` if your project is on the 4.0.0 line; see [doc/Compatibility.md](./doc/Compatibility.md).
 
 ### 4. Sync the runtime
 
@@ -258,7 +259,7 @@ pnpm --filter @viro-external/specs specs:validate-lens
 pnpm --filter @viro-external/specs specs:sync -- --project "/abs/path/MySpecsLens"
 ```
 
-Use `--clean` only for a first install or a project you are willing to rewire.
+Add `--with-validation` to also get the LEAF and Platform Lab files in `Assets/ViroSpecsValidation/lens/`. Rerunning the sync is safe on a wired project: it keeps `.meta` files and any file you edited. A project synced by an older version needs a one-time migration; see [doc/SyncAndDoctor.md](./doc/SyncAndDoctor.md#projects-synced-before-the-ledger).
 
 ### 5. Wire the scene
 
@@ -334,10 +335,11 @@ The yaw sign follows Viro (counter-clockwise about +Y, so the user's left is pos
 | Panel is invisible | `defaultPanelPrefab` not set, so `panel` is an empty SceneObject | Assign a UI Kit frame prefab in the registry |
 | Panels face the wrong way or tilt | Rotation written as `[w, x, y, z]` or as Euler angles | Write `[x, y, z, w]`. See [Three-slot workspace](#three-slot-workspace-on-specs) |
 | Content 100× too large or too small | Mixed units | `position` is meters (converted to cm). `scale` is not converted |
-| Lens compile errors in `Assets/ViroSpecs/lens` naming an `.lspkg` path | One of the eight packages is missing, including the editor-only LEAF and AiPreviewAgent ones | Install every package in [step 3](#3-install-lens-packages) and recompile |
-| Scene references to `ViroSpecs*` scripts are lost after a resync | `specs:sync --clean` deleted the `.meta` files | Resync without `--clean`. `specs:bootstrap` and `specs:go` never pass it |
+| Lens compile errors naming an `.lspkg` path | A package is missing or too old. Validation files in `Assets/` need Leaf and AiPreviewAgent too | Run `specs:doctor`; it names the package and the minimum |
+| Scene references to `ViroSpecs*` scripts are lost after a resync | An older `specs:sync --clean` deleted the `.meta` files. `--clean` has been removed | Rewire the references once. Later syncs keep `.meta` files |
 | `specs:doctor`: `Expected exactly one .esproj file` | Pointed at the wrong folder, or a backup `.esproj` sits next to the real one | Pass the folder that contains the single `.esproj` |
-| `specs:doctor` warns `SpectaclesUIKit.lspkg` missing but `viro-specs.dependencies.json` does not list it | The two scripts keep different lists. The doctor's list is the correct one | Install UI Kit |
+| `specs:doctor`: `version unreadable` | The `.lspkg` in `Packages/` is empty, corrupt or zip64, or an unpacked folder has no `package.native` | Reinstall the package from the Asset Library |
+| `specs:doctor` warns about validation scripts in `Assets/ViroSpecs/lens` | The project was synced before the production/validation split | Follow [doc/SyncAndDoctor.md](./doc/SyncAndDoctor.md#projects-synced-before-the-ledger) |
 | `specs:go`: `initialize could not connect` / `HTTP 401` | Lens Studio or its MCP server is not running, the port changed, or the token is stale | Start the MCP server in Lens Studio, pass `--mcp-url`, refresh the Authorization header in Codex config |
 | `specs:go`: `Codex did not load lens-studio for this project` | Codex has not trusted the project's `.codex/config.toml` | Open Codex in the Lens folder, trust it, rerun |
 | Preview input stops working after a LEAF run (`HostFunction Object is null`) | Seen during validation. Cause unproven | Refresh Preview, hover once before pinching |

@@ -24,7 +24,7 @@ The scripts expect exactly one `.esproj` in the folder you pass them. Do not lea
 npx -y pnpm@12.8.1 --filter @viro-external/specs specs:doctor -- --project "/abs/path/MyAppSpecs"
 ```
 
-`specs:doctor` fails unless the folder has one `.esproj`, `targetPlatform: Spectacles` and Lens Studio 5.22 or later. It warns about missing Lens packages and an unsynced runtime. Install any missing package through the Asset Library (see [README step 3](../README.md#3-install-lens-packages)). Installing a package through the MCP also drops its demo objects into the scene; delete them.
+`specs:doctor` fails unless the folder has one `.esproj`, `targetPlatform: Spectacles`, Lens Studio 5.22 or later, and every required Lens package at or above its minimum version. It reads the version from each package's `package.native`, so an empty or outdated archive fails too. Install or update the package it names through the Asset Library (see [README step 3](../README.md#3-install-lens-packages)). [SyncAndDoctor.md](./SyncAndDoctor.md) lists every check. Installing a package through the MCP also drops its demo objects into the scene; delete them.
 
 If the Lens fetches `http://` URLs (a local dev server) or uses WebView, tick **Project Settings > Experimental API** and save. Lens Studio stores this as `EXPERIMENTAL_API` in `metaInfo.lensDescriptors` in the `.esproj`. The `.esproj` also has a `spkPrivilegeLevel` field, which is a different setting: editing it by hand does nothing useful, because the next save overwrites it, and the Editor API has no setter for it.
 
@@ -35,13 +35,13 @@ npx -y pnpm@12.8.1 --filter @viro-external/specs specs:validate-lens
 npx -y pnpm@12.8.1 --filter @viro-external/specs specs:sync -- --project "/abs/path/MyAppSpecs"
 ```
 
-`specs:sync` copies `packages/specs/lens/` to `<project>/Assets/ViroSpecs/lens/`. The synced `requiredPackages` list also names `SpectaclesUIKit.lspkg`, because the runtime imports `ScrollWindow`. Do not pass `--clean` on a wired project: it deletes the Lens `.meta` files, the scripts get new asset identities, and every Inspector reference to them breaks.
+`specs:sync` copies the production runtime to `<project>/Assets/ViroSpecs/lens/`. Add `--with-validation` for the LEAF scenarios, AiPreviewAgent checks and Platform Lab, which go to `Assets/ViroSpecsValidation/lens/` and need the Leaf and AiPreviewAgent packages. The sync replaces files in place and never touches `.meta` files, so Inspector references survive a resync. It keeps any file you edited and lists it; `--force-overwrite <path>` replaces one.
 
-`specs:bootstrap -- --project <path>` runs the doctor and then a sync without `--clean`. `specs:go` adds the Lens Studio MCP and Codex setup; see [OneCommandCLAD.md](./OneCommandCLAD.md).
+`specs:bootstrap -- --project <path>` runs the doctor, a sync with `--with-validation`, and the doctor again. `specs:go` adds the Lens Studio MCP and Codex setup; see [OneCommandCLAD.md](./OneCommandCLAD.md).
 
 ### 4. Move stale scripts out of Assets
 
-Without `--clean`, `specs:sync` overwrites files but never removes them. Scripts left from older branches, in `Assets/ViroSpecs/lens/` or elsewhere in `Assets/`, stay in the project and fail Lens Studio's TypeScript compile.
+`specs:sync` removes a file the SDK stopped shipping only when its ownership ledger (`viro-specs.owned.json`) lists the file and you have not edited it. Scripts from older branches, files synced before the ledger existed, and anything elsewhere in `Assets/` stay in the project and can fail Lens Studio's TypeScript compile. `specs:doctor` warns about validation scripts an older sync left in `Assets/ViroSpecs/lens/`; [SyncAndDoctor.md](./SyncAndDoctor.md#projects-synced-before-the-ledger) covers that migration.
 
 Compare `Assets/ViroSpecs/lens/` against `packages/specs/lens/` and look for any other app scripts from an earlier branch. Move each stale file to a folder outside `Assets/` (for example `<project>/_stale/`). Do not delete them; you may need one back. Recompile and confirm the Logger shows no TypeScript errors before you continue.
 
@@ -122,11 +122,12 @@ These are the checks that exist in the repo. None of them compiles `lens/` the w
 | `@viro-external/specs build` | ESM and CommonJS output in `dist/` |
 | `@viro-external/specs specs:validate-lens` | The required `lens/*.ts` files exist, no Lens file imports `@viro-external/*`, `react`, `react-native` or `../src/`, and every `./` import resolves. Static only |
 | `@viro-external/specs specs:test-presentation` | `scripts/presentation.test.mjs`. Run after `build` |
+| `@viro-external/specs specs:test-lens` | `scripts/lens-files.test.mjs` and `scripts/lens-doctor.test.mjs`: the production/validation split, sync ownership, every doctor check |
 | `@viro-external/specs specs:test-runner` | `specs:go` tests against a fixture MCP server and a mock Codex |
 | `@viro-external/specs specs:test-bundle` | Builds, then runs `scripts/viro-bundle.test.mjs` |
-| `@viro-external/specs specs:doctor -- --project <path>` | The Lens project's target, Lens Studio version, packages and sync state |
+| `@viro-external/specs specs:doctor -- --project <path>` | The Lens project's target, Lens Studio version, installed package versions and sync state. Exits 1 on any error |
 
-`prepack` runs the build, `specs:validate-lens`, `specs:test-runner`, `specs:test-presentation` and the bundle test together. At the root, `pnpm typecheck` runs `typecheck` in every package that has one.
+`prepack` runs the build, `specs:validate-lens`, `specs:test-lens`, `specs:test-runner`, `specs:test-presentation`, `specs:test-host` and the bundle test together. At the root, `pnpm typecheck` runs `typecheck` in every package that has one.
 
 ### 11. Run on Spectacles
 
@@ -171,7 +172,7 @@ SIK's cursor holds the hovered Interactable for a frame. When a page swap destro
 
 ### Stale scripts break the compile
 
-See step 4. `specs:sync` without `--clean` leaves old files in place, and `--clean` breaks scene references. Move stale files out by hand.
+See step 4. `specs:sync` removes only files its ledger owns and you did not edit. Move other stale files out by hand.
 
 ### Fetch fails with "URL is not secure"
 
@@ -191,7 +192,7 @@ Lens Studio's `openProject` will not reopen the project that is already open; it
 
 ### The lens-studio MCP is not connected
 
-Claude Code connects the `lens-studio` MCP server only when a session starts. If Lens Studio was launched after the session, run `/mcp` to reconnect.
+Most MCP clients connect the `lens-studio` server only when they start. If Lens Studio was launched afterwards, reconnect the server from your client.
 
 ### Lens Studio AI does nothing
 

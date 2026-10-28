@@ -6,6 +6,8 @@ import {
 } from "./ViroSpecsProtocol";
 import { ViroSpecsAssetRegistry } from "./ViroSpecsAssetRegistry";
 import { ViroSpecsSceneRuntime } from "./ViroSpecsSceneRuntime";
+import { formatViroSpecsHostDiagnostic } from "./ViroSpecsHostDiagnostics";
+import { readViroSpecsSceneInput } from "./ViroSpecsSceneDocument";
 
 /**
  * Lens Studio component that owns the live Viro Specs scene executor.
@@ -46,7 +48,18 @@ export class ViroSpecsRuntimeHost extends BaseScriptComponent {
     );
   }
 
+  /**
+   * Applies a protocol 1 snapshot. Validates version, kinds, fields, IDs and
+   * parents first (the checks ViroSpecsSceneController uses), so a bad raw
+   * payload throws before any SceneObject changes. For transactional
+   * replacement and protocol 2, use ViroSpecsSceneControllerHost.
+   */
   applySceneSnapshot(scene: ViroSpecsSceneSnapshot): void {
+    const read = readViroSpecsSceneInput(scene, 0);
+    if (read.ok === false || read.scene.protocol !== 1) {
+      const reasons = read.ok === false ? read.diagnostics.map(formatViroSpecsHostDiagnostic) : ["expected scene protocol 1"];
+      throw new Error("Invalid Specs scene snapshot: " + reasons.join("; "));
+    }
     this.applyRenderPlan(compileLensRenderPlan(scene));
   }
 

@@ -18,7 +18,7 @@ A two-tab Spectacles page built on `ViroSpecsPresentationHost`: a header with on
 
 ## Setup
 
-1. Sync the runtime into your project. On a project that is already wired, leave out `--clean`:
+1. Sync the runtime into your project. Resyncing a wired project keeps its `.meta` files and your edits:
 
    ```bash
    npx -y pnpm@12.8.1 --filter @viro-external/specs specs:sync -- --project "/abs/path/MyAppSpecs"

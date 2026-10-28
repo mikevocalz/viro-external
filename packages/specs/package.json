@@ -1,6 +1,6 @@
 {
   "name": "@viro-external/specs",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Portable Viro scene and interaction adapter foundation for Snap Specs / Spectacles Lens Studio runtimes.",
   "main": "./dist/cjs/index.js",
   "react-native": "./src/index.ts",
@@ -10,8 +10,15 @@
     "src",
     "dist",
     "lens",
+    "lens-runtime.json",
     "scripts",
+    "!scripts/*.test.mjs",
+    "!scripts/support",
+    "!scripts/fixtures",
+    "!scripts/check-packed-consumer.mjs",
+    "!scripts/build-lens-core.mjs",
     "README.md",
+    "CHANGELOG.md",
     "doc",
     "upstream"
   ],
@@ -23,13 +30,17 @@
     "specs:bootstrap": "node scripts/bootstrap-platform-lab.mjs",
     "specs:go": "node scripts/go-clad.mjs",
     "specs:test-runner": "node --test scripts/go-clad.test.mjs",
+    "specs:test-lens": "node --test scripts/lens-files.test.mjs scripts/lens-doctor.test.mjs",
     "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.build.cjs.json && node -e \"require('node:fs').writeFileSync('dist/cjs/package.json', JSON.stringify({ type: 'commonjs' }) + '\\n')\"",
-    "prepack": "pnpm --filter @viro-external/xr-contract build && pnpm build && node -e \"require('./dist/cjs/index.js')\" && node --input-type=module -e \"await import('./dist/index.js')\" && pnpm specs:validate-lens && pnpm specs:test-runner && pnpm specs:test-presentation && node --test scripts/viro-bundle.test.mjs",
+    "prepack": "pnpm --filter @viro-external/xr-contract build && pnpm build && node -e \"require('./dist/cjs/index.js')\" && node --input-type=module -e \"await import('./dist/index.js')\" && pnpm specs:validate-lens && pnpm specs:test-lens && pnpm specs:test-runner && pnpm specs:test-presentation && pnpm specs:test-host && node --test scripts/viro-bundle.test.mjs",
     "specs:test-bundle": "pnpm build && node --test scripts/viro-bundle.test.mjs",
-    "specs:test-presentation": "node --test scripts/presentation.test.mjs"
+    "specs:test-presentation": "node --test scripts/presentation.test.mjs",
+    "specs:test-host": "node scripts/build-lens-core.mjs && node --test scripts/scene-controller.test.mjs scripts/interaction-kit.test.mjs scripts/actions.test.mjs scripts/actions-fixtures.test.mjs scripts/experience.test.mjs",
+    "specs:test-consumer": "node scripts/check-packed-consumer.mjs",
+    "specs:test-reference-apps": "node examples/reference-apps/gen-lens-scenes.mjs --check && node scripts/build-lens-core.mjs && node --test examples/reference-apps/reference-apps.test.mjs"
   },
   "peerDependencies": {
-    "@viro-external/xr-contract": "^0.2.0"
+    "@viro-external/xr-contract": "^0.3.0"
   },
   "devDependencies": {
     "@viro-external/xr-contract": "workspace:*",
@@ -52,7 +63,20 @@
   },
   "publishConfig": {
     "access": "public",
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://registry.npmjs.org/",
+    "main": "./dist/cjs/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "react-native": "./src/index.ts",
+        "import": "./dist/index.js",
+        "require": "./dist/cjs/index.js",
+        "default": "./dist/index.js"
+      },
+      "./package.json": "./package.json"
+    }
   },
   "engines": {
     "node": ">=22.13.0"

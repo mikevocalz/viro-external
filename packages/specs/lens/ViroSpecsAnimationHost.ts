@@ -30,8 +30,13 @@ export class ViroSpecsAnimationHost extends BaseScriptComponent {
     nodeId: string,
     plan: ViroSpecsNativeAnimationPlan,
     onComplete?: () => void
-  ): void {
-    this.requireRuntime().play(nodeId, plan, onComplete);
+  ): () => void {
+    return this.requireRuntime().play(nodeId, plan, onComplete);
+  }
+
+  /** Stops every animation playing on `nodeId`. */
+  stop(nodeId: string): void {
+    this.requireRuntime().stop(nodeId);
   }
 
   private requireRuntime(): ViroSpecsAnimationRuntime {

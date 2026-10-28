@@ -1,0 +1,117 @@
+{
+  "version": 2,
+  "nodes": [
+    {
+      "id": "platform-lab-root",
+      "kind": "group",
+      "position": [
+        0,
+        0,
+        -1.5
+      ]
+    },
+    {
+      "id": "platform-lab-title",
+      "kind": "text",
+      "parentId": "platform-lab-root",
+      "position": [
+        0,
+        0.25,
+        0
+      ],
+      "text": "Viro Cross-Platform Lab"
+    },
+    {
+      "id": "platform-lab-model",
+      "kind": "model",
+      "parentId": "platform-lab-root",
+      "position": [
+        -0.2,
+        -0.05,
+        0
+      ],
+      "scale": [
+        0.18,
+        0.18,
+        0.18
+      ],
+      "source": "examples/visionos-sweep/assets/shiba.glb",
+      "format": "glb"
+    }
+  ],
+  "polylines": [
+    {
+      "id": "platform-lab-route",
+      "primitive": "volumetric-line",
+      "backendPackage": "VolumetricLine",
+      "points": [
+        [
+          -0.3,
+          -0.2,
+          -1.38
+        ],
+        [
+          0,
+          0.02,
+          -1.38
+        ],
+        [
+          0.3,
+          -0.08,
+          -1.38
+        ]
+      ],
+      "radiusMeters": 0.004
+    }
+  ],
+  "lights": [],
+  "materials": [],
+  "interactions": [
+    {
+      "nodeId": "platform-lab-model",
+      "interactable": true,
+      "manipulation": true,
+      "events": [
+        "select",
+        "drag"
+      ]
+    }
+  ],
+  "animations": [
+    {
+      "nodeId": "platform-lab-title",
+      "name": "platformLabPulse",
+      "plan": {
+        "engine": "AnimationPlayer",
+        "backendPackage": "AnimationExamples",
+        "durationSeconds": 0.5,
+        "delaySeconds": 0,
+        "easing": "ease-in-out",
+        "playbackMode": "loop",
+        "completionEvent": "viro-animation-complete:platform-lab-title:platformLabPulse",
+        "tracks": [
+          {
+            "target": "transform.scale.x",
+            "from": "current",
+            "to": 1.15
+          },
+          {
+            "target": "transform.scale.y",
+            "from": "current",
+            "to": 1.15
+          },
+          {
+            "target": "transform.scale.z",
+            "from": "current",
+            "to": 1.15
+          },
+          {
+            "target": "material.opacity",
+            "from": "current",
+            "to": 0.8
+          }
+        ]
+      }
+    }
+  ]
+}

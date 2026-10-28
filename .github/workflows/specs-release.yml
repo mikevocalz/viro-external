@@ -1,0 +1,110 @@
+name: SPECS release gates
+
+# Release gates for @viro-external/xr-contract and @viro-external/specs.
+# Both packages build from this repo alone (no private Viro checkout), so
+# every job here is portable: no secrets, no environment, read-only token.
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "packages/specs/**"
+      - "packages/xr-platform-contract/**"
+      - "scripts/ci/api-snapshot.mjs"
+      - "pnpm-lock.yaml"
+      - "package.json"
+      - ".github/workflows/specs-release.yml"
+  pull_request:
+    paths:
+      - "packages/specs/**"
+      - "packages/xr-platform-contract/**"
+      - "scripts/ci/api-snapshot.mjs"
+      - "pnpm-lock.yaml"
+      - "package.json"
+      - ".github/workflows/specs-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: specs-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    name: Typecheck, tests, Lens runtime, API snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@12.8.1 --activate
+          pnpm --version
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: |
+          pnpm --filter @viro-external/xr-contract typecheck
+          pnpm --filter @viro-external/specs typecheck
+      - name: Build both packages (ESM, CJS, declarations)
+        run: |
+          pnpm --filter @viro-external/xr-contract build
+          pnpm --filter @viro-external/specs build
+      - name: Validate the Lens runtime (imports, file classes, lens-runtime.json)
+        run: pnpm --filter @viro-external/specs specs:validate-lens
+      - name: Lens file, sync and doctor tests
+        run: pnpm --filter @viro-external/specs specs:test-lens
+      - name: CLAD runner tests
+        run: pnpm --filter @viro-external/specs specs:test-runner
+      - name: Presentation tests (needs dist)
+        run: pnpm --filter @viro-external/specs specs:test-presentation
+      - name: Scene controller, interaction, actions and experience tests (mock host)
+        run: pnpm --filter @viro-external/specs specs:test-host
+      - name: Reference app scene documents on the mock host
+        run: pnpm --filter @viro-external/specs specs:test-reference-apps
+      - name: Viro bundle tests
+        run: pnpm --filter @viro-external/specs exec node --test scripts/viro-bundle.test.mjs
+      - name: Public API snapshots
+        run: node scripts/ci/api-snapshot.mjs
+
+  consumer:
+    name: Pack and install into a clean consumer
+    needs: gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@12.8.1 --activate
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Pack (runs each package's prepack gates)
+        run: |
+          mkdir -p "$RUNNER_TEMP/specs-pack"
+          pnpm --filter @viro-external/xr-contract pack --pack-destination "$RUNNER_TEMP/specs-pack"
+          pnpm --filter @viro-external/specs pack --pack-destination "$RUNNER_TEMP/specs-pack"
+          ls -l "$RUNNER_TEMP/specs-pack"
+      - name: npm install the tarballs with strict peers and check the result
+        run: node packages/specs/scripts/check-packed-consumer.mjs --tarballs "$RUNNER_TEMP/specs-pack"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: specs-tarballs
+          path: ${{ runner.temp }}/specs-pack/*.tgz
+          retention-days: 14

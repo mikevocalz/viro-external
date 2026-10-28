@@ -1,0 +1,698 @@
+{
+  "version": 2,
+  "nodes": [
+    {
+      "id": "nav-panel",
+      "kind": "panel",
+      "position": [
+        0,
+        -0.22,
+        -1.5
+      ],
+      "extents": {
+        "width": 0.53,
+        "height": 0.6
+      },
+      "component": {
+        "type": "spatial-panel"
+      }
+    },
+    {
+      "id": "nav-list-view",
+      "kind": "group",
+      "parentId": "nav-panel"
+    },
+    {
+      "id": "nav-title",
+      "kind": "text",
+      "parentId": "nav-list-view",
+      "position": [
+        0,
+        0.235,
+        0.005
+      ],
+      "text": "Navigation",
+      "style": {
+        "fontSize": 229.1,
+        "fontWeight": "600",
+        "color": "#eef2f0"
+      },
+      "maxLines": 2,
+      "component": {
+        "role": "title",
+        "tone": "default",
+        "type": "panel-text"
+      }
+    },
+    {
+      "id": "nav-list",
+      "kind": "group",
+      "parentId": "nav-list-view",
+      "position": [
+        0,
+        0.05,
+        0.005
+      ],
+      "scroll": {
+        "width": 0.48,
+        "height": 0.26,
+        "contentHeight": 0.52
+      },
+      "component": {
+        "initialIndex": 0,
+        "itemHeightMeters": 0.13,
+        "type": "scroll-view"
+      }
+    },
+    {
+      "id": "nav-card-1",
+      "kind": "panel",
+      "label": "Card 1",
+      "parentId": "nav-list",
+      "position": [
+        -0.12,
+        -0.065,
+        0
+      ],
+      "extents": {
+        "width": 0.22,
+        "height": 0.11
+      },
+      "component": {
+        "state": "idle",
+        "type": "panel-button"
+      }
+    },
+    {
+      "id": "nav-card-1-image",
+      "kind": "image",
+      "parentId": "nav-card-1",
+      "position": [
+        -0.085,
+        0,
+        0.012
+      ],
+      "extents": {
+        "width": 0.04,
+        "height": 0.04
+      },
+      "source": "examples/visionos-sweep/assets/button.png",
+      "component": {
+        "type": "panel-image"
+      }
+    },
+    {
+      "id": "nav-card-2",
+      "kind": "panel",
+      "label": "Card 2",
+      "parentId": "nav-list",
+      "position": [
+        0.12,
+        -0.065,
+        0
+      ],
+      "extents": {
+        "width": 0.22,
+        "height": 0.11
+      },
+      "component": {
+        "state": "idle",
+        "type": "panel-button"
+      }
+    },
+    {
+      "id": "nav-card-2-image",
+      "kind": "image",
+      "parentId": "nav-card-2",
+      "position": [
+        -0.085,
+        0,
+        0.012
+      ],
+      "extents": {
+        "width": 0.04,
+        "height": 0.04
+      },
+      "source": "examples/visionos-sweep/assets/button.png",
+      "component": {
+        "type": "panel-image"
+      }
+    },
+    {
+      "id": "nav-card-3",
+      "kind": "panel",
+      "label": "Card 3",
+      "parentId": "nav-list",
+      "position": [
+        -0.12,
+        -0.195,
+        0
+      ],
+      "extents": {
+        "width": 0.22,
+        "height": 0.11
+      },
+      "component": {
+        "state": "idle",
+        "type": "panel-button"
+      }
+    },
+    {
+      "id": "nav-card-3-image",
+      "kind": "image",
+      "parentId": "nav-card-3",
+      "position": [
+        -0.085,
+        0,
+        0.012
+      ],
+      "extents": {
+        "width": 0.04,
+        "height": 0.04
+      },
+      "source": "examples/visionos-sweep/assets/button.png",
+      "component": {
+        "type": "panel-image"
+      }
+    },
+    {
+      "id": "nav-card-4",
+      "kind": "panel",
+      "label": "Card 4",
+      "parentId": "nav-list",
+      "position": [
+        0.12,
+        -0.195,
+        0
+      ],
+      "extents": {
+        "width": 0.22,
+        "height": 0.11
+      },
+      "component": {
+        "state": "idle",
+        "type": "panel-button"
+      }
+    },
+    {
+      "id": "nav-card-4-image",
+      "kind": "image",
+      "parentId": "nav-card-4",
+      "position": [
+        -0.085,
+        0,
+        0.012
+      ],
+      "extents": {
+        "width": 0.04,
+        "height": 0.04
+      },
+      "source": "examples/visionos-sweep/assets/button.png",
+      "component": {
+        "type": "panel-image"
+      }
+    },
+    {
+      "id": "nav-card-5",
+      "kind": "panel",
+      "label": "Card 5",
+      "parentId": "nav-list",
+      "position": [
+        -0.12,
+        -0.325,
+        0
+      ],
+      "extents": {
+        "width": 0.22,
+        "height": 0.11
+      },
+      "component": {
+        "state": "idle",
+        "type": "panel-button"
+      }
+    },
+    {
+      "id": "nav-card-5-image",
+      "kind": "image",
+      "parentId": "nav-card-5",
+      "position": [
+        -0.085,
+        0,
+        0.012
+      ],
+      "extents": {
+        "width": 0.04,
+        "height": 0.04
+      },
+      "source": "examples/visionos-sweep/assets/button.png",
+      "component": {
+        "type": "panel-image"
+      }
+    },
+    {
+      "id": "nav-card-6",
+      "kind": "panel",
+      "label": "Card 6",
+      "parentId": "nav-list",
+      "position": [
+        0.12,
+        -0.325,
+        0
+      ],
+      "extents": {
+        "width": 0.22,
+        "height": 0.11
+      },
+      "component": {
+        "state": "idle",
+        "type": "panel-button"
+      }
+    },
+    {
+      "id": "nav-card-6-image",
+      "kind": "image",
+      "parentId": "nav-card-6",
+      "position": [
+        -0.085,
+        0,
+        0.012
+      ],
+      "extents": {
+        "width": 0.04,
+        "height": 0.04
+      },
+      "source": "examples/visionos-sweep/assets/button.png",
+      "component": {
+        "type": "panel-image"
+      }
+    },
+    {
+      "id": "nav-card-7",
+      "kind": "panel",
+      "label": "Card 7",
+      "parentId": "nav-list",
+      "position": [
+        -0.12,
+        -0.455,
+        0
+      ],
+      "extents": {
+        "width": 0.22,
+        "height": 0.11
+      },
+      "component": {
+        "state": "idle",
+        "type": "panel-button"
+      }
+    },
+    {
+      "id": "nav-card-7-image",
+      "kind": "image",
+      "parentId": "nav-card-7",
+      "position": [
+        -0.085,
+        0,
+        0.012
+      ],
+      "extents": {
+        "width": 0.04,
+        "height": 0.04
+      },
+      "source": "examples/visionos-sweep/assets/button.png",
+      "component": {
+        "type": "panel-image"
+      }
+    },
+    {
+      "id": "nav-card-8",
+      "kind": "panel",
+      "label": "Card 8",
+      "parentId": "nav-list",
+      "position": [
+        0.12,
+        -0.455,
+        0
+      ],
+      "extents": {
+        "width": 0.22,
+        "height": 0.11
+      },
+      "component": {
+        "state": "idle",
+        "type": "panel-button"
+      }
+    },
+    {
+      "id": "nav-card-8-image",
+      "kind": "image",
+      "parentId": "nav-card-8",
+      "position": [
+        -0.085,
+        0,
+        0.012
+      ],
+      "extents": {
+        "width": 0.04,
+        "height": 0.04
+      },
+      "source": "examples/visionos-sweep/assets/button.png",
+      "component": {
+        "type": "panel-image"
+      }
+    },
+    {
+      "id": "nav-next",
+      "kind": "panel",
+      "label": "Next scene",
+      "parentId": "nav-list-view",
+      "position": [
+        0.14,
+        -0.245,
+        0.005
+      ],
+      "extents": {
+        "width": 0.24692152085295782,
+        "height": 0.08669599806407083
+      },
+      "component": {
+        "state": "idle",
+        "type": "panel-button"
+      }
+    },
+    {
+      "id": "nav-detail",
+      "kind": "group",
+      "parentId": "nav-panel",
+      "visible": false
+    },
+    {
+      "id": "nav-back",
+      "kind": "panel",
+      "label": "Back",
+      "parentId": "nav-detail",
+      "position": [
+        -0.17,
+        0.235,
+        0.005
+      ],
+      "extents": {
+        "width": 0.14,
+        "height": 0.08299051466109837
+      },
+      "component": {
+        "state": "idle",
+        "type": "panel-button"
+      }
+    },
+    {
+      "id": "nav-detail-title",
+      "kind": "text",
+      "parentId": "nav-detail",
+      "position": [
+        0.06,
+        0.235,
+        0.005
+      ],
+      "text": "Card 1",
+      "style": {
+        "fontSize": 229.3,
+        "fontWeight": "600",
+        "color": "#eef2f0"
+      },
+      "maxLines": 2,
+      "component": {
+        "role": "title",
+        "tone": "default",
+        "type": "panel-text"
+      }
+    },
+    {
+      "id": "nav-detail-image",
+      "kind": "image",
+      "parentId": "nav-detail",
+      "position": [
+        0,
+        0.15,
+        0.005
+      ],
+      "extents": {
+        "width": 0.16,
+        "height": 0.09
+      },
+      "source": "examples/visionos-sweep/assets/button.png",
+      "component": {
+        "type": "panel-image"
+      }
+    },
+    {
+      "id": "nav-detail-body",
+      "kind": "text",
+      "parentId": "nav-detail",
+      "position": [
+        0,
+        -0.01,
+        0.005
+      ],
+      "text": "Change the setting below, then go back. The list keeps your place.",
+      "style": {
+        "fontSize": 162.3,
+        "fontWeight": "400",
+        "color": "#eef2f0"
+      },
+      "extents": {
+        "width": 0.46,
+        "height": 0.2
+      },
+      "maxLines": 4,
+      "component": {
+        "role": "body",
+        "tone": "default",
+        "type": "panel-text"
+      }
+    },
+    {
+      "id": "nav-setting-labels",
+      "kind": "panel",
+      "label": "Show labels",
+      "parentId": "nav-detail",
+      "position": [
+        0,
+        -0.19,
+        0.005
+      ],
+      "extents": {
+        "width": 0.2613716926597311,
+        "height": 0.08549959171334255
+      },
+      "component": {
+        "state": "selected",
+        "type": "panel-button"
+      }
+    }
+  ],
+  "polylines": [],
+  "lights": [],
+  "materials": [],
+  "interactions": [
+    {
+      "nodeId": "nav-card-1",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "hover",
+        "select"
+      ]
+    },
+    {
+      "nodeId": "nav-card-2",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "hover",
+        "select"
+      ]
+    },
+    {
+      "nodeId": "nav-card-3",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "hover",
+        "select"
+      ]
+    },
+    {
+      "nodeId": "nav-card-4",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "hover",
+        "select"
+      ]
+    },
+    {
+      "nodeId": "nav-card-5",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "hover",
+        "select"
+      ]
+    },
+    {
+      "nodeId": "nav-card-6",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "hover",
+        "select"
+      ]
+    },
+    {
+      "nodeId": "nav-card-7",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "hover",
+        "select"
+      ]
+    },
+    {
+      "nodeId": "nav-card-8",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "hover",
+        "select"
+      ]
+    },
+    {
+      "nodeId": "nav-next",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "hover",
+        "select"
+      ]
+    },
+    {
+      "nodeId": "nav-back",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "hover",
+        "select"
+      ]
+    },
+    {
+      "nodeId": "nav-setting-labels",
+      "interactable": true,
+      "manipulation": false,
+      "events": [
+        "hover",
+        "select"
+      ]
+    }
+  ],
+  "animations": [],
+  "theme": {
+    "highContrast": {
+      "borderScale": 2,
+      "color": {
+        "border": "#ffffff",
+        "focus": "#ffd25e",
+        "surface": "#42525f",
+        "text": "#ffffff",
+        "textMuted": "#ffffff"
+      },
+      "surfaceOpacity": 1,
+      "typeBoostDeg": 0.2
+    },
+    "preferences": {
+      "highContrast": false,
+      "reducedMotion": false
+    },
+    "tokens": {
+      "color": {
+        "border": "#6b7d8c",
+        "borderStrong": "#c4d0d8",
+        "degraded": "#9cc8ff",
+        "degradedSurface": "#1e2c3d",
+        "error": "#ff8a7a",
+        "errorSurface": "#3a1f1e",
+        "focus": "#f2b544",
+        "onFocus": "#14202a",
+        "placeholder": "#6b7d8c",
+        "selectedFill": "#3b3320",
+        "success": "#8fd9b6",
+        "surface": "#1b2630",
+        "surfacePressed": "#33444f",
+        "surfaceRaised": "#26343f",
+        "text": "#eef2f0",
+        "textDisabled": "#808d96",
+        "textMuted": "#a9b6bf"
+      },
+      "depth": {
+        "baseMeters": 0,
+        "hoverMeters": 0.01,
+        "overlayMeters": 0.03,
+        "raisedMeters": 0.005
+      },
+      "distance": {
+        "defaultMeters": 1.5,
+        "maxMeters": 3,
+        "minMeters": 0.6
+      },
+      "input": {
+        "gazeDwellMs": 1000,
+        "gazeStepMeters": 0.1,
+        "lookAwayCancelMs": 1500,
+        "reticleDeg": 2
+      },
+      "motion": {
+        "appearScaleFrom": 0.96,
+        "baseMs": 240,
+        "fastMs": 120,
+        "hoverScale": 1.04,
+        "maxMs": 500,
+        "progressLoopMs": 1200,
+        "slowMs": 400
+      },
+      "opacity": {
+        "disabledBorder": 0.5,
+        "placeholder": 0.4,
+        "surface": 0.92
+      },
+      "shape": {
+        "borderWidthDeg": 0.15,
+        "borderWidthFocusDeg": 0.3,
+        "radiusButtonDeg": 0.8,
+        "radiusCardDeg": 0.8,
+        "radiusPanelDeg": 1.2
+      },
+      "space": {
+        "lgDeg": 2,
+        "mdDeg": 1.2,
+        "smDeg": 0.8,
+        "xlDeg": 3.2,
+        "xsDeg": 0.4
+      },
+      "tint": {
+        "ceiling": "#a9b6bf",
+        "floor": "#8fd9b6",
+        "opacity": 0.35,
+        "seat": "#d9a6f2",
+        "table": "#f2b544",
+        "wall": "#9cc8ff"
+      },
+      "type": {
+        "bodyDeg": 1.4,
+        "labelDeg": 1.2,
+        "lineHeight": 1.3,
+        "minAngleDeg": 1.2,
+        "titleDeg": 2
+      }
+    },
+    "version": 1
+  }
+}

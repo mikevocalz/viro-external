@@ -37,7 +37,9 @@ jobs:
           pnpm --filter @viro-external/xr-contract typecheck
           pnpm --filter @viro-external/specs typecheck
           pnpm --filter @viro-external/specs specs:validate-lens
+          pnpm --filter @viro-external/specs specs:test-lens
           pnpm --filter @viro-external/specs specs:test-runner
+          pnpm --filter @viro-external/specs specs:test-host
 
       - name: Build publishable packages
         run: |
@@ -51,6 +53,12 @@ jobs:
           pnpm --filter @viro-external/specs pack --pack-destination ../../artifacts
           ls -lh artifacts
 
+      - name: Install the tarballs into a clean consumer and check them
+        run: node packages/specs/scripts/check-packed-consumer.mjs --tarballs artifacts
+
+      - name: Public API snapshots match
+        run: node scripts/ci/api-snapshot.mjs
+
       # Publish the pnpm-packed tarball, not the package directory: pnpm pack
       # applies publishConfig (dist entry points), npm publish of the folder
       # would ship the workspace manifest that points at src/.
@@ -60,9 +68,10 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish ./artifacts/viro-external-xr-contract-*.tgz --provenance --access public
 
+      # Same as the contract: the tarball carries lens-runtime.json and the
+      # publishConfig entry points (dist .d.ts), which the folder does not.
       - name: Publish SPECS backend
         if: ${{ !inputs.dry_run }}
-        working-directory: packages/specs
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --provenance --access public
+        run: npm publish ./artifacts/viro-external-specs-*.tgz --provenance --access public

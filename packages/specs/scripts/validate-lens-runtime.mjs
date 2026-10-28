@@ -26,7 +26,25 @@ const requiredFiles = [
   "ViroSpecsLeafSceneSmokeScenario.ts",
   "ViroSpecsLeafInteractionScenario.ts",
   "ViroSpecsLeafIndex.ts",
+  "ViroSpecsHostDiagnostics.ts",
+  "ViroSpecsSceneDocument.ts",
+  "ViroSpecsSceneBackend.ts",
+  "ViroSpecsResourceCache.ts",
+  "ViroSpecsSceneController.ts",
+  "ViroSpecsSikBinding.ts",
+  "ViroSpecsLensSceneBackend.ts",
+  "ViroSpecsSceneControllerHost.ts",
+  "ViroSpecsInteractionKit.ts",
+  "ViroSpecsActionContract.ts",
+  "ViroSpecsActionRuntime.ts",
+  "ViroSpecsReferenceFlow.ts",
+  "ViroSpecsActionsLab.ts",
 ];
+
+// Only this file may import the Interaction Kit, under either Asset Library
+// name, so specs:sync can switch between 2.x and 4.0.0 by rewriting it.
+const INTERACTION_KIT_SEAM = "ViroSpecsInteractionKit.ts";
+const INTERACTION_KIT_PREFIXES = ["SpectaclesInteractionKit.lspkg/", "InteractionKit.lspkg/"];
 
 const forbiddenImports = [
   "@viro-external/",
@@ -54,6 +72,10 @@ for (const file of tsFiles) {
   );
 
   for (const source of imports) {
+    if (file !== INTERACTION_KIT_SEAM && INTERACTION_KIT_PREFIXES.some((prefix) => source.startsWith(prefix))) {
+      violations.push(file + " -> " + source + " (import it from ./ViroSpecsInteractionKit)");
+    }
+
     if (forbiddenImports.some((forbidden) => source.startsWith(forbidden))) {
       violations.push(file + " -> " + source);
     }
@@ -65,6 +87,15 @@ for (const file of tsFiles) {
       }
     }
   }
+
+  // Lens Studio's compiler does not narrow a `{ ok: true } | { ok: false }`
+  // union through `!x.ok` or `x.ok ? a : b`, so the else side fails with TS2339
+  // there while tsc accepts it. Compare against the literal instead.
+  content.split("\n").forEach((line, index) => {
+    if (/!\s*[\w.]+\.ok\b|\.ok\s*\?/.test(line)) {
+      violations.push(file + ":" + (index + 1) + " narrows .ok by truthiness; write `.ok === false`");
+    }
+  });
 }
 
 if (violations.length > 0) {

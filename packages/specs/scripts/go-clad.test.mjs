@@ -8,6 +8,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "smol-toml";
 import { mergeProjectConfig, resolveMcp, probeMcp, execArguments } from "./go-clad.mjs";
+import { VALIDATED_PACKAGES, lspkg } from "./support/lens-project-fixture.mjs";
 
 const runner = fileURLToPath(new URL("./go-clad.mjs", import.meta.url));
 const token = "fixture-secret-never-log";
@@ -128,6 +129,13 @@ async function fixture(t, url, extraEnv = {}) {
   const codexHome = path.join(root, "codex-home");
   await Promise.all([mkdir(path.join(project, "Assets", "ViroSpecs", "lens"), { recursive: true }), mkdir(path.join(project, ".codex"), { recursive: true }), mkdir(bin), mkdir(codexHome)]);
   await writeFile(path.join(project, "Lab.esproj"), "studioVersion:\n  major: 5\n  minor: 24\n  patch: 0\ntargetPlatform: Spectacles\n");
+  // Every package specs:doctor reads, as real archives at the validated
+  // versions (2.x Interaction Kit line). specs:bootstrap syncs validation
+  // files, so the validation packages are required too.
+  await mkdir(path.join(project, "Packages"));
+  for (const [name, version] of Object.entries(VALIDATED_PACKAGES)) {
+    await writeFile(path.join(project, "Packages", name), lspkg(version));
+  }
   await writeFile(path.join(project, "Assets", "ViroSpecs", "lens", "ViroSpecsRuntimeHost.ts.meta"), "uuid: preserve-me\n");
   const config = `[mcp_servers.lens-studio]\nurl = ${JSON.stringify(url)}\nhttp_headers = { Authorization = "Bearer ${token}" }\n`;
   await writeFile(path.join(project, ".codex", "config.toml"), config);
