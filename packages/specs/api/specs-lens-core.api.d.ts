@@ -948,7 +948,11 @@ export declare const VIRO_SPECS_COMPONENT_NODE_KIND: {
 };
 /** Default tokens, identical to viro's `VIRO_SPECS_SPATIAL_TOKENS`. */
 export declare const VIRO_SPECS_LENS_SPATIAL_TOKENS: ViroSpecsSpatialTokens;
-/** Default high-contrast replacements. */
+/**
+ * Default high-contrast replacements. SPECS is an additive display, where
+ * black adds no light and shows as the room, so the surface is a mid slate
+ * (#42525f) rather than black: visible, and white text on it is 8.07:1.
+ */
 export declare const VIRO_SPECS_LENS_HIGH_CONTRAST: ViroSpecsHighContrastTokens;
 /** Theme used when a document has none. */
 export declare const VIRO_SPECS_LENS_DEFAULT_THEME: ViroSpecsTheme;

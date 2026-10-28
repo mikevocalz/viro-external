@@ -164,9 +164,13 @@ export const VIRO_SPECS_LENS_SPATIAL_TOKENS: ViroSpecsSpatialTokens = {
   input: { gazeDwellMs: 1000, lookAwayCancelMs: 1500, gazeStepMeters: 0.1, reticleDeg: 2.0 },
 };
 
-/** Default high-contrast replacements. */
+/**
+ * Default high-contrast replacements. SPECS is an additive display, where
+ * black adds no light and shows as the room, so the surface is a mid slate
+ * (#42525f) rather than black: visible, and white text on it is 8.07:1.
+ */
 export const VIRO_SPECS_LENS_HIGH_CONTRAST: ViroSpecsHighContrastTokens = {
-  color: { surface: "#000000", text: "#ffffff", textMuted: "#ffffff", border: "#ffffff", focus: "#ffd25e" },
+  color: { surface: "#42525f", text: "#ffffff", textMuted: "#ffffff", border: "#ffffff", focus: "#ffd25e" },
   surfaceOpacity: 1,
   borderScale: 2,
   typeBoostDeg: 0.2,

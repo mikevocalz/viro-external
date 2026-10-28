@@ -61,6 +61,11 @@ Needs `@viro-external/xr-contract` ^0.3.0. Pairs with
 
 ### Changed
 
+- The high-contrast surface is `#42525f`, not `#000000`. Black adds no
+  light on the additive SPECS display, so a high-contrast panel showed as
+  the room. White text on the new surface is 8.07:1 and focus 5.62:1. A
+  scene compiled by an older viro carries `#000000` in its theme and keeps
+  it until recompiled.
 - Peer `@viro-external/xr-contract` is `^0.3.0` (was `^0.2.0`);
   `src/render.ts` uses `PortableXRTextStyle` and `PortableXRScroll`,
   which 0.2.0 lacks.

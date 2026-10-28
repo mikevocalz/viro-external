@@ -136,10 +136,13 @@ These thresholds are starting values, not measured.
 
 `setPreferences({ highContrast, reducedMotion })` applies on the next view.
 Whether Snap OS exposes a system setting for either is unverified, so the app
-sets them. High contrast swaps the surface to black, text to white, focus to
-`#ffd25e`, doubles borders and adds 0.2 degrees to every type size; on an
-additive display black may render transparent, so the white outline carries
-it (verify on device). Reduced motion removes every scale change and rotation.
+sets them. High contrast swaps the surface to `#42525f` at full opacity,
+text to white (8.07:1), focus to `#ffd25e` (5.62:1), doubles borders and adds
+0.2 degrees to every type size. The surface is a mid slate rather than black
+because SPECS is an additive display: black adds no light, so a black panel
+shows as the room. `experience.test.mjs` fails if any resolved high-contrast
+surface is near-black or text drops under 7:1. Reduced motion removes every
+scale change and rotation.
 
 ## Not drawn yet
 

@@ -402,12 +402,39 @@ test("high contrast and reduced motion apply at runtime without a restart", () =
   scheduler.tick(200);
   experience.tick();
   const view = experience.view();
-  assert.equal(view.tokens.color.surface, "#000000");
+  assert.equal(view.tokens.color.surface, "#42525f");
   assert.equal(view.tokens.color.text, "#ffffff");
   assert.equal(view.tokens.opacity.surface, 1);
   assert.equal(view.tokens.motion.hoverScale, 1);
   assert.equal(view.tokens.motion.appearScaleFrom, 1);
   assert.equal(view.loading.indicator, "arc-static", "reduced motion: no rotation");
+});
+
+// SPECS is an additive display: a pixel adds light to the room and black
+// adds none, so a black panel shows as no panel. High contrast must keep
+// every surface it can draw visible and still meet 7:1 (1.4.6) for text.
+test("high contrast never resolves a surface to black or near-black", () => {
+  const linear = (v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const luminance = (hex) => {
+    const [r, g, b] = [1, 3, 5].map((i) => linear(parseInt(hex.slice(i, i + 2), 16) / 255));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const ratio = (a, b) => {
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+  };
+  // Near-black: dimmer than the default panel surface (#1b2630, relative
+  // luminance 0.018), the dimmest surface the Preview captures show.
+  const NEAR_BLACK = 0.015;
+  const hc = resolveViroSpecsTokens(VIRO_SPECS_LENS_DEFAULT_THEME, { highContrast: true, reducedMotion: false });
+  const surfaces = Object.entries(hc.color).filter(([name]) => /surface|fill/i.test(name));
+  assert.deepEqual(surfaces.map(([name]) => name).sort(), ["degradedSurface", "errorSurface", "selectedFill", "surface", "surfacePressed", "surfaceRaised"]);
+  assert.deepEqual(surfaces.filter(([, hex]) => luminance(hex) < NEAR_BLACK), []);
+  assert.ok(luminance(hc.color.surface) > luminance(VIRO_SPECS_LENS_SPATIAL_TOKENS.color.surface), "high contrast does not dim the panel");
+  assert.ok(ratio(hc.color.text, hc.color.surface) >= 7);
+  assert.ok(ratio(hc.color.textMuted, hc.color.surface) >= 7);
+  assert.ok(ratio(hc.color.focus, hc.color.surface) >= 3);
+  assert.ok(ratio(hc.color.border, hc.color.surface) >= 3);
 });
 
 // --- PanelButton --------------------------------------------------------------
