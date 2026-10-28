@@ -134,4 +134,7 @@ Evidence: the Node test is `portable-test-passed`. The LEAF scenarios are
 `feat/specs-lens-experience`, `docs/evidence/specs/lens/ws4-08-polish2/leaf-suite/`)
 ran all ten in Lens Studio Preview on SPECS 27. Nine passed and
 `viro_ref_expected_failure` failed as required. The lab copies of the
-scenario files are byte-identical to the ones here.
+scenario files are byte-identical to the ones here. Two changes came after
+that run and have not been run in Preview: the dashboard panel moved from
+y 0 to y -0.22, and the high-contrast surface changed from `#000000` to
+`#42525f`.
