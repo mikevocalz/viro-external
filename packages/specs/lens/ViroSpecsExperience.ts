@@ -284,7 +284,10 @@ export class ViroSpecsExperienceController {
     if (this.lifecycle === "error" && lifecycle !== "error" && lifecycle !== "empty") this.sceneError = undefined;
     if (lifecycle === "ready" || lifecycle === "degraded") {
       this.hadReadyScene = true;
-      if (lifecycle === "ready") this.nodeErrors.clear();
+      // Clear on the change into ready only. A re-sync while the previous
+      // scene is still ready (a diagnostic from the next scene's staging)
+      // must not drop that next scene's asset errors.
+      if (lifecycle === "ready" && this.lifecycle !== "ready") this.nodeErrors.clear();
     }
     if (lifecycle === "error") this.sceneError = { kind: this.hadReadyScene ? "scene" : "scene-no-fallback", line: this.sceneError?.line ?? "" };
     this.lifecycle = lifecycle;

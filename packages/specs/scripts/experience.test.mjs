@@ -224,6 +224,30 @@ for (const name of GALLERY) {
   });
 }
 
+test("an asset error in a scene that replaces a ready scene still opens the error panel", async () => {
+  // Found in Lens Studio Preview: the old scene was "ready" while the new one
+  // staged, so the VS5003 from staging was cleared before the new scene
+  // committed as "degraded".
+  const { backend, controller, experience } = setup("hello");
+  controller.present(fixture("hello"));
+  await flush();
+  assert.equal(controller.lifecycle, "ready");
+  backend.models.delete(SHIBA);
+  controller.present(fixture("hello"));
+  await flush();
+  assert.equal(controller.lifecycle, "degraded");
+  const panel = experience.view().errorPanel;
+  assert.ok(panel, "error panel shown after a ready scene");
+  assert.equal(panel.kind, "asset");
+  assert.ok(panel.nodeIds.includes("platform-lab-model"), JSON.stringify(panel.nodeIds));
+  // A later scene that loads cleanly clears it.
+  backend.models.set(SHIBA, { asset: SHIBA });
+  controller.present(fixture("hello"));
+  await flush();
+  assert.equal(controller.lifecycle, "ready");
+  assert.equal(experience.view().errorPanel, undefined);
+});
+
 test("navigation: eight card images fail as one panel with eight de-duplicated codes", async () => {
   const { controller, experience } = setup("navigation", { assets: "missing" });
   controller.present(fixture("navigation"));
