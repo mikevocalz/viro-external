@@ -19,8 +19,14 @@ import {
   estimateViroSpecsLines,
   layoutViroSpecsButtonError,
   layoutViroSpecsScrollButtons,
+  layoutViroSpecsModelReset,
   layoutViroSpecsStatePanel,
+  viroSpecsAutoRotateDegrees,
+  viroSpecsDiscGeometry,
   viroSpecsLoadingRing,
+  viroSpecsResetProgress,
+  viroSpecsRoundedRectGeometry,
+  VIRO_SPECS_AUTO_ROTATE_DEG_PER_SECOND,
 } from "../build/lens-core/ViroSpecsExperience.js";
 import { VIRO_SPECS_LENS_COPY, formatViroSpecsCopy } from "../build/lens-core/ViroSpecsExperienceCopy.js";
 import {
@@ -28,6 +34,7 @@ import {
   VIRO_SPECS_LENS_SPATIAL_TOKENS,
   VIRO_SPECS_LENS_TEXT_EM_METERS_PER_SIZE,
   resolveViroSpecsTokens,
+  viroSpecsAngleToMeters,
   viroSpecsMetersToAngle,
 } from "../build/lens-core/ViroSpecsExperienceTokens.js";
 import { ViroSpecsPlacementSession, classifyViroSpecsSurface } from "../build/lens-core/ViroSpecsPlacement.js";
@@ -731,16 +738,118 @@ test("Move closer never passes through the wearer, and a drag excursion reports 
   assert.equal(diagnostics.filter((d) => d.code === "VS5023").length, 2);
 });
 
-test("premium features the host does not draw yet are named for VS5025", () => {
+test("the host draws every premium feature, so VS5025 names none", () => {
+  const seen = new Set();
   for (const name of GALLERY) {
     for (const node of fixture(name).nodes) {
-      const missing = unrenderedViroSpecsComponentFeatures(node.component);
-      if (node.component?.type === "scroll-view") assert.deepEqual(missing, [], "scroll-view draws as a scroll group");
-      if (node.component?.type === "model-viewer") assert.ok(missing.includes("resettable (Reset model button)"));
-      if (["spatial-panel", "panel-text", "panel-button"].includes(node.component?.type)) assert.deepEqual(missing, []);
+      if (node.component) seen.add(node.component.type);
+      assert.deepEqual(unrenderedViroSpecsComponentFeatures(node.component), [], node.id);
     }
   }
+  for (const component of [
+    { type: "model-viewer", autoRotate: true, resettable: true },
+    { type: "panel-image" },
+    { type: "scroll-view", itemHeightMeters: 0.1, initialIndex: 0 },
+  ]) {
+    assert.deepEqual(unrenderedViroSpecsComponentFeatures(component), [], component.type);
+  }
+  assert.deepEqual([...seen].sort(), ["model-viewer", "panel-button", "panel-image", "panel-text", "scroll-view", "spatial-panel"]);
   assert.deepEqual(unrenderedViroSpecsComponentFeatures(undefined), []);
+});
+
+test("ModelViewer: autoRotate turns 18 degrees a second, never under reduced motion or while held", () => {
+  assert.equal(VIRO_SPECS_AUTO_ROTATE_DEG_PER_SECOND, 18);
+  assert.equal(viroSpecsAutoRotateDegrees(0.5, { reducedMotion: false, held: false }), 9);
+  assert.equal(viroSpecsAutoRotateDegrees(0.5, { reducedMotion: true, held: false }), 0);
+  assert.equal(viroSpecsAutoRotateDegrees(0.5, { reducedMotion: false, held: true }), 0);
+  assert.equal(viroSpecsAutoRotateDegrees(0, { reducedMotion: false, held: false }), 0);
+  assert.equal(viroSpecsAutoRotateDegrees(Number.NaN, { reducedMotion: false, held: false }), 0);
+});
+
+test("ModelViewer: Reset model sits under the model's bounds and eases back over motion.base", () => {
+  const t = VIRO_SPECS_LENS_SPATIAL_TOKENS;
+  const layout = layoutViroSpecsModelReset(t, { bottomMeters: -0.07 }, 1.5);
+  const gap = viroSpecsAngleToMeters(t.space.smDeg, 1.5);
+  // The button's top edge is space.sm under the bounds.
+  assert.ok(Math.abs(layout.y + layout.heightMeters / 2 - (-0.07 - gap)) < 1e-9);
+  assert.ok(layout.widthMeters > layout.heightMeters);
+  assert.equal(viroSpecsResetProgress(0, t, false), 0);
+  assert.ok(Math.abs(viroSpecsResetProgress(t.motion.baseMs / 2, t, false) - 0.5) < 1e-9);
+  assert.equal(viroSpecsResetProgress(t.motion.baseMs, t, false), 1);
+  assert.equal(viroSpecsResetProgress(t.motion.baseMs * 3, t, false), 1);
+  assert.equal(viroSpecsResetProgress(0, t, true), 1, "reduced motion resets at once");
+});
+
+/** Signed area of triangle (a, b, c) in the XY plane; positive is counter-clockwise. */
+const area = (v, a, b, c) => {
+  const p = (i) => [v[i * 8], v[i * 8 + 1]];
+  const [ax, ay] = p(a);
+  const [bx, by] = p(b);
+  const [cx, cy] = p(c);
+  return ((bx - ax) * (cy - ay) - (cx - ax) * (by - ay)) / 2;
+};
+
+test("reticle disc: round, diameter 1, every triangle faces +Z", () => {
+  const { vertices, indices } = viroSpecsDiscGeometry(48);
+  assert.equal(vertices.length / 8, 49);
+  assert.equal(indices.length, 48 * 3);
+  for (let i = 1; i < vertices.length / 8; i++) {
+    assert.ok(Math.abs(Math.hypot(vertices[i * 8], vertices[i * 8 + 1]) - 0.5) < 1e-9, "rim vertex " + i + " on the circle");
+  }
+  let total = 0;
+  for (let i = 0; i < indices.length; i += 3) {
+    const a = area(vertices, indices[i], indices[i + 1], indices[i + 2]);
+    assert.ok(a > 0, "triangle " + i / 3 + " is counter-clockwise");
+    total += a;
+  }
+  // Close to pi r^2, far from the 1.0 of the unit square it replaces.
+  assert.ok(Math.abs(total - Math.PI * 0.25) < 0.01, "area " + total);
+});
+
+test("PanelImage corners: a rounded rectangle with full-rectangle UVs", () => {
+  const w = 4;
+  const h = 3;
+  const r = 0.8;
+  const { vertices, indices } = viroSpecsRoundedRectGeometry(w, h, r, 8);
+  let total = 0;
+  for (let i = 0; i < indices.length; i += 3) {
+    const a = area(vertices, indices[i], indices[i + 1], indices[i + 2]);
+    assert.ok(a > 0);
+    total += a;
+  }
+  const expected = w * h - (4 - Math.PI) * r * r;
+  assert.ok(Math.abs(total - expected) < 0.02, "area " + total + " vs " + expected);
+  for (let i = 0; i < vertices.length; i += 8) {
+    const [x, y, , , , , u, v] = vertices.slice(i, i + 8);
+    assert.ok(Math.abs(x) <= w / 2 + 1e-9 && Math.abs(y) <= h / 2 + 1e-9);
+    assert.ok(Math.abs(u - (x / w + 0.5)) < 1e-9 && Math.abs(v - (y / h + 0.5)) < 1e-9);
+    // No vertex in a corner square outside its quarter circle.
+    const cx = Math.abs(x) - (w / 2 - r);
+    const cy = Math.abs(y) - (h / 2 - r);
+    if (cx > 0 && cy > 0) assert.ok(Math.hypot(cx, cy) <= r + 1e-9);
+  }
+  // The radius never exceeds half the shorter side.
+  const pill = viroSpecsRoundedRectGeometry(4, 1, 5, 8);
+  for (let i = 0; i < pill.vertices.length; i += 8) assert.ok(Math.abs(pill.vertices[i + 1]) <= 0.5 + 1e-9);
+});
+
+test("state panel rows use the line measure the host passes", () => {
+  const t = VIRO_SPECS_LENS_SPATIAL_TOKENS;
+  const content = { title: "Model didn't load", body: "The rest of the scene works. Retry to load it again.", detail: "VS5003 (platform-lab-model)", action: "Retry", ring: false };
+  const asked = [];
+  const measured = layoutViroSpecsStatePanel(t, content, 1.5, (text, em, wrap) => {
+    asked.push(text);
+    return text.startsWith("VS5003") ? 1 : estimateViroSpecsLines(text, em, wrap);
+  });
+  const estimated = layoutViroSpecsStatePanel(t, content, 1.5);
+  assert.deepEqual(asked, [content.title, content.body, content.detail]);
+  assert.equal(measured.detail.lines, 1);
+  assert.ok(estimated.detail.lines >= measured.detail.lines);
+  assert.ok(measured.heightMeters <= estimated.heightMeters);
+  // A measure that reports 0 for non-empty text still reserves one line.
+  assert.equal(layoutViroSpecsStatePanel(t, content, 1.5, () => 0).detail.lines, 1);
+  const error = layoutViroSpecsButtonError(t, { width: 0.23, height: 0.08 }, "That didn't go through.", 1.5, undefined, () => 1);
+  assert.equal(error.lines, 1);
 });
 
 // SpatialScrollView: the gallery's nav-list is a scroll group, so the host
@@ -755,7 +864,7 @@ test("navigation: nav-list is a scroll group stepping by itemHeightMeters from i
   const doc = fixture("navigation");
   const list = doc.nodes.find((n) => n.id === "nav-list");
   assert.equal(list.kind, "group");
-  assert.deepEqual(list.scroll, { width: 0.48, height: 0.3, contentHeight: 0.56 });
+  assert.deepEqual(list.scroll, { width: 0.48, height: 0.26, contentHeight: 0.52 });
   assert.equal(controller.present(doc).status, "committed");
   const handle = controller.getNodeHandle("nav-list");
   assert.deepEqual(handle.state.scrollRows, { stepMeters: 0.13, initialOffsetMeters: 0 });

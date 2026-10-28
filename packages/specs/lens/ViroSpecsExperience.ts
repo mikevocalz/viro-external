@@ -892,18 +892,121 @@ export function unrenderedViroSpecsComponentFeatures(component: ViroSpecsCompone
     case "panel-button":
       return [];
     case "panel-image":
-      return ["radius.card corners"];
+      // Drawn on a rounded-rectangle mesh with radius.card corners.
+      return [];
     case "scroll-view":
       // Drawn as a scroll group: ScrollWindow scrolling, itemHeightMeters as the
       // snap step and initialIndex as the first position.
       return [];
     case "model-viewer":
-      return [
-        ...(component.autoRotate ? ["autoRotate"] : []),
-        ...(component.resettable ? ["resettable (Reset model button)"] : []),
-        "load progress ring at the model bounds",
-      ];
+      // Load ring at the model's origin while its asset loads, the Reset
+      // model button when resettable, and the turntable when autoRotate.
+      return [];
   }
+}
+
+/**
+ * ModelViewer `autoRotate` speed: one turn every 20 seconds about the model's
+ * own up axis, slow enough to read as a turntable rather than motion of the
+ * scene. Off under reduced motion.
+ */
+export const VIRO_SPECS_AUTO_ROTATE_DEG_PER_SECOND = 18;
+
+/**
+ * Degrees a ModelViewer with `autoRotate` turns in `deltaSeconds`: zero under
+ * reduced motion, while the wearer holds or drags it, or for a non-positive
+ * frame time.
+ */
+export function viroSpecsAutoRotateDegrees(deltaSeconds: number, options: { readonly reducedMotion: boolean; readonly held: boolean }): number {
+  if (options.reducedMotion || options.held || !(deltaSeconds > 0)) return 0;
+  return VIRO_SPECS_AUTO_ROTATE_DEG_PER_SECOND * deltaSeconds;
+}
+
+/**
+ * The ModelViewer Reset model button: a PanelButton-sized control centred
+ * under the model's authored bounds, `space.sm` below their bottom edge.
+ * Meters; `y` is the button centre relative to the model's authored origin,
+ * along the parent's up axis.
+ */
+export function layoutViroSpecsModelReset(
+  tokens: ViroSpecsSpatialTokens,
+  bounds: { readonly bottomMeters: number },
+  distanceMeters: number
+): { readonly y: number; readonly widthMeters: number; readonly heightMeters: number } {
+  const size = viroSpecsActionButtonSize(tokens, formatViroSpecsCopy("modelViewer.reset"), distanceMeters);
+  const gap = viroSpecsAngleToMeters(tokens.space.smDeg, distanceMeters);
+  return { y: bounds.bottomMeters - gap - size.heightMeters / 2, widthMeters: size.widthMeters, heightMeters: size.heightMeters };
+}
+
+/**
+ * Progress of a Reset model transition `elapsedMs` after it started:
+ * ease-in-out over `motion.base`, or done at once under reduced motion
+ * (`motion.instant`). 0 is where the model was, 1 is the authored transform.
+ */
+export function viroSpecsResetProgress(elapsedMs: number, tokens: ViroSpecsSpatialTokens, reducedMotion: boolean): number {
+  if (reducedMotion || tokens.motion.baseMs <= 0) return 1;
+  const t = Math.min(1, Math.max(0, elapsedMs / tokens.motion.baseMs));
+  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+}
+
+/**
+ * Flat geometry in the XY plane, facing +Z (counter-clockwise seen from +Z):
+ * interleaved `[x, y, z, nx, ny, nz, u, v]` per vertex and triangle indices.
+ */
+export type ViroSpecsFlatGeometry = { readonly vertices: readonly number[]; readonly indices: readonly number[] };
+
+/**
+ * A disc of diameter 1 centred on the origin, as a fan of `segments`
+ * triangles. The reticle and the gaze dwell disc draw on it, scaled to their
+ * diameter.
+ */
+export function viroSpecsDiscGeometry(segments: number = 48): ViroSpecsFlatGeometry {
+  const n = Math.max(3, Math.floor(segments));
+  const vertices: number[] = [0, 0, 0, 0, 0, 1, 0.5, 0.5];
+  const indices: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * 2 * Math.PI;
+    const x = 0.5 * Math.cos(a);
+    const y = 0.5 * Math.sin(a);
+    vertices.push(x, y, 0, 0, 0, 1, x + 0.5, y + 0.5);
+    indices.push(0, 1 + i, 1 + ((i + 1) % n));
+  }
+  return { vertices, indices };
+}
+
+/**
+ * A `width` by `height` rectangle centred on the origin with corners rounded
+ * to `radius` (clamped to half the shorter side), UVs 0..1 across the full
+ * rectangle so a texture maps as it would on a plain quad. A fan from the
+ * centre over the outline: `cornerSegments` steps per corner.
+ */
+export function viroSpecsRoundedRectGeometry(width: number, height: number, radius: number, cornerSegments: number = 8): ViroSpecsFlatGeometry {
+  const w = Math.max(0, width);
+  const h = Math.max(0, height);
+  const r = Math.min(Math.max(0, radius), w / 2, h / 2);
+  const steps = Math.max(1, Math.floor(cornerSegments));
+  const outline: [number, number][] = [];
+  // Corner centres counter-clockwise from bottom-right, each sweeping a quarter turn.
+  const corners: [number, number, number][] = [
+    [w / 2 - r, -h / 2 + r, -Math.PI / 2],
+    [w / 2 - r, h / 2 - r, 0],
+    [-w / 2 + r, h / 2 - r, Math.PI / 2],
+    [-w / 2 + r, -h / 2 + r, Math.PI],
+  ];
+  for (const [cx, cy, start] of corners) {
+    for (let i = 0; i <= steps; i++) {
+      const a = start + (i / steps) * (Math.PI / 2);
+      outline.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+    }
+  }
+  const uv = (x: number, y: number): [number, number] => [w > 0 ? x / w + 0.5 : 0.5, h > 0 ? y / h + 0.5 : 0.5];
+  const vertices: number[] = [0, 0, 0, 0, 0, 1, 0.5, 0.5];
+  const indices: number[] = [];
+  outline.forEach(([x, y], i) => {
+    vertices.push(x, y, 0, 0, 0, 1, ...uv(x, y));
+    indices.push(0, 1 + i, 1 + ((i + 1) % outline.length));
+  });
+  return { vertices, indices };
 }
 
 /**
@@ -943,6 +1046,14 @@ export function estimateViroSpecsLines(text: string, emMeters: number, wrapWidth
   }
   return lines;
 }
+
+/**
+ * Lines `text` takes at `emMeters` when wrapped at `wrapWidthMeters`; zero for
+ * empty text. The layout functions default to
+ * {@linkcode estimateViroSpecsLines}; the Lens host passes one that measures
+ * the laid-out glyphs, so rows are sized to the lines the text really wraps to.
+ */
+export type ViroSpecsLineMeasure = (text: string, emMeters: number, wrapWidthMeters: number) => number;
 
 /** A text block in a {@linkcode ViroSpecsStatePanelLayout}: centre and size, meters, panel-local. */
 export type ViroSpecsTextBlock = {
@@ -985,12 +1096,15 @@ export type ViroSpecsStatePanelContent = {
 /**
  * Lays out a state panel 20 degrees wide (the handoff panel width) at
  * `distanceMeters`. Title and body use `type.bodyDeg`, detail and action
- * `type.labelDeg`; the ring is three body ems across.
+ * `type.labelDeg`; the ring is three body ems across. Row heights come from
+ * `measureLines`, which defaults to the {@linkcode estimateViroSpecsLines}
+ * estimate.
  */
 export function layoutViroSpecsStatePanel(
   tokens: ViroSpecsSpatialTokens,
   content: ViroSpecsStatePanelContent,
-  distanceMeters: number
+  distanceMeters: number,
+  measureLines: ViroSpecsLineMeasure = estimateViroSpecsLines
 ): ViroSpecsStatePanelLayout {
   const m = (deg: number) => viroSpecsAngleToMeters(deg, distanceMeters);
   const width = m(20);
@@ -1002,7 +1116,7 @@ export function layoutViroSpecsStatePanel(
   type Row = { key: "ring" | "title" | "body" | "detail" | "action"; height: number; lines: number; em: number };
   const rows: Row[] = [];
   const text = (key: "title" | "body" | "detail", value: string, em: number) => {
-    const lines = estimateViroSpecsLines(value, em, wrap);
+    const lines = value === "" ? 0 : Math.max(1, measureLines(value, em, wrap));
     if (lines > 0) rows.push({ key, height: lines * tokens.type.lineHeight * em, lines, em });
   };
   if (content.ring) rows.push({ key: "ring", height: 3 * bodyEm, lines: 0, em: 0 });
@@ -1057,7 +1171,8 @@ export function viroSpecsActionButtonSize(
  * `space.xs` below the button's bottom edge. Inside a SpatialPanel the row
  * spans the panel's inner width (the panel less `space.md` each side) and is
  * centred on the panel, so the message wraps to two lines instead of four;
- * on its own it wraps at the button width. Meters, button-local (origin at
+ * on its own it wraps at the button width. The line count comes from
+ * `measureLines` (default {@linkcode estimateViroSpecsLines}). Meters, button-local (origin at
  * the button centre).
  */
 export function layoutViroSpecsButtonError(
@@ -1065,11 +1180,12 @@ export function layoutViroSpecsButtonError(
   button: { readonly width: number; readonly height: number },
   message: string,
   distanceMeters: number,
-  panel?: { readonly width: number; readonly buttonX: number }
+  panel?: { readonly width: number; readonly buttonX: number },
+  measureLines: ViroSpecsLineMeasure = estimateViroSpecsLines
 ): ViroSpecsTextBlock & { readonly x: number; readonly wrapWidthMeters: number } {
   const em = viroSpecsAngleToMeters(tokens.type.labelDeg, distanceMeters);
   const wrap = panel ? panel.width - 2 * viroSpecsAngleToMeters(tokens.space.mdDeg, distanceMeters) : button.width;
-  const lines = estimateViroSpecsLines(message, em, wrap);
+  const lines = message === "" ? 0 : Math.max(1, measureLines(message, em, wrap));
   const heightMeters = lines * tokens.type.lineHeight * em;
   const top = -button.height / 2 - viroSpecsAngleToMeters(tokens.space.xsDeg, distanceMeters);
   return { x: panel ? -panel.buttonX : 0, y: top - heightMeters / 2, lines, emMeters: em, heightMeters, wrapWidthMeters: wrap };
