@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { crc32, deflateRawSync } from "node:zlib";
 
-/** Versions recorded in the 2026-10-02 validation run (doc/Compatibility.md). */
+/** Versions installed in the validated Platform Lab project, read from each package.native (doc/Compatibility.md). */
 export const VALIDATED_PACKAGES = {
   "SpectaclesInteractionKit.lspkg": "2.0.0",
   "SpectaclesUIKit.lspkg": "2.0.0",
@@ -15,7 +15,7 @@ export const VALIDATED_PACKAGES = {
   "VolumetricLine.lspkg": "2.0.0",
   "SpecsNavigationKit.lspkg": "2.0.0",
   "Leaf.lspkg": "2.0.2",
-  "AiPreviewAgentInspect.lspkg": "2.0.2",
+  "AiPreviewAgentInspect.lspkg": "2.0.1",
   "AiPreviewAgentInteract.lspkg": "2.0.1",
 };
 

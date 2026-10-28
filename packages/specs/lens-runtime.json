@@ -50,7 +50,7 @@
   ],
   "validationPackages": [
     { "package": "Leaf.lspkg", "minVersion": "2.0.2" },
-    { "package": "AiPreviewAgentInspect.lspkg", "minVersion": "2.0.2" },
+    { "package": "AiPreviewAgentInspect.lspkg", "minVersion": "2.0.1" },
     { "package": "AiPreviewAgentInteract.lspkg", "minVersion": "2.0.1" }
   ]
 }
