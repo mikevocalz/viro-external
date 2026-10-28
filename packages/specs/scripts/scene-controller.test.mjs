@@ -436,6 +436,30 @@ test("interaction: events from retired nodes are dropped; a throwing listener is
   assert.deepEqual(seen, ["select-start"]);
 });
 
+test("interaction: drag listeners get the position the drag constraint returns; a throwing constraint is VS5014", () => {
+  const { backend, scheduler, controller, diagnostics } = setup();
+  controller.present(lab());
+  scheduler.tick();
+  const seen = [];
+  controller.addOnInteractionListener((e) => seen.push([e.phase, e.position]));
+  const asked = [];
+  controller.setDragConstraint((nodeId, position) => {
+    asked.push([nodeId, position]);
+    return [position[0], position[1], -3];
+  });
+  backend.fire("model", { phase: "drag", source: "hand-right", position: [0.1, 0, -4.5] });
+  backend.fire("model", { phase: "select-start", source: "hand-right", position: [0.1, 0, -4.5] });
+  assert.deepEqual(asked, [["model", [0.1, 0, -4.5]]], "only drags with a position are constrained");
+  assert.deepEqual(seen, [["drag", [0.1, 0, -3]], ["select-start", [0.1, 0, -4.5]]]);
+  controller.setDragConstraint(() => { throw new Error("clamp bug"); });
+  backend.fire("model", { phase: "drag", source: "hand-right", position: [0, 0, -2] });
+  assert.deepEqual(seen.at(-1), ["drag", [0, 0, -2]]);
+  assert.ok(diagnostics.some((d) => d.code === "VS5014" && /clamp bug/.test(d.message)));
+  controller.setDragConstraint(undefined);
+  backend.fire("model", { phase: "drag", source: "hand-right", position: [0, 0, -5] });
+  assert.deepEqual(seen.at(-1), ["drag", [0, 0, -5]]);
+});
+
 test("resources: owned materials are shared, bounded and disposed once; borrowed ones never", () => {
   const { backend, controller } = setup({ maxCachedMaterials: 1 });
   const doc = (color) => {
