@@ -192,7 +192,7 @@ Lens Studio's `openProject` will not reopen the project that is already open; it
 
 ### The lens-studio MCP is not connected
 
-Claude Code connects the `lens-studio` MCP server only when a session starts. If Lens Studio was launched after the session, run `/mcp` to reconnect.
+Most MCP clients connect the `lens-studio` server only when they start. If Lens Studio was launched afterwards, reconnect the server from your client.
 
 ### Lens Studio AI does nothing
 
