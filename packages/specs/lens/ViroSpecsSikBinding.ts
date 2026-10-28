@@ -80,27 +80,33 @@ function hasVisual(object: SceneObject): boolean {
 }
 
 /**
- * Both scene runtimes name the SceneObject of each portable node
- * "viro:<id>". A child named that way is another node, with its own ID and
- * its own interaction, not part of this node's visual.
+ * Node ID carried by an object's name. Both scene runtimes name each
+ * portable node's SceneObject "viro:<id>", and the object an interaction is
+ * bound on is renamed "viro-interactable:<id>" (the node itself or a part of
+ * it). IDs are unique per scene, so the name tells which node an object
+ * belongs to.
  */
-function isOtherViroNode(object: SceneObject): boolean {
-  return object.name.startsWith("viro:");
+function viroNodeIdOf(object: SceneObject): string | undefined {
+  const name = object.name;
+  if (name.startsWith("viro:")) return name.slice("viro:".length);
+  if (name.startsWith("viro-interactable:")) return name.slice("viro-interactable:".length);
+  return undefined;
 }
 
 /**
  * The object SIK should target: the node itself if it draws, else its first
  * drawing descendant that belongs to the node (a panel's backplate, a
- * model's mesh). Child nodes are never chosen: binding a group's or a
- * panel's interaction on a child ViroText would rename that text node and
- * route the parent's pinches through it. With no drawing part of its own the
- * node itself is the target, and the binding gives it a box collider.
+ * model's mesh). Objects of other nodes are never chosen: binding a group's
+ * or a panel's interaction on a child ViroText would rename that text node
+ * and route the parent's pinches through it. With no drawing part of its own
+ * the node itself is the target, and the binding gives it a box collider.
  */
-export function findViroSpecsInteractionTarget(root: SceneObject): SceneObject {
+export function findViroSpecsInteractionTarget(root: SceneObject, ownId: string | undefined = viroNodeIdOf(root)): SceneObject {
   if (root.getComponent(Interactable.getTypeName()) || hasVisual(root)) return root;
   for (const child of root.children) {
-    if (isOtherViroNode(child)) continue;
-    const target = findViroSpecsInteractionTarget(child);
+    const childId = viroNodeIdOf(child);
+    if (childId !== undefined && childId !== ownId) continue;
+    const target = findViroSpecsInteractionTarget(child, ownId);
     if (target !== child || hasVisual(child) || child.getComponent(Interactable.getTypeName())) return target;
   }
   return root;
