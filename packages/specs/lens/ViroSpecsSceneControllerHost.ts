@@ -13,6 +13,7 @@ import {
   type ViroSpecsSceneLifecycle,
 } from "./ViroSpecsSceneController";
 import { ViroSpecsAssetRegistry } from "./ViroSpecsAssetRegistry";
+import type { ViroSpecsHostScene } from "./ViroSpecsSceneDocument";
 import { ViroSpecsLensSceneBackend, type ViroSpecsLensAsset, type ViroSpecsLensNode } from "./ViroSpecsLensSceneBackend";
 
 /**
@@ -69,6 +70,26 @@ export class ViroSpecsSceneControllerHost extends BaseScriptComponent {
 
   get lifecycle(): ViroSpecsSceneLifecycle {
     return this.controller?.lifecycle ?? "error";
+  }
+
+  /** Asset loads of the committed scene, for the experience layer's loading ring. */
+  get assetProgress(): { readonly pending: number; readonly total: number } {
+    return this.controller?.assetProgress ?? { pending: 0, total: 0 };
+  }
+
+  /** The committed, validated scene (read-only), or null. */
+  get committedScene(): ViroSpecsHostScene | null {
+    return this.controller?.committedScene ?? null;
+  }
+
+  /** IDs of committed nodes, parents first. */
+  get nodeIds(): readonly string[] {
+    return this.controller?.nodeIds ?? [];
+  }
+
+  /** The diagnostics channel this host reports to; the experience layer reports into it too. */
+  get diagnosticsChannel(): ViroSpecsHostDiagnostics {
+    return this.diagnostics;
   }
 
   /** Navigation: replaces the scene transactionally. */

@@ -35,6 +35,24 @@ Files: `ViroSpecsSceneController.ts`, `ViroSpecsSceneDocument.ts`,
 `ViroSpecsSikBinding.ts` and `ViroSpecsSceneControllerHost.ts` are the Lens
 side.
 
+### ViroSpecsExperienceHost
+
+Lens component that draws the experience layer around a
+`ViroSpecsSceneControllerHost`: the loading ring, the degraded notice, error
+and permission panels, the placement reticle, gaze dwell, PanelButton states
+and the PanelText minimum size. Inputs: `sceneHostObject`, `cameraObject`, an
+optional unit plane `panelMesh` and `panelMaterial` for backings (text only
+without them), and `placementScene`, `gazeOnly`, `builderMode`,
+`highContrast`, `reducedMotion`. App code calls `setCapabilities`,
+`setPreferences`, `startPlacement`, `confirmPlacement`, `moveNode`, and
+listens with `addOnPlacementListener` and `addOnRetryListener`.
+
+The logic lives in `ViroSpecsExperience.ts`, `ViroSpecsPlacement.ts`,
+`ViroSpecsExperienceTokens.ts` and `ViroSpecsExperienceCopy.ts`, which use no
+Lens globals and run in Node (`scripts/experience.test.mjs`). The component in
+`ViroSpecsExperienceLensView.ts` is `implemented` only: not yet compiled in
+Lens Studio or run in Preview. See `doc/Experience.md`.
+
 ### ViroSpecsInteractionKit
 
 The only file that imports the Interaction Kit. `pnpm specs:sync` rewrites
