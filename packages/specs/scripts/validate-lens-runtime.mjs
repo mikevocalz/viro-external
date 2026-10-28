@@ -38,6 +38,7 @@ const requiredFiles = [
   "ViroSpecsActionContract.ts",
   "ViroSpecsActionRuntime.ts",
   "ViroSpecsReferenceFlow.ts",
+  "ViroSpecsActionsLab.ts",
 ];
 
 // Only this file may import the Interaction Kit, under either Asset Library

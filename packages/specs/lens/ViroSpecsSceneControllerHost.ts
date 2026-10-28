@@ -1,4 +1,4 @@
-import type { ViroSpecsHostInteraction } from "./ViroSpecsProtocol";
+import type { ViroSpecsActionEvent, ViroSpecsHostInteraction } from "./ViroSpecsProtocol";
 import {
   formatViroSpecsHostDiagnostic,
   ViroSpecsHostDiagnostics,
@@ -96,6 +96,16 @@ export class ViroSpecsSceneControllerHost extends BaseScriptComponent {
 
   addOnInteractionListener(listener: (event: ViroSpecsHostInteraction) => void): ViroSpecsSubscription {
     return this.controller?.addOnInteractionListener(listener) ?? { remove: () => undefined };
+  }
+
+  /** Typed actions from triggers, one frame after the pinch, owned by their scene. */
+  addOnActionListener(listener: (event: ViroSpecsActionEvent) => void): ViroSpecsSubscription {
+    return this.controller?.addOnActionListener(listener) ?? { remove: () => undefined };
+  }
+
+  /** The channel this host reports on, for an action runtime that shares it. */
+  get diagnosticsChannel(): ViroSpecsHostDiagnostics {
+    return this.diagnostics;
   }
 
   addOnLifecycleListener(listener: (state: ViroSpecsSceneLifecycle) => void): ViroSpecsSubscription {
