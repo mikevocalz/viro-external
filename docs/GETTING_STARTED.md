@@ -26,7 +26,13 @@ pnpm install --frozen-lockfile --strict-peer-dependencies=false
 
 The revision above is the compatible dependency selected in [CI PR #60](https://github.com/mikevocalz/viro-external/pull/60), not a claim that it is the newest Viro commit. `pnpm-workspace.yaml` overrides `@reactvision/react-viro` to `link:../viro`. Keep both folders beside each other. The repository specifies Node >=22.13; CI uses Node 24. The locked branch targets the React 19.3 / RN 0.88 prerelease / Expo 58 integration line; do not upgrade those peers independently while diagnosing compatibility.
 
-A sibling source link may need React type resolution hydrated as CI does:
+Viro does not commit `dist/`, and its package `types` entry points there. Build the declarations once per Viro checkout, then move Viro's own `node_modules` aside so the link below resolves React types from this workspace only. Without the build, TypeScript falls back to Viro's `index.ts` and reports thousands of errors from the fork source under this repository's stricter options.
+
+```sh
+(cd ../viro && npm ci --ignore-scripts --no-audit --no-fund && npm run build && mv node_modules ../viro-build-node_modules)
+```
+
+Then hydrate React type resolution as CI does:
 
 ```sh
 mkdir -p ../viro/node_modules/@types

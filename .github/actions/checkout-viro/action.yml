@@ -46,3 +46,19 @@ runs:
         fi
         mv .spatial-deps/viro ../viro
         node -p "require('../viro/package.json').version"
+    # Viro stopped tracking dist/ (viro da1e7f8d). Without it, "types":
+    # "dist/index.d.ts" resolves nowhere and TypeScript falls back to viro's
+    # index.ts, typechecking the whole fork source under this repo's stricter
+    # compiler options. Build the declarations the published package ships,
+    # then move Viro's own node_modules out of the link target so the hydrate
+    # step can point react, react-native and @types/react at this workspace's
+    # single copies.
+    - name: Build Viro declarations at the pinned revision
+      shell: bash
+      working-directory: ../viro
+      run: |
+        npm ci --ignore-scripts --no-audit --no-fund
+        npm run build
+        test -f dist/index.d.ts
+        test -z "$(git status --porcelain)"
+        mv node_modules "$RUNNER_TEMP/viro-build-node_modules"
