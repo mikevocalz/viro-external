@@ -1,6 +1,6 @@
 import { ViroSpecsPresentationHost } from "../ViroSpecs/lens/ViroSpecsPresentationHost";
 import { ViroSpecsAssetRegistry } from "../ViroSpecs/lens/ViroSpecsAssetRegistry";
-import { ScrollWindow } from "SpectaclesUIKit.lspkg/Scripts/Components/ScrollWindow/ScrollWindow";
+import { ScrollWindow } from "../ViroSpecs/lens/ViroSpecsUIKit";
 import {
   buildPage, listTopEdgeCm, parseItems, LIST_SCROLL_OBJECT, LIST_WINDOW_CM, SAMPLE_ITEMS, TABS,
   type SampleState, type TabId,

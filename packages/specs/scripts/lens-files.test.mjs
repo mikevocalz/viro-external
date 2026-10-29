@@ -77,7 +77,7 @@ test("the import scan sees import, export-from, side-effect and require forms", 
 });
 
 test("every Lens package a file imports is declared in lens-runtime.json for its set", () => {
-  const kits = Object.values(manifest.interactionKit).map((item) => item.package);
+  const kits = [manifest.interactionKit, ...Object.values(manifest.lineSeams)].flatMap((lines) => Object.values(lines).map((item) => item.package));
   const required = [...kits, ...manifest.requiredPackages.map((item) => item.package)];
   const validation = manifest.validationPackages.map((item) => item.package);
   const undeclared = [];

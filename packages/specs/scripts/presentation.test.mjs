@@ -167,7 +167,9 @@ test("Lens runtime puts scroll content in a UI Kit ScrollWindow", () => {
   assert.match(protocol, /node\.scroll \? \{ scroll: node\.scroll \}/);
 
   const runtime = readFileSync(new URL("../lens/ViroSpecsSceneRuntime.ts", import.meta.url), "utf8");
-  assert.match(runtime, /from "SpectaclesUIKit\.lspkg\/Scripts\/Components\/ScrollWindow\/ScrollWindow"/);
+  assert.match(runtime, /import \{ ScrollWindow \} from "\.\/ViroSpecsUIKit"/);
+  const seam = readFileSync(new URL("../lens/ViroSpecsUIKit.ts", import.meta.url), "utf8");
+  assert.match(seam, /from "SpectaclesUIKit\.lspkg\/Scripts\/Components\/ScrollWindow\/ScrollWindow"/);
   assert.match(runtime, /createComponent\(ScrollWindow\.getTypeName\(\)\)/);
   assert.match(runtime, /\.vertical = true;/);
   assert.match(runtime, /\.horizontal = false;/);
@@ -188,7 +190,8 @@ test("initializes runtime ScrollWindows and declares the UI Kit dependency", () 
   assert.ok(created > 0 && init > created && init < runtime.indexOf("scrollWindow.addObject(content)"));
   // specs:sync and specs:doctor take the required package list from lens-runtime.json.
   const manifest = JSON.parse(readFileSync(new URL("../lens-runtime.json", import.meta.url), "utf8"));
-  assert.ok(manifest.requiredPackages.some((item) => item.package === "SpectaclesUIKit.lspkg"));
+  assert.deepEqual(manifest.lineSeams["ViroSpecsUIKit.ts"]["2"], { package: "SpectaclesUIKit.lspkg", minVersion: "2.0.0" });
+  assert.deepEqual(manifest.lineSeams["ViroSpecsUIKit.ts"]["4"], { package: "UIKit.lspkg", minVersion: "4.0.0" });
 });
 
 test("registers runtime textures without mutating Inspector arrays", () => {

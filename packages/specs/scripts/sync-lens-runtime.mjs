@@ -12,6 +12,7 @@ import path from "node:path";
 import {
   DEPENDENCIES_FILE,
   isMainModule,
+  kitSeams,
   PRODUCTION_FOLDER,
   VALIDATION_FOLDER,
   assertClassified,
@@ -22,8 +23,8 @@ import {
 } from "./lib/lens-runtime-manifest.mjs";
 import { syncOwnedFolder } from "./lib/owned-sync.mjs";
 
-/** Only lens/ViroSpecsInteractionKit.ts imports the kit; switching lines rewrites it. */
-const SEAM = "ViroSpecsInteractionKit.ts";
+// Each renamed kit (Interaction Kit, UI Kit, Navigation Kit) is imported by
+// exactly one lens/ file; switching lines rewrites those files (kitSeams).
 const USAGE =
   "Usage: pnpm specs:sync -- --project /absolute/path/to/LensStudioProject [--interaction-kit 2|4] [--with-validation] [--force-overwrite <path under Assets/>]... [--adopt-existing]";
 
@@ -129,13 +130,15 @@ export async function syncLensRuntime(options) {
   if (options.interactionKit) kitLine = options.interactionKit;
   else if (installed.includes(manifest.interactionKit["4"].package) && !installed.includes(manifest.interactionKit["2"].package)) kitLine = "4";
   const kitPackage = manifest.interactionKit[kitLine].package;
-  const kit2 = manifest.interactionKit["2"].package;
+  const seams = kitSeams(manifest);
+  const linePackages = seams.map(({ lines }) => lines[kitLine]);
 
   /** @type {Map<string, string>} */
   const production = new Map();
   for (const name of files.production) {
     let source = await readFile(path.join(lensRoot, name), "utf8");
-    if (name === SEAM && kitLine !== "2") source = source.split('"' + kit2 + "/").join('"' + kitPackage + "/");
+    const seam = seams.find((item) => item.seam === name);
+    if (seam && kitLine !== "2") source = source.split('"' + seam.lines["2"].package + "/").join('"' + seam.lines[kitLine].package + "/");
     production.set("lens/" + name, source);
   }
 
@@ -150,8 +153,8 @@ export async function syncLensRuntime(options) {
     target: upstream.source.target,
     lensStudio: upstream.source.lensStudio,
     upstream: { repository: upstream.source.repository, commit: upstream.source.commit },
-    requiredPackages: [kitPackage, ...manifest.requiredPackages.map((item) => item.package)],
-    packageRequirements: [{ package: kitPackage, minVersion: manifest.interactionKit[kitLine].minVersion }, ...manifest.requiredPackages],
+    requiredPackages: [...linePackages, ...manifest.requiredPackages].map((item) => item.package),
+    packageRequirements: [...linePackages, ...manifest.requiredPackages],
     editorValidationPackages: manifest.validationPackages.map((item) => item.package),
     notes: [
       "Install required .lspkg dependencies through the Lens Studio Asset Library before preview or device builds. specs:doctor checks the installed versions.",

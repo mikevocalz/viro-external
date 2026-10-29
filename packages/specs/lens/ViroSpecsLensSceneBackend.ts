@@ -1,5 +1,4 @@
-import { ScrollWindow } from "SpectaclesUIKit.lspkg/Scripts/Components/ScrollWindow/ScrollWindow";
-import { Frame } from "SpectaclesUIKit.lspkg/Scripts/Components/Frame/Frame";
+import { Frame, ScrollWindow } from "./ViroSpecsUIKit";
 import { VolumetricLine } from "VolumetricLine.lspkg/Scripts/VolumetricLine";
 import type {
   ViroSpecsDocumentInteraction,

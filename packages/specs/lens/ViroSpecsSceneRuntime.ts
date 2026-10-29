@@ -1,4 +1,4 @@
-import { ScrollWindow } from "SpectaclesUIKit.lspkg/Scripts/Components/ScrollWindow/ScrollWindow";
+import { ScrollWindow } from "./ViroSpecsUIKit";
 import type {
   ViroSpecsRenderCommand,
   ViroSpecsRenderPlan,

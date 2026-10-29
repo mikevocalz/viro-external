@@ -19,7 +19,7 @@ pnpm --filter @viro-external/specs specs:doctor -- --project "/abs/path/MySpecsL
 
 | Set | Files | Destination | When |
 | --- | --- | --- | --- |
-| `production` | the runtime, hosts, scene controller, Interaction Kit seam, typed-action runtime, experience layer (30 files) | `Assets/ViroSpecs/lens/` | every sync |
+| `production` | the runtime, hosts, scene controller, the three kit seams, typed-action runtime, experience layer (33 files) | `Assets/ViroSpecs/lens/` | every sync |
 | `validation` | `ViroSpecsLeafIndex`, the two LEAF scenarios, `ViroSpecsAgentValidation`, `ViroSpecsRuntimeValidation`, `ViroSpecsPlatformLab`, and the typed-actions sample `ViroSpecsActionsLab` with its `ViroSpecsReferenceFlow` | `Assets/ViroSpecsValidation/lens/` | only with `--with-validation` |
 | `notSynced` | `lens/README.md` | nowhere | never |
 
@@ -39,7 +39,7 @@ runtime was built against.
 | --- | --- |
 | `--project <dir>` | Required. The folder holding the `.esproj` |
 | `--with-validation` | Also sync the validation set. Refuses while validation files from an older sync are still in `Assets/ViroSpecs/lens/` (see below) |
-| `--interaction-kit 2\|4` | Pick the kit line. Without it, sync uses 4 when only `Packages/InteractionKit.lspkg` is installed, else 2 |
+| `--interaction-kit 2\|4` | Pick the kit line for all three seams. Without it, sync uses 4 when only `Packages/InteractionKit.lspkg` is installed, else 2 |
 | `--force-overwrite <path>` | Replace one file you edited, for example `ViroSpecs/lens/ViroSpecsRuntimeHost.ts`. Repeatable |
 | `--adopt-existing` | Take ownership of files written by a sync that predates the ledger |
 | `--clean` | Removed. It now fails and says why |
@@ -92,10 +92,10 @@ Until step 2 or 3 is done, the doctor warns about them and
 | `targetPlatform: Spectacles` | error |
 | Lens Studio 5.22.0 or later (`studioVersion` in the `.esproj`) | error |
 | One Interaction Kit installed: `SpectaclesInteractionKit.lspkg` or `InteractionKit.lspkg`, not both | error |
-| Interaction Kit and each required package installed, readable and at or above its minimum | error |
+| Interaction Kit, the UI Kit and Navigation Kit of the same line, and each other required package installed, readable and at or above its minimum | error |
 | Each validation package installed and at or above its minimum | error when `Assets/ViroSpecsValidation/` exists, validation files sit in `Assets/ViroSpecs/lens/`, or `--with-validation` is passed; warning otherwise |
-| `ViroSpecsInteractionKit.ts` imports the installed kit | error |
-| Every module that seam imports exists in `Cache/TypeScript/Src/Packages/<kit>/` | error; warning if Lens Studio has not filled the cache yet |
+| `ViroSpecsInteractionKit.ts`, `ViroSpecsUIKit.ts` and `ViroSpecsNavigationKit.ts` import the installed line's kits | error |
+| Every module those seams import exists in `Cache/TypeScript/Src/Packages/<kit>/` | error; warning if Lens Studio has not filled the cache yet |
 | Each synced folder matches its `viro-specs.owned.json` | missing file: error. Edited file: warning |
 | `viro-specs.dependencies.json` exists and matches this SDK's wire version, scene protocols and the installed kit | error |
 | Runtime synced by an older SDK version, or without a ledger | warning |
@@ -125,10 +125,10 @@ From `lens-runtime.json`:
 | Package | Set | Minimum |
 | --- | --- | --- |
 | `SpectaclesInteractionKit.lspkg` (or `InteractionKit.lspkg`) | required, one of the two | 2.0.0 (or 4.0.0) |
-| `SpectaclesUIKit.lspkg` | required | 2.0.0 |
+| `SpectaclesUIKit.lspkg` (or `UIKit.lspkg`), same line as the Interaction Kit | required | 2.0.0 (or 4.0.0) |
 | `SurfacePlacement.lspkg` | required | 2.0.0 |
 | `VolumetricLine.lspkg` | required | 2.0.0 |
-| `SpecsNavigationKit.lspkg` | required | 2.0.0 |
+| `SpecsNavigationKit.lspkg` (or `NavigationKit.lspkg`), same line as the Interaction Kit | required | 2.0.0 (or 4.0.0) |
 | `Leaf.lspkg` | validation | 2.0.2 |
 | `AiPreviewAgentInspect.lspkg` | validation | 2.0.1 |
 | `AiPreviewAgentInteract.lspkg` | validation | 2.0.1 |
@@ -193,10 +193,10 @@ real zip archives with `package.native` descriptors in the format Lens Studio
 
 ## Not verified
 
-- The `InteractionKit.lspkg` 4.0.0 line. No 4.0.0 package was available, so
-  the 4.0.0 fixtures are synthetic archives; see
-  [Compatibility.md](./Compatibility.md#interaction-kit-2x-and-400).
-- Whether UI Kit and Navigation Kit 4.0.0 kept their 2.x package file names.
-  If they were renamed, the doctor reports them missing.
+- The LEAF suite on the 4.0.0 line. The runtime compiles and renders with
+  `InteractionKit.lspkg`, `UIKit.lspkg` and `NavigationKit.lspkg` 4.0.0, but
+  Leaf 4.0.0 needs Lens Studio 5.25; see
+  [Compatibility.md](./Compatibility.md#interaction-kit-2x-and-400). The
+  test fixtures are synthetic archives with the 4.0.0 names.
 - Archives Lens Studio writes as zip64. The reader rejects them with an
   "unreadable" error; none of the installed packages checked so far is zip64.

@@ -69,6 +69,13 @@ Needs `@viro-external/xr-contract` ^0.3.0. Pairs with
   longer makes `present()` throw: the page commits with a placeholder and a
   `VS5003` diagnostic. New: `ViroSpecsPresentation` and
   `toViroSpecsPresentationDocument` in the Lens core.
+- The UI Kit and the Navigation Kit get their own import seams,
+  `ViroSpecsUIKit.ts` and `ViroSpecsNavigationKit.ts`, like
+  `ViroSpecsInteractionKit.ts`. `specs:sync --interaction-kit 4` rewrites
+  all three to the 4.0.0 names (`InteractionKit.lspkg`, `UIKit.lspkg`,
+  `NavigationKit.lspkg`), and `specs:doctor` requires the UI Kit and the
+  Navigation Kit of the installed Interaction Kit's line. `lens-runtime.json`
+  gains `lineSeams`; `requiredPackages` no longer lists the two 2.x names.
 - The high-contrast surface is `#42525f`, not `#000000`. Black adds no
   light on the additive SPECS display, so a high-contrast panel showed as
   the room. White text on the new surface is 8.07:1 and focus 5.62:1. A

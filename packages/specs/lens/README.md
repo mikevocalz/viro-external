@@ -80,10 +80,11 @@ preview-validated: the `viro_ws4_*` LEAF scenarios drive it, with captures in
 viro `docs/evidence/specs/lens/ws4-06-captures`. Not run on SPECS hardware.
 See `doc/Experience.md`.
 
-### ViroSpecsInteractionKit
+### ViroSpecsInteractionKit, ViroSpecsUIKit, ViroSpecsNavigationKit
 
-The only file that imports the Interaction Kit. `pnpm specs:sync` rewrites
-it for the 4.0.0 package name (`InteractionKit.lspkg`); see
+The only files that import the Interaction Kit, the UI Kit and the
+Navigation Kit. `pnpm specs:sync` rewrites them for the 4.0.0 package names
+(`InteractionKit.lspkg`, `UIKit.lspkg`, `NavigationKit.lspkg`); see
 `doc/Compatibility.md`.
 
 ### ViroSpecsAssetRegistry

@@ -18,8 +18,8 @@ Expo, `@reactvision/react-viro`) is in the viro repo,
 | Target | SPECS 27 |
 | Preview environment | SPECS 27 Interactive Preview / Sunlit Room |
 | Upstream package corpus | `specs-devs/packages` pinned by `upstream/specs-27.json` |
-| Interaction Kit | `SpectaclesInteractionKit.lspkg` 2.0.0 validated. `InteractionKit.lspkg` 4.0.0 supported through the import seam, not yet preview-validated (see below) |
-| SpectaclesUIKit | 2.0.0 validated |
+| Interaction Kit | `SpectaclesInteractionKit.lspkg` 2.0.0 validated. `InteractionKit.lspkg` 4.0.0 compiles and renders in Preview on Lens Studio 5.24.1; its LEAF suite needs Lens Studio 5.25 (see below) |
+| SpectaclesUIKit | 2.0.0 validated; `UIKit.lspkg` 4.0.0 compiles and renders (same run) |
 | SurfacePlacement | 2.0.0 validated |
 | VolumetricLine | 2.0.0 validated |
 | SpecsNavigationKit | 2.0.0 validated |
@@ -39,35 +39,59 @@ from the package, `AgentInspectScript`, and 2.0.1 exports it. The minimum is
 
 ## Interaction Kit 2.x and 4.0.0
 
-The Asset Library 4.0.0 packages renamed `SpectaclesInteractionKit.lspkg` to
-`InteractionKit.lspkg`, and the other 4.0.0 packages (UIKit, NavigationKit,
-Leaf) import the new name. A project can hold one line or the other, not
-both.
+The Asset Library 4.0.0 line renames three kits, and every 4.0.0 package
+imports the new names. A project holds one line or the other, not both.
 
-The runtime imports the kit in exactly one file,
-`lens/ViroSpecsInteractionKit.ts`. `specs:validate-lens` fails if any other
-Lens file imports either kit name.
+| Kit | 2.x package | 4.0.0 package | Viro seam file |
+| --- | --- | --- | --- |
+| Interaction Kit | `SpectaclesInteractionKit.lspkg` | `InteractionKit.lspkg` | `lens/ViroSpecsInteractionKit.ts` |
+| UI Kit | `SpectaclesUIKit.lspkg` | `UIKit.lspkg` | `lens/ViroSpecsUIKit.ts` |
+| Navigation Kit | `SpecsNavigationKit.lspkg` | `NavigationKit.lspkg` | `lens/ViroSpecsNavigationKit.ts` |
+
+`SurfacePlacement.lspkg`, `VolumetricLine.lspkg`, `Leaf.lspkg`,
+`AiPreviewAgentInspect.lspkg` and `AiPreviewAgentInteract.lspkg` keep their
+names. The 4.0.0 packages also pull in `Utilities.lspkg`,
+`SnapDecorators.lspkg`, `Icons.lspkg` and `Motion.lspkg` 4.0.0. Every 4.0.0
+`package.native` declares Lens Studio 5.25.0.
+
+Each renamed kit is imported in exactly one runtime file (table above).
+`specs:validate-lens` fails if any other Lens file imports a kit under
+either name. `lens-runtime.json` lists the names per line (`interactionKit`,
+`lineSeams`).
 
 | Step | 2.x project | 4.0.0 project |
 | --- | --- | --- |
-| `pnpm specs:sync -- --project <dir>` | keeps `SpectaclesInteractionKit.lspkg/...` | detects `Packages/InteractionKit.lspkg` and rewrites the seam to `InteractionKit.lspkg/...` |
+| `pnpm specs:sync -- --project <dir>` | keeps the 2.x names | detects `Packages/InteractionKit.lspkg` and rewrites the three seam files to the 4.0.0 names |
 | Force a line | `--interaction-kit 2` | `--interaction-kit 4` |
-| `viro-specs.dependencies.json` | `interactionKit: { line: 2, ... }` | `interactionKit: { line: 4, ... }` |
-| `pnpm specs:doctor -- --project <dir>` | checks the seam names the installed kit and that every imported module exists in `Cache/TypeScript/Src/Packages/<kit>/` | same |
+| `viro-specs.dependencies.json` | `interactionKit: { line: 2, ... }` | `interactionKit: { line: 4, ... }`; `requiredPackages` lists `InteractionKit.lspkg`, `UIKit.lspkg`, `NavigationKit.lspkg` |
+| `pnpm specs:doctor -- --project <dir>` | checks the 2.x kits and that every module each seam imports exists in `Cache/TypeScript/Src/Packages/<kit>/` | same for the 4.0.0 kits; a 4.0.0 Interaction Kit next to a 2.x UI Kit or Navigation Kit is an error |
 
-The rewrite assumes 4.0.0 kept the 2.x module paths under the new package
-name (`Components/Interaction/Interactable/Interactable`,
-`Core/Interactor/Interactor`, `Utils/FunctionTimingUtils`, ...). That is
-not verified: no 4.0.0 package was available to this change. The doctor's
-module check turns a moved path into an error naming the module, instead of
-a Lens compile failure. Lens Studio fills the package cache the first time
-the project is opened; before that the doctor warns that the paths are
-unverified.
+Every module path the runtime imports exists in the 4.0.0 archives under the
+new package names (checked against the Asset Library files on 2026-10-28).
 
-Whether UIKit 4.0.0 and NavigationKit 4.0.0 kept the package names
-`SpectaclesUIKit.lspkg` and `SpecsNavigationKit.lspkg` is also unverified.
-The runtime still imports those names. Until a Lens Studio preview of the
-4.0.0 line passes, pin the 2.x line for production Lenses.
+### 4.0.0 Preview run (2026-10-28, Lens Studio 5.24.1)
+
+A copy of the Platform Lab with every 2.x package replaced by its 4.0.0
+archive, then `specs:sync --interaction-kit 4 --with-validation`:
+
+- `specs:doctor`: passed, kit module paths verified.
+- Compile: one error, inside Leaf 4.0.0
+  (`Scenarios/decorator/ScenarioIndexDecorator.ts(91,17)`, TS2352 converting
+  `string` to `TypeName<Scenario>`). Leaf 4.0.0 is built for Lens Studio 5.25;
+  5.24 declares `getTypeName()` differently. No Viro file and no IK, UI Kit
+  or Navigation Kit import failed.
+- With Leaf, AI Preview Agent Interact and the LEAF scenario folders moved
+  out of the copy, the project compiles. Preview logs `IK Version : 4.0.0`,
+  only the expected `VS5008` warnings, no errors; the generated host binds
+  `viro-interactable:platform-lab-model` (Interactable and
+  InteractableManipulation) and `viro-interactable:hello-next`, and the
+  capture shows the Hello panel, the model and the VolumetricLine route.
+- Not done: the LEAF suite on 4.0.0. It needs Lens Studio 5.25 for Leaf
+  4.0.0; this machine has 5.24.1.
+
+Evidence: viro `docs/evidence/specs/lens/ik4-01-preview` (report, capture,
+SHA-256 of each 4.0.0 archive). Until the LEAF suite passes on 4.0.0, pin
+the 2.x line for production Lenses.
 
 ## Validated software behavior
 

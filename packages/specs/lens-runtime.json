@@ -21,6 +21,7 @@
       "ViroSpecsLensSceneBackend.ts",
       "ViroSpecsLensTransport.ts",
       "ViroSpecsNavigationHost.ts",
+      "ViroSpecsNavigationKit.ts",
       "ViroSpecsNavigationRuntime.ts",
       "ViroSpecsPlacement.ts",
       "ViroSpecsPresentation.ts",
@@ -34,6 +35,7 @@
       "ViroSpecsSceneDocument.ts",
       "ViroSpecsSceneRuntime.ts",
       "ViroSpecsSikBinding.ts",
+      "ViroSpecsUIKit.ts",
       "ViroSpecsWorldRuntime.ts"
     ],
     "validation": [
@@ -52,11 +54,19 @@
     "2": { "package": "SpectaclesInteractionKit.lspkg", "minVersion": "2.0.0" },
     "4": { "package": "InteractionKit.lspkg", "minVersion": "4.0.0" }
   },
+  "lineSeams": {
+    "ViroSpecsUIKit.ts": {
+      "2": { "package": "SpectaclesUIKit.lspkg", "minVersion": "2.0.0" },
+      "4": { "package": "UIKit.lspkg", "minVersion": "4.0.0" }
+    },
+    "ViroSpecsNavigationKit.ts": {
+      "2": { "package": "SpecsNavigationKit.lspkg", "minVersion": "2.0.0" },
+      "4": { "package": "NavigationKit.lspkg", "minVersion": "4.0.0" }
+    }
+  },
   "requiredPackages": [
-    { "package": "SpectaclesUIKit.lspkg", "minVersion": "2.0.0" },
     { "package": "SurfacePlacement.lspkg", "minVersion": "2.0.0" },
-    { "package": "VolumetricLine.lspkg", "minVersion": "2.0.0" },
-    { "package": "SpecsNavigationKit.lspkg", "minVersion": "2.0.0" }
+    { "package": "VolumetricLine.lspkg", "minVersion": "2.0.0" }
   ],
   "validationPackages": [
     { "package": "Leaf.lspkg", "minVersion": "2.0.2" },
