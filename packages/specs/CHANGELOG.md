@@ -93,6 +93,10 @@ Needs `@viro-external/xr-contract` ^0.3.0. Pairs with
 
 ### Fixed
 
+- A ModelViewer's own load ring no longer shows while the scene loading
+  panel is up. Both drew at overlay order 101, and in Lens Studio Preview
+  (`viro_ws4_hello_loading`) the model's ring overlapped the panel title.
+  New: `viroSpecsShowModelRing` in the Lens core.
 - The tarball now includes `lens-runtime.json`. Without it, `specs:sync`
   and `specs:doctor` from an installed copy failed with ENOENT.
 - Scene reads narrow with `result.ok === false`; Lens Studio's compiler did

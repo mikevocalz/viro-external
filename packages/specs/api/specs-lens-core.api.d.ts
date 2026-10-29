@@ -523,6 +523,14 @@ export declare function viroSpecsAutoRotateDegrees(deltaSeconds: number, options
     readonly held: boolean;
 }): number;
 /**
+ * Whether a ModelViewer draws its own load ring this frame: only while its
+ * asset is still loading and the scene-level loading panel is closed. The
+ * loading panel already reports every pending asset, and both rings draw at
+ * the same overlay order, so showing both put a second ring across the
+ * panel's title.
+ */
+export declare function viroSpecsShowModelRing(loading: ViroSpecsLoadingView, assetPending: boolean): boolean;
+/**
  * The ModelViewer Reset model button: a PanelButton-sized control centred
  * under the model's authored bounds, `space.sm` below their bottom edge.
  * Meters; `y` is the button centre relative to the model's authored origin,
