@@ -51,7 +51,7 @@ Create your app's entry script (the Harlem Might project uses `HarlemMightSpecsE
 
 | Input | Points at | Required |
 | --- | --- | --- |
-| `presentationHostObject` | the `ViroSpecsRuntime` object, which holds `ViroSpecsPresentationHost` | yes |
+| `presentationHostObject` | the object holding `ViroSpecsPresentationHost`, whose `sceneHostObject` points at the `ViroSpecsSceneControllerHost` | yes |
 | `navigationObject` | the "Navigation Kit Menu" object, which holds `NavigationDataComponent` | only for Navigation Kit walks |
 | `arNavigationObject` | the "AR Navigation" object, which holds `ARNavigation` | only for Navigation Kit walks |
 
@@ -156,7 +156,7 @@ Measured against a 50 cm frame in Preview, one unit of image `scale` drew about 
 
 SIK fits an Interactable's collider to the first visual under the bound node. On the frame a page is presented, the UI Kit BackPlate has no mesh yet, so a bind in that frame fits the collider to the text label and SIK never reports a hit. Bind one frame later with a `DelayedCallbackEvent`.
 
-`ViroSpecsPresentationHost` on `feat/specs-text-style` (PR #68) does this. It also keeps a generation counter, so a `present()` or `clear()` before the delayed bind runs cancels it. If you write your own host, do both.
+`ViroSpecsSceneController` binds every interaction one frame after commit and ties the bind to the committed scene, so a `present()` or `clear()` before that frame cancels it. `ViroSpecsPresentationHost` goes through the controller. If you write your own host, do both.
 
 ### Every label is the same size
 

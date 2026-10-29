@@ -26,7 +26,7 @@ A two-tab Spectacles page built on `ViroSpecsPresentationHost`: a header with on
 
 2. Copy `SpecsSampleApp.ts` and `SpecsSampleLayout.ts` to `<project>/Assets/SpecsSample/`. The imports expect `Assets/ViroSpecs/lens/` one folder up.
 
-3. Wire the hosts if the project doesn't have them yet (the Platform Lab copy does): `ViroSpecsAssetRegistry`, `ViroSpecsRuntimeHost` (`assetRegistryObject`), `ViroSpecsInteractionHost` (`runtimeHostObject`) and `ViroSpecsPresentationHost` (`runtimeHostObject`, `interactionHostObject`).
+3. Wire the hosts if the project doesn't have them yet (the Platform Lab copy does): `ViroSpecsAssetRegistry`, `ViroSpecsSceneControllerHost` (`assetRegistryObject`) and `ViroSpecsPresentationHost` (`sceneHostObject`).
 
 4. Fill the registry:
    - `defaultPanelPrefab`: a UI Kit frame prefab, `ViroLabPanel` in the Platform Lab.

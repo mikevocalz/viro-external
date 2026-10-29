@@ -1,7 +1,6 @@
 import { setTimeout } from "./ViroSpecsInteractionKit";
 import { VolumetricLine } from "VolumetricLine.lspkg/Scripts/VolumetricLine";
-import { GeoLocationPlace } from "SpecsNavigationKit.lspkg/NavigationDataComponent/GeoLocationPlace";
-import { NavigationDataComponent } from "SpecsNavigationKit.lspkg/NavigationDataComponent/NavigationDataComponent";
+import { GeoLocationPlace, NavigationDataComponent } from "./ViroSpecsNavigationKit";
 import type {
   ViroSpecsGeoCoordinate,
   ViroSpecsNavigationPlan,

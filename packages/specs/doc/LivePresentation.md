@@ -1,7 +1,8 @@
 # Live Specs presentations
 
-The Lens host replaces one focused page at a time and retires the previous
-scene's SIK targets first. It is a **Lens Studio
+The Lens host replaces one focused page at a time. It builds the next page
+under a disabled root and retires the previous page, SIK targets first, only
+after the next one is enabled. It is a **Lens Studio
 host**, not a React/React Native runtime on the glasses.
 
 ## App-side protocol
@@ -17,30 +18,43 @@ session in the app transport.
 
 1. Target SPECS 27 / Lens Studio 5.22+ and install required pinned packages.
 2. Sync `packages/specs/lens` into `Assets/ViroSpecs/lens`.
-3. Attach `ViroSpecsAssetRegistry`, `ViroSpecsRuntimeHost`,
-   `ViroSpecsInteractionHost`, and `ViroSpecsPresentationHost`.
-4. Assign `runtimeHostObject` and `interactionHostObject` in the Inspector.
+3. Attach `ViroSpecsAssetRegistry`, `ViroSpecsSceneControllerHost`, and
+   `ViroSpecsPresentationHost`.
+4. Assign `assetRegistryObject` on the controller host and
+   `sceneHostObject` on the presentation host in the Inspector.
    Register a UI Kit frame as `defaultPanelPrefab`. For an image-backed
    scene, assign the texture's logical ID and `defaultImageMaterial` in
-   `ViroSpecsAssetRegistry`; a missing asset/material is rejected before
-   clearing the previous view. Textures that only exist at runtime, such as
+   `ViroSpecsAssetRegistry`; an unregistered image shows a placeholder and
+   reports `VS5003`, and the page still commits. Textures that only exist at runtime, such as
    remote CMS photos loaded with `RemoteMediaModule`, are added with
    `registry.registerImage(id, texture)` before presenting a node whose
    `source` is that id.
 5. In a Lens script, call `presentationHost.subscribeAction(handler)`
-   and `presentationHost.present(payload)` after the runtime hosts initialize.
-6. Run `specs:validate-lens`, `specs:test-presentation` (after build), CLAD
-   Preview and LEAF selection/teardown tests.
+   and `presentationHost.present(payload)` in `OnStartEvent`, after the
+   hosts initialize.
+6. Run `specs:validate-lens`, `specs:test-presentation` (after build),
+   `specs:test-host`, CLAD Preview and the `viro_lab_presentation` LEAF
+   scenario.
 
-The presentation host validates parents, targets, transforms, content fields
-and registered assets before clearing the visible page, then retires previous
-targets before creating the next set. A payload that fails during
-`applyRenderPlan` after those checks still leaves the page empty; the caller
-should catch the error and present a fallback page.
+`present()` reads the page with the controller's protocol 1 reader (parents,
+targets, transforms, content fields), converts it to a protocol 2 document
+whose targets are `select` interactions, and hands it to
+`ViroSpecsSceneControllerHost`. The controller stages the page under a
+disabled root, enables it, and only then retires the previous page and its
+SIK targets. An invalid page throws before anything changes; a page the
+controller rejects (a backend failure while staging) also throws, and the
+previous page stays on screen with its targets live. A slow image or model
+load does not hold the old page: the new page commits in the `loading`
+lifecycle and the asset appears when it arrives.
+
+Protocol 1 `textStyle.size` becomes `fontSize` (the Lens backend draws one
+Lens text size per point) and `textStyle.color` becomes an `#RRGGBBAA`
+string, rounded to 8 bits per channel.
 
 Action listeners run on the frame after the normalized `select-end` event, so
 a listener can call `present()` without destroying an Interactable while SIK is
-still dispatching to it. Every `select-end` on a bound target fires the action
+still dispatching to it. An action whose page is replaced or cleared before
+that frame is dropped. Every `select-end` on a bound target fires the action
 again; debounce in the caller if a repeated pinch must not repeat the action.
 
 Text nodes take an optional `textStyle: { size, color }`. `size` is in Lens
@@ -71,7 +85,7 @@ outside the window. Bind actions to rows inside the content, not to the
 scroll group: the group's subtree already holds the ScrollWindow's own
 Interactable, and a second one on the group would compete with it for the
 pinch (untested). Clearing the page destroys the group, and the ScrollWindow
-and its Scroller go with it. Scrolling has not run in Preview or on hardware.
+and its Scroller go with it. Scrolling runs in Preview on the controller backend (`viro_lab_scroll_window`, `viro_ws4_navigation_scroll`); it has not run on SPECS hardware, which is not released.
 
 There is no scroll bar. UI Kit's `ScrollBar` takes its `scrollWindow` and
 `orientation` as private Inspector inputs with no setters, and its start

@@ -23,6 +23,7 @@ import {
   resolveViroSpecsButtonVisual,
   stepViroSpecsMove,
   viroSpecsAutoRotateDegrees,
+  viroSpecsShowModelRing,
   viroSpecsDiscGeometry,
   viroSpecsLoadingRing,
   viroSpecsResetProgress,
@@ -1156,8 +1157,9 @@ export class ViroSpecsExperienceHost extends BaseScriptComponent {
       const distance = Math.max(world.distance(head) / CM_PER_METER, 0.01);
       const pending = host.isAssetPending(node.id);
       if (model.ring) {
-        model.ring.root.enabled = pending;
-        if (pending) {
+        const showRing = viroSpecsShowModelRing(view.loading, pending);
+        model.ring.root.enabled = showRing;
+        if (showRing) {
           const bodyEm = viroSpecsAngleToMeters(view.tokens.type.bodyDeg, distance);
           const ring = { diameterMeters: 3 * bodyEm, thicknessMeters: viroSpecsAngleToMeters(view.tokens.shape.borderWidthFocusDeg, distance) * 2 };
           const state = viroSpecsLoadingRing(view.preferences.reducedMotion ? "dots" : "ring-spin", undefined, RING_SEGMENTS, now - model.pendingSinceMs, view.tokens);

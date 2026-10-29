@@ -1,4 +1,4 @@
-import { NavigationDataComponent } from "SpecsNavigationKit.lspkg/NavigationDataComponent/NavigationDataComponent";
+import { NavigationDataComponent } from "./ViroSpecsNavigationKit";
 import type {
   ViroSpecsNavigationPlan,
   ViroSpecsVolumetricLinePlan,

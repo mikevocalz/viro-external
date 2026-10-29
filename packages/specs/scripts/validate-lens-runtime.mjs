@@ -2,6 +2,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { kitSeams, loadManifest } from "./lib/lens-runtime-manifest.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(here, "..");
@@ -35,16 +36,21 @@ const requiredFiles = [
   "ViroSpecsLensSceneBackend.ts",
   "ViroSpecsSceneControllerHost.ts",
   "ViroSpecsInteractionKit.ts",
+  "ViroSpecsUIKit.ts",
+  "ViroSpecsNavigationKit.ts",
   "ViroSpecsActionContract.ts",
   "ViroSpecsActionRuntime.ts",
   "ViroSpecsReferenceFlow.ts",
   "ViroSpecsActionsLab.ts",
 ];
 
-// Only this file may import the Interaction Kit, under either Asset Library
-// name, so specs:sync can switch between 2.x and 4.0.0 by rewriting it.
-const INTERACTION_KIT_SEAM = "ViroSpecsInteractionKit.ts";
-const INTERACTION_KIT_PREFIXES = ["SpectaclesInteractionKit.lspkg/", "InteractionKit.lspkg/"];
+// Each renamed kit (Interaction Kit, UI Kit, Navigation Kit) may be imported,
+// under either Asset Library name, only by its seam file, so specs:sync can
+// switch between 2.x and 4.0.0 by rewriting those files.
+const SEAM_PREFIXES = kitSeams(loadManifest()).map(({ seam, lines }) => ({
+  seam,
+  prefixes: Object.values(lines).map((item) => item.package + "/"),
+}));
 
 const forbiddenImports = [
   "@viro-external/",
@@ -72,8 +78,10 @@ for (const file of tsFiles) {
   );
 
   for (const source of imports) {
-    if (file !== INTERACTION_KIT_SEAM && INTERACTION_KIT_PREFIXES.some((prefix) => source.startsWith(prefix))) {
-      violations.push(file + " -> " + source + " (import it from ./ViroSpecsInteractionKit)");
+    for (const { seam, prefixes } of SEAM_PREFIXES) {
+      if (file !== seam && prefixes.some((prefix) => source.startsWith(prefix))) {
+        violations.push(file + " -> " + source + " (import it from ./" + seam.replace(/\.ts$/, "") + ")");
+      }
     }
 
     if (forbiddenImports.some((forbidden) => source.startsWith(forbidden))) {

@@ -25,10 +25,30 @@ export const DEPENDENCIES_FILE = "viro-specs.dependencies.json";
  *   sceneProtocols: number[],
  *   files: { production: string[], validation: string[], notSynced: string[] },
  *   interactionKit: Record<"2" | "4", PackageRequirement>,
+ *   lineSeams: Record<string, Record<"2" | "4", PackageRequirement>>,
  *   requiredPackages: PackageRequirement[],
  *   validationPackages: PackageRequirement[],
  * }} LensRuntimeManifest
  */
+
+/** The one lens/ file allowed to import the Interaction Kit. */
+export const INTERACTION_KIT_SEAM = "ViroSpecsInteractionKit.ts";
+
+/**
+ * Every kit whose Asset Library package name differs between the 2.x and
+ * 4.0.0 lines, keyed by the one lens/ file allowed to import it: the
+ * Interaction Kit plus `lineSeams` (UI Kit, Navigation Kit). specs:sync
+ * rewrites these files for the project's line; specs:doctor and
+ * specs:validate-lens check them.
+ * @param {LensRuntimeManifest} manifest
+ * @returns {{ seam: string, lines: Record<"2" | "4", PackageRequirement> }[]}
+ */
+export function kitSeams(manifest) {
+  return [
+    { seam: INTERACTION_KIT_SEAM, lines: manifest.interactionKit },
+    ...Object.entries(manifest.lineSeams ?? {}).map(([seam, lines]) => ({ seam, lines })),
+  ];
+}
 
 /** @returns {LensRuntimeManifest} */
 export function loadManifest(file = manifestPath) {

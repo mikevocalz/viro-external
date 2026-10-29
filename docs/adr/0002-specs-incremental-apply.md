@@ -166,8 +166,14 @@ schema to keep in sync.
 
 - Easier: adding a node field means a reader check, a backend setter and a
   diff entry; the mock suite covers ordering for free.
-- Harder: two scene paths exist in the Lens (controller and the legacy
-  runtime/presentation hosts) until apps move to the controller.
+- Harder: the protocol 1 runtime host (`ViroSpecsRuntimeHost` with
+  `ViroSpecsSceneRuntime`) still applies plans in place, with no staging,
+  for scripts that call `applyRenderPlan` directly. `ViroSpecsPresentationHost`
+  runs on the controller since item 5.
+- Changed: `ViroSpecsPresentationHost` takes `sceneHostObject` (a
+  `ViroSpecsSceneControllerHost`) instead of `runtimeHostObject` and
+  `interactionHostObject`. An unregistered image no longer throws; the page
+  commits degraded with a placeholder and `VS5003`.
 - Changed: the generated host has one input (`sceneHostObject`) instead of
   four; `specs:doctor` fails on missing required packages; the peer is
   `@viro-external/xr-contract ^0.3.0`.
@@ -181,13 +187,22 @@ schema to keep in sync.
 | --- | --- | --- |
 | Transactional present, patch ops, ownership, resources, interaction routing | portable-test-passed | `pnpm --filter @viro-external/specs specs:test-host` |
 | Lens backend and hosts compile against Lens Studio 5.24 declarations with no new errors | implemented (typechecked outside Lens Studio) | `tsc` over `Cache/TypeScript/lib/LensifyTS/Declarations` of the Platform Lab project, 31 pre-existing non-decorator errors in other files, 0 in new ones |
-| Rendering in Lens preview, placeholder visuals, SIK phases on device | not verified | Lens lane runs LEAF on this branch |
+| Presentation host replacement keeps the previous page until the next one is enabled; failed staging keeps it with live targets; replaced pages drop queued actions | portable-test-passed | `scripts/presentation-host.test.mjs` (7 tests) in `specs:test-host` |
+| Presentation host on the Lens controller: invalid page keeps the previous page, unregistered image commits degraded, slow image commits `loading` with one scene root, pinch delivers the action | preview-validated | LEAF `viro_lab_presentation`; viro `docs/evidence/specs/lens/presentation-captures` |
+| Render, patch, missing asset, retired-scene deferred action, all seven SIK phases in Lens Preview | preview-validated | LEAF scenarios listed under action item 4 |
+| Any of the above on SPECS hardware | not verified | SPECS hardware is not released |
 
 ## Action items
 
 1. [x] Controller, backend contract, Lens backend, controller host component.
 2. [x] Protocol 2 reader with protocol 1 compatibility.
 3. [x] viro: `toSpecsSceneDocument`, protocol 2 generated host, `VS5xxx` catalog.
-4. [ ] Lens lane: LEAF scenarios for render, patch, missing asset, retired-scene deferred action, all seven phases.
-5. [ ] Move `ViroSpecsPresentationHost` onto the controller (keeps clear-then-build today, after full validation).
+4. [x] Lens lane: LEAF scenarios for render, patch, missing asset, retired-scene deferred action, all seven phases. In the Platform Lab (viro `examples/specs-platform-lab/lens`), SPECS 27 Preview:
+   - render: `viro_lab_render`, `viro_ref_dashboard_ready`, `viro_ref_model_ready`
+   - patch: `viro_lab_state_update` (one text change is one update op; every SceneObject kept), `viro_ref_model_transform`
+   - missing asset: `viro_lab_missing_asset` (placeholder box, `VS5003`, lifecycle `degraded`), `viro_ref_model_missing_asset`
+   - retired-scene deferred action: `viro_lab_actions_navigation_drop` (queued `exhibit.open` dropped with `VS5018` after navigation)
+   - all seven phases: `viro_lab_interaction_phases` (`hover-enter`, `hover-move`, `hover-exit`, `select-start`, `select-end`, `drag`, `cancel` from real SIK input)
+   - transactional replacement: `viro_lab_scene_replacement` (20 cycles, one root, no leaked objects), `viro_lab_presentation`
+5. [x] Move `ViroSpecsPresentationHost` onto the controller. The host is a thin component over `ViroSpecsPresentation` (`lens/ViroSpecsPresentation.ts`, no Lens globals), which presents each page through `ViroSpecsSceneControllerHost` staging, commit and retire; `scripts/presentation-host.test.mjs` fails against the clear-then-build host.
 6. [ ] Preview-validate Interaction Kit 4.0.0 and record module paths.

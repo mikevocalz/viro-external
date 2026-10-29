@@ -8,8 +8,12 @@ Design sources are in viro: `docs/ux/spatial-tokens.md`, `docs/ux/copy.md`,
 (comfort checks, labels, premium components) is viro `docs/specs-experience.md`.
 
 Evidence: `portable-test-passed` (`scripts/experience.test.mjs`, run by
-`specs:test-host`). The Lens adapter (`ViroSpecsExperienceLensView.ts`) is
-`implemented` only: it has not been compiled in Lens Studio or run in Preview.
+`specs:test-host`) and `preview-validated` for the Lens adapter
+(`ViroSpecsExperienceLensView.ts`): it compiles in the Platform Lab, the
+`viro_ws4_*` LEAF scenarios pass in SPECS 27 Preview, and the captures are in
+viro `docs/evidence/specs/lens/ws4-06-captures` (suite runs under
+`ws4-05-leaf-suite` and `ws4-09-release`). Not run on SPECS hardware, which
+is not released.
 
 ## Files
 

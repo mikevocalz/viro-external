@@ -35,6 +35,20 @@ Files: `ViroSpecsSceneController.ts`, `ViroSpecsSceneDocument.ts`,
 `ViroSpecsSikBinding.ts` and `ViroSpecsSceneControllerHost.ts` are the Lens
 side.
 
+### ViroSpecsPresentationHost (protocol 1 pages with string actions)
+
+Presents `{ scene, targets }` pages, where `targets` map node IDs to action
+strings, on a `ViroSpecsSceneControllerHost` (input: `sceneHostObject`).
+Replacement goes through the controller: the next page is staged under a
+disabled root and the previous page is retired only after the next one is
+enabled, so a page that throws or loads slowly never blanks the screen.
+`present()` throws on an invalid page and leaves the previous one live;
+`subscribeAction(listener)` delivers an action one frame after its pinch,
+and drops it if the page was replaced first. The logic is
+`ViroSpecsPresentation.ts` (no Lens globals, `scripts/presentation-host.test.mjs`);
+the `viro_lab_presentation` LEAF scenario runs it in Preview. Guide:
+[../doc/LivePresentation.md](../doc/LivePresentation.md).
+
 ### ViroSpecsActionsLab and ViroSpecsActionRuntime (typed actions)
 
 `ViroSpecsActionRuntime` turns pinches into app state with no phone: a
@@ -61,13 +75,16 @@ listens with `addOnPlacementListener` and `addOnRetryListener`.
 The logic lives in `ViroSpecsExperience.ts`, `ViroSpecsPlacement.ts`,
 `ViroSpecsExperienceTokens.ts` and `ViroSpecsExperienceCopy.ts`, which use no
 Lens globals and run in Node (`scripts/experience.test.mjs`). The component in
-`ViroSpecsExperienceLensView.ts` is `implemented` only: not yet compiled in
-Lens Studio or run in Preview. See `doc/Experience.md`.
+`ViroSpecsExperienceLensView.ts` compiles in the Platform Lab and is
+preview-validated: the `viro_ws4_*` LEAF scenarios drive it, with captures in
+viro `docs/evidence/specs/lens/ws4-06-captures`. Not run on SPECS hardware.
+See `doc/Experience.md`.
 
-### ViroSpecsInteractionKit
+### ViroSpecsInteractionKit, ViroSpecsUIKit, ViroSpecsNavigationKit
 
-The only file that imports the Interaction Kit. `pnpm specs:sync` rewrites
-it for the 4.0.0 package name (`InteractionKit.lspkg`); see
+The only files that import the Interaction Kit, the UI Kit and the
+Navigation Kit. `pnpm specs:sync` rewrites them for the 4.0.0 package names
+(`InteractionKit.lspkg`, `UIKit.lspkg`, `NavigationKit.lspkg`); see
 `doc/Compatibility.md`.
 
 ### ViroSpecsAssetRegistry
@@ -84,7 +101,7 @@ Maps portable Viro source IDs to imported Lens Studio assets:
 
 This is the bridge between portable app data and editor/import-time Lens assets.
 
-### ViroSpecsSceneRuntime
+### ViroSpecsSceneRuntime (protocol 1 executor)
 
 Executes `SpecsRenderPlan` against live Lens Studio objects:
 
@@ -99,9 +116,10 @@ Executes `SpecsRenderPlan` against live Lens Studio objects:
 
 ### ViroSpecsRuntimeHost
 
-Lens component that owns the executor and sets `__VIRO_SPECS_BUILD__ = true`.
-Other Lens scripts can call `applyRenderPlan()` when a shared Viro scene plan
-arrives.
+Lens component that owns the protocol 1 executor and sets
+`__VIRO_SPECS_BUILD__ = true`. `applySceneSnapshot()` validates first, but
+`applyRenderPlan()` changes objects in place with no staging. New code uses
+`ViroSpecsSceneControllerHost` or `ViroSpecsPresentationHost`.
 
 ## Asset IDs
 

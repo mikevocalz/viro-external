@@ -9,6 +9,7 @@ import path from "node:path";
 import {
   DEPENDENCIES_FILE,
   isMainModule,
+  kitSeams,
   LEDGER_FILE,
   PRODUCTION_FOLDER,
   VALIDATION_FOLDER,
@@ -99,6 +100,12 @@ export async function runDoctor(projectArg, { withValidation = false, beforeSync
   } else {
     facts.push(["Interaction Kit", kits.length ? "conflict" : "missing"]);
   }
+  // The other renamed kits follow the Interaction Kit's line (2.x when the
+  // kit is missing or both lines are installed).
+  const line = kits.length === 1 ? kits[0] : "2";
+  for (const lines of Object.values(manifest.lineSeams ?? {})) {
+    facts.push([lines[line].package, await checkPackage(project, lines[line], errors, "Required")]);
+  }
   for (const requirement of manifest.requiredPackages) {
     facts.push([requirement.package, await checkPackage(project, requirement, errors, "Required")]);
   }
@@ -127,25 +134,33 @@ export async function runDoctor(projectArg, { withValidation = false, beforeSync
     return report;
   }
 
-  const seamFile = path.join(productionLens, "ViroSpecsInteractionKit.ts");
-  if (kitPackage && existsSync(seamFile)) {
-    const seam = await readFile(seamFile, "utf8");
-    const specifiers = [...seam.matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1]);
-    const wrong = specifiers.filter((s) => !s.startsWith(kitPackage + "/"));
+  // Each kit seam must name its kit's package on the project's line, and every
+  // module it imports must exist in Lens Studio's package cache (present once
+  // the project was opened).
+  const cache = path.join(project, "Cache", "TypeScript", "Src", "Packages");
+  let unverified = false;
+  for (const { seam, lines } of kitPackage ? kitSeams(manifest) : []) {
+    const seamFile = path.join(productionLens, seam);
+    if (!existsSync(seamFile)) continue;
+    const expected = lines[line].package;
+    const specifiers = [...(await readFile(seamFile, "utf8")).matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1]);
+    const wrong = specifiers.filter((s) => !s.startsWith(expected + "/"));
     if (wrong.length) {
-      errors.push("ViroSpecsInteractionKit.ts imports " + wrong[0].split("/")[0] + " but the project has " + kitPackage +
-        ". Re-run specs:sync (it detects the kit) or pass --interaction-kit " + (kitPackage === manifest.interactionKit["4"].package ? "4" : "2") + ".");
+      errors.push(seam + " imports " + wrong[0].split("/")[0] + " but the project has " + expected +
+        ". Re-run specs:sync (it detects the kit) or pass --interaction-kit " + line + ".");
     }
-    const cache = path.join(project, "Cache", "TypeScript", "Src", "Packages");
-    if (existsSync(path.join(cache, kitPackage))) {
-      for (const specifier of specifiers.filter((s) => s.startsWith(kitPackage + "/"))) {
-        if (!existsSync(path.join(cache, specifier + ".ts"))) {
-          errors.push("Installed " + kitPackage + " has no module " + specifier + " (imported by ViroSpecsInteractionKit.ts).");
-        }
+    if (!existsSync(path.join(cache, expected))) {
+      unverified = true;
+      continue;
+    }
+    for (const specifier of specifiers.filter((s) => s.startsWith(expected + "/"))) {
+      if (!existsSync(path.join(cache, specifier + ".ts"))) {
+        errors.push("Installed " + expected + " has no module " + specifier + " (imported by " + seam + ").");
       }
-    } else {
-      warnings.push("Interaction Kit module paths not verified: open the project in Lens Studio once so Cache/TypeScript/Src/Packages exists.");
     }
+  }
+  if (unverified) {
+    warnings.push("Kit module paths not verified: open the project in Lens Studio once so Cache/TypeScript/Src/Packages exists.");
   }
 
   // Synced runtime against its ownership ledger and dependency record.

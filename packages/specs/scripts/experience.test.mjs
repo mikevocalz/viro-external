@@ -22,6 +22,7 @@ import {
   layoutViroSpecsModelReset,
   layoutViroSpecsStatePanel,
   viroSpecsAutoRotateDegrees,
+  viroSpecsShowModelRing,
   viroSpecsDiscGeometry,
   viroSpecsLoadingRing,
   viroSpecsResetProgress,
@@ -791,6 +792,27 @@ test("ModelViewer: autoRotate turns 18 degrees a second, never under reduced mot
   assert.equal(viroSpecsAutoRotateDegrees(0.5, { reducedMotion: false, held: true }), 0);
   assert.equal(viroSpecsAutoRotateDegrees(0, { reducedMotion: false, held: false }), 0);
   assert.equal(viroSpecsAutoRotateDegrees(Number.NaN, { reducedMotion: false, held: false }), 0);
+});
+
+test("ModelViewer: its load ring stays off while the scene loading panel is up", async () => {
+  const { controller, experience, scheduler, pending } = setup("hello", { assets: "slow" });
+  controller.present(fixture("hello"));
+  const modelId = controller.committedScene.nodes.find((n) => n.component?.type === "model-viewer").id;
+  assert.equal(controller.isAssetPending(modelId), true);
+  // Before motion.fast the panel is closed, so the model's own ring shows.
+  assert.equal(experience.view().loading.visible, false);
+  assert.equal(viroSpecsShowModelRing(experience.view().loading, controller.isAssetPending(modelId)), true);
+  // Once the panel opens it reports the asset; one ring, not two.
+  scheduler.tick(130);
+  experience.tick();
+  assert.equal(experience.view().loading.visible, true);
+  assert.equal(viroSpecsShowModelRing(experience.view().loading, controller.isAssetPending(modelId)), false);
+  for (const d of pending) d.resolve({ asset: "late" });
+  await flush();
+  assert.equal(viroSpecsShowModelRing(experience.view().loading, controller.isAssetPending(modelId)), false);
+  // The Lens adapter draws the ring only when the rule allows it.
+  const view = readFileSync(new URL("../lens/ViroSpecsExperienceLensView.ts", import.meta.url), "utf8");
+  assert.match(view, /const showRing = viroSpecsShowModelRing\(view\.loading, pending\);\s*model\.ring\.root\.enabled = showRing;/);
 });
 
 test("ModelViewer: Reset model sits under the model's bounds and eases back over motion.base", () => {

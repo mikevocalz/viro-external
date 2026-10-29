@@ -64,28 +64,16 @@ test("strips extra properties that would break JSON scene serialization", () => 
   assert.throws(() => compileSpecsPresentation(wrong), /text is only valid/);
 });
 
-test("preflights empty scenes and assets before clearing the Lens frame", () => {
+test("rejects empty scenes before anything on screen changes", () => {
   const empty = base();
   empty.scene.nodes = [];
   assert.throws(() => compileSpecsPresentation(empty), /non-empty/);
-  const host = readFileSync(new URL("../lens/ViroSpecsPresentationHost.ts", import.meta.url), "utf8");
-  assert.match(host, /nodes.length === 0/);
-  const validate = host.indexOf("renderer.validateSources");
-  assert.ok(validate < host.indexOf("interactions.resetTargets()"));
-  assert.ok(validate < host.indexOf("renderer.clear()"));
-  // Raw wire payloads bypass the portable compiler, so the host repeats the
-  // checks that would otherwise throw after the page is cleared.
-  for (const check of [/text is only valid on text nodes/, /source is only valid on image\/model/,
-    /assertVector\(node\.rotation, 4/, /assertVector\(node\.position, 3/]) {
-    assert.match(host, check);
-  }
-  assert.match(host, /emitDeferred\(action\)/);
-  // Targets bind a frame later, and a newer page or clear() cancels the bind.
-  assert.match(host, /if \(generation !== this\.generation\) return;/);
-  assert.match(host, /clear\(\): void \{\s*this\.generation\+\+;/);
-  // A failed render must not leave an older page's bind live.
-  assert.ok(host.indexOf("++this.generation") < host.indexOf("renderer.clear();\n    this.actions.clear();\n    try"));
-  assert.match(host, /value < 0 \|\| value > 1/);
+  // Raw wire pages bypass the portable compiler; the Lens presentation reads
+  // them with the controller's reader before anything on screen changes.
+  // Behavior is covered on the mock host in presentation-host.test.mjs.
+  const core = readFileSync(new URL("../lens/ViroSpecsPresentation.ts", import.meta.url), "utf8");
+  assert.match(core, /nodes\.length === 0/);
+  assert.ok(core.indexOf("readViroSpecsSceneInput(scene, 0)") < core.indexOf("this.scene.present(document)"));
 });
 
 test("passes portable [x, y, z, w] rotation through unchanged", () => {
@@ -125,9 +113,6 @@ test("carries validated text style to the Lens content command", () => {
 
   const runtime = readFileSync(new URL("../lens/ViroSpecsSceneRuntime.ts", import.meta.url), "utf8");
   assert.match(runtime, /record\.text\.size = command\.textStyle\.size/);
-  const host = readFileSync(new URL("../lens/ViroSpecsPresentationHost.ts", import.meta.url), "utf8");
-  assert.match(host, /textStyle is only valid on text nodes/);
-  assert.match(host, /createComponent\("Component\.Canvas"\)/);
 });
 
 const scrollPage = () => ({
@@ -176,13 +161,15 @@ test("rejects scroll on non-groups and non-finite or out-of-range sizes", () => 
   }
 });
 
-test("Lens runtime puts scroll content in a UI Kit ScrollWindow and the host preflights it", () => {
+test("Lens runtime puts scroll content in a UI Kit ScrollWindow", () => {
   const protocol = readFileSync(new URL("../lens/ViroSpecsProtocol.ts", import.meta.url), "utf8");
   assert.match(protocol, /scroll\?: ViroSpecsScroll/);
   assert.match(protocol, /node\.scroll \? \{ scroll: node\.scroll \}/);
 
   const runtime = readFileSync(new URL("../lens/ViroSpecsSceneRuntime.ts", import.meta.url), "utf8");
-  assert.match(runtime, /from "SpectaclesUIKit\.lspkg\/Scripts\/Components\/ScrollWindow\/ScrollWindow"/);
+  assert.match(runtime, /import \{ ScrollWindow \} from "\.\/ViroSpecsUIKit"/);
+  const seam = readFileSync(new URL("../lens/ViroSpecsUIKit.ts", import.meta.url), "utf8");
+  assert.match(seam, /from "SpectaclesUIKit\.lspkg\/Scripts\/Components\/ScrollWindow\/ScrollWindow"/);
   assert.match(runtime, /createComponent\(ScrollWindow\.getTypeName\(\)\)/);
   assert.match(runtime, /\.vertical = true;/);
   assert.match(runtime, /\.horizontal = false;/);
@@ -194,16 +181,6 @@ test("Lens runtime puts scroll content in a UI Kit ScrollWindow and the host pre
   assert.match(runtime, /parentRecord\.contentParent \?\? parentRecord\.object/);
   // The ScrollWindow lives under the node's SceneObject, so clearing the page destroys it.
   assert.match(runtime, /scrollObject\.setParent\(record\.object\)/);
-
-  const host = readFileSync(new URL("../lens/ViroSpecsPresentationHost.ts", import.meta.url), "utf8");
-  assert.match(host, /scroll is only valid on group nodes/);
-  assert.match(host, /value <= 0 \|\| value > 10/);
-  // Colliders bound a frame later are re-registered with the ScrollWindow,
-  // inside the generation-guarded bind.
-  const guard = host.indexOf("if (generation !== this.generation) return;");
-  const refresh = host.indexOf("renderer.refreshScrollColliders()");
-  assert.ok(guard > 0 && refresh > guard);
-  assert.ok(refresh > host.indexOf("interactions.setInteractable(target, true)"));
 });
 
 test("initializes runtime ScrollWindows and declares the UI Kit dependency", () => {
@@ -213,7 +190,8 @@ test("initializes runtime ScrollWindows and declares the UI Kit dependency", () 
   assert.ok(created > 0 && init > created && init < runtime.indexOf("scrollWindow.addObject(content)"));
   // specs:sync and specs:doctor take the required package list from lens-runtime.json.
   const manifest = JSON.parse(readFileSync(new URL("../lens-runtime.json", import.meta.url), "utf8"));
-  assert.ok(manifest.requiredPackages.some((item) => item.package === "SpectaclesUIKit.lspkg"));
+  assert.deepEqual(manifest.lineSeams["ViroSpecsUIKit.ts"]["2"], { package: "SpectaclesUIKit.lspkg", minVersion: "2.0.0" });
+  assert.deepEqual(manifest.lineSeams["ViroSpecsUIKit.ts"]["4"], { package: "UIKit.lspkg", minVersion: "4.0.0" });
 });
 
 test("registers runtime textures without mutating Inspector arrays", () => {
@@ -224,15 +202,7 @@ test("registers runtime textures without mutating Inspector arrays", () => {
   assert.doesNotMatch(registry, /this\.imageIds\.push\(/);
 });
 
-test("legacy Lens entry points validate like the controller and drop actions of replaced pages", () => {
-  const host = readFileSync(new URL("../lens/ViroSpecsPresentationHost.ts", import.meta.url), "utf8");
-  // Validation runs before anything is cleared.
-  assert.ok(host.indexOf("readViroSpecsSceneInput(snapshot.scene") < host.indexOf("renderer.clear();\n    this.actions.clear();\n    try"));
-  // A deferred action carries its page's generation and is dropped after replacement.
-  const emit = host.slice(host.indexOf("private emitDeferred"));
-  assert.match(emit, /const generation = this\.generation;/);
-  assert.match(emit, /if \(generation !== this\.generation\) return;/);
-  assert.match(emit, /catch \(error\)/);
+test("the protocol 1 runtime host validates like the controller", () => {
   const runtimeHost = readFileSync(new URL("../lens/ViroSpecsRuntimeHost.ts", import.meta.url), "utf8");
   const apply = runtimeHost.slice(runtimeHost.indexOf("applySceneSnapshot(scene"));
   assert.ok(apply.indexOf("readViroSpecsSceneInput(scene, 0)") < apply.indexOf("this.applyRenderPlan"));

@@ -26,6 +26,7 @@
     "lens/ViroSpecsSceneBackend.ts",
     "lens/ViroSpecsResourceCache.ts",
     "lens/ViroSpecsSceneController.ts",
+    "lens/ViroSpecsPresentation.ts",
     "lens/ViroSpecsActionRuntime.ts",
     "lens/ViroSpecsReferenceFlow.ts",
     "lens/ViroSpecsExperienceTokens.ts",

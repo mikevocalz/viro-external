@@ -19,7 +19,7 @@ const doctorCli = (root, ...extra) =>
   spawnSync(process.execPath, [path.join(scripts, "doctor-lens-project.mjs"), "--project", root, ...extra], { encoding: "utf8" });
 const sync = (root, ...extra) =>
   execFileSync(process.execPath, [path.join(scripts, "sync-lens-runtime.mjs"), "--project", root, ...extra], { encoding: "utf8" });
-const without = (name) => Object.fromEntries(Object.entries(VALIDATED_PACKAGES).filter(([key]) => key !== name));
+const without = (...names) => Object.fromEntries(Object.entries(VALIDATED_PACKAGES).filter(([key]) => !names.includes(key)));
 const withVersion = (name, version) => ({ ...VALIDATED_PACKAGES, [name]: version });
 
 // --- version parsing -------------------------------------------------------
@@ -117,10 +117,18 @@ test("an Interaction Kit is required, only one line may be installed, and the 4.
   const both = await runDoctor(lensProject({ packages: { ...VALIDATED_PACKAGES, "InteractionKit.lspkg": "4.0.0" } }));
   assert.match(both.errors.join("\n"), /Both Interaction Kit packages are installed \(SpectaclesInteractionKit\.lspkg, InteractionKit\.lspkg\)/);
 
-  const four = { ...without("SpectaclesInteractionKit.lspkg"), "InteractionKit.lspkg": "4.0.0" };
+  // The 4.0.0 line also renames the UI Kit and the Navigation Kit.
+  const four = {
+    ...without("SpectaclesInteractionKit.lspkg", "SpectaclesUIKit.lspkg", "SpecsNavigationKit.lspkg"),
+    "InteractionKit.lspkg": "4.0.0",
+    "UIKit.lspkg": "4.0.0",
+    "NavigationKit.lspkg": "4.0.0",
+  };
   const ok = await runDoctor(lensProject({ packages: four }));
   assert.deepEqual(ok.errors, []);
   assert.equal(Object.fromEntries(ok.facts)["Interaction Kit"], "InteractionKit.lspkg 4.0.0");
+  assert.equal(Object.fromEntries(ok.facts)["UIKit.lspkg"], "4.0.0");
+  assert.equal(Object.fromEntries(ok.facts)["NavigationKit.lspkg"], "4.0.0");
 
   const old = await runDoctor(lensProject({ packages: { ...four, "InteractionKit.lspkg": "3.9.0" } }));
   assert.deepEqual(old.errors, ["Required Lens package InteractionKit.lspkg is 3.9.0; minimum is 4.0.0. Update it from the Asset Library."]);

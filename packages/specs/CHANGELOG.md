@@ -61,6 +61,21 @@ Needs `@viro-external/xr-contract` ^0.3.0. Pairs with
 
 ### Changed
 
+- `ViroSpecsPresentationHost` runs on `ViroSpecsSceneControllerHost`.
+  Replacing a page stages the next page under a disabled root and retires
+  the previous one only after the next is enabled, so a page that fails to
+  build, or loads an asset slowly, no longer leaves the screen empty. The
+  host's inputs are now one, `sceneHostObject`. An unregistered image no
+  longer makes `present()` throw: the page commits with a placeholder and a
+  `VS5003` diagnostic. New: `ViroSpecsPresentation` and
+  `toViroSpecsPresentationDocument` in the Lens core.
+- The UI Kit and the Navigation Kit get their own import seams,
+  `ViroSpecsUIKit.ts` and `ViroSpecsNavigationKit.ts`, like
+  `ViroSpecsInteractionKit.ts`. `specs:sync --interaction-kit 4` rewrites
+  all three to the 4.0.0 names (`InteractionKit.lspkg`, `UIKit.lspkg`,
+  `NavigationKit.lspkg`), and `specs:doctor` requires the UI Kit and the
+  Navigation Kit of the installed Interaction Kit's line. `lens-runtime.json`
+  gains `lineSeams`; `requiredPackages` no longer lists the two 2.x names.
 - The high-contrast surface is `#42525f`, not `#000000`. Black adds no
   light on the additive SPECS display, so a high-contrast panel showed as
   the room. White text on the new surface is 8.07:1 and focus 5.62:1. A
@@ -78,6 +93,10 @@ Needs `@viro-external/xr-contract` ^0.3.0. Pairs with
 
 ### Fixed
 
+- A ModelViewer's own load ring no longer shows while the scene loading
+  panel is up. Both drew at overlay order 101, and in Lens Studio Preview
+  (`viro_ws4_hello_loading`) the model's ring overlapped the panel title.
+  New: `viroSpecsShowModelRing` in the Lens core.
 - The tarball now includes `lens-runtime.json`. Without it, `specs:sync`
   and `specs:doctor` from an installed copy failed with ENOENT.
 - Scene reads narrow with `result.ok === false`; Lens Studio's compiler did
@@ -97,6 +116,11 @@ Needs `@viro-external/xr-contract` ^0.3.0. Pairs with
   scenarios, Platform Lab, agent validation) are no longer copied unless
   you pass `--with-validation`.
 - Install `@viro-external/xr-contract` 0.3.x.
+- Rewire `ViroSpecsPresentationHost`: set `sceneHostObject` to the
+  SceneObject holding `ViroSpecsSceneControllerHost` (with its
+  `assetRegistryObject`). `runtimeHostObject` and `interactionHostObject`
+  are gone. Code that relied on `present()` throwing for an unregistered
+  image should check `VS5003` diagnostics or `lifecycle === "degraded"`.
 
 ## 0.2.0
 
