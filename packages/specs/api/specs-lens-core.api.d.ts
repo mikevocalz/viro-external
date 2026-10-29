@@ -1326,6 +1326,101 @@ export declare class ViroSpecsPlacementSession {
 }
 export {};
 
+// ---- ViroSpecsPresentation.d.ts
+/**
+ * ViroSpecsPresentation: protocol 1 pages with string actions, presented
+ * through a {@linkcode ViroSpecsSceneController}.
+ *
+ * A page is a protocol 1 scene plus `targets` that map node IDs to action
+ * strings. Each page becomes a protocol 2 document whose targets are
+ * `select` interactions, and the controller presents it transactionally: the
+ * page is staged under a disabled root and the previous page is retired only
+ * after the new one is enabled. A rejected or failed page leaves the previous
+ * page on screen with its targets live.
+ *
+ * Dependency-free and free of Lens globals. The Lens component is
+ * ViroSpecsPresentationHost, which runs this on a
+ * ViroSpecsSceneControllerHost.
+ */
+import type { ViroSpecsHostInteraction, ViroSpecsSceneDocumentV2, ViroSpecsSceneSnapshot } from "./ViroSpecsProtocol";
+import { type ViroSpecsSubscription } from "./ViroSpecsHostDiagnostics";
+import type { ViroSpecsCancel } from "./ViroSpecsSceneBackend";
+import type { ViroSpecsApplyResult } from "./ViroSpecsSceneController";
+/** A plain JSON page prepared by the phone/app host, not Lens React. */
+export type ViroSpecsPresentationSnapshot = {
+    scene: ViroSpecsSceneSnapshot;
+    /** Nodes that fire `action` on a completed pinch. Each node at most once. */
+    targets: {
+        targetId: string;
+        action: string;
+    }[];
+};
+/**
+ * The scene owner a {@linkcode ViroSpecsPresentation} draws into. Both
+ * {@linkcode ViroSpecsSceneController} and ViroSpecsSceneControllerHost
+ * satisfy it.
+ */
+export interface ViroSpecsPresentationScene {
+    present(input: unknown): ViroSpecsApplyResult;
+    clear(): void;
+    queueAction(action: () => void): ViroSpecsCancel;
+    addOnInteractionListener(listener: (event: ViroSpecsHostInteraction) => void): ViroSpecsSubscription;
+}
+/**
+ * Converts a presentation page to the protocol 2 document
+ * {@linkcode ViroSpecsPresentation.present} hands to the controller.
+ *
+ * Protocol 1 `textStyle.size` becomes `style.fontSize` (the Lens backend
+ * draws one Lens text size per point) and `textStyle.color` becomes an
+ * `#RRGGBBAA` string. Every target becomes a `select` interaction without
+ * manipulation.
+ *
+ * @throws Error naming every problem when the page is not a valid, non-empty
+ * protocol 1 scene or a target is unknown, duplicated or has no action.
+ */
+export declare function toViroSpecsPresentationDocument(snapshot: ViroSpecsPresentationSnapshot): ViroSpecsSceneDocumentV2;
+/**
+ * Presents protocol 1 pages on a scene controller and delivers their string
+ * actions.
+ *
+ * @example
+ * const presentation = new ViroSpecsPresentation(sceneHost);
+ * const stop = presentation.subscribeAction((action) => app.onAction(action));
+ * presentation.present({ scene, targets: [{ targetId: "go", action: "open:apollo" }] });
+ * stop();
+ * presentation.dispose();
+ */
+export declare class ViroSpecsPresentation {
+    private readonly scene;
+    private readonly listeners;
+    private targets;
+    /** Revision of the page this presentation committed, 0 when none. */
+    private revision;
+    private subscription;
+    private disposed;
+    constructor(scene: ViroSpecsPresentationScene);
+    /**
+     * Adds an action listener. Actions arrive one frame after the pinch, and
+     * only while the page that showed the target is still presented.
+     *
+     * @returns Removes the listener. Idempotent.
+     */
+    subscribeAction(listener: (action: string) => void): () => void;
+    /**
+     * Replaces the presented page transactionally. Until the new page is
+     * enabled, the previous page and its targets stay live.
+     *
+     * @throws Error when the page is invalid or the controller rejects it. The
+     * previous page is untouched in both cases.
+     */
+    present(snapshot: ViroSpecsPresentationSnapshot): void;
+    /** Removes the presented page. Queued actions of the page are dropped. */
+    clear(): void;
+    /** Clears the page and drops every listener. Idempotent. */
+    dispose(): void;
+    private onInteraction;
+}
+
 // ---- ViroSpecsProtocol.d.ts
 /**
  * Dependency-free wire protocol consumed inside Lens Studio.

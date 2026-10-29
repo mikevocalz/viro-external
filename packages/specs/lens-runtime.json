@@ -23,6 +23,7 @@
       "ViroSpecsNavigationHost.ts",
       "ViroSpecsNavigationRuntime.ts",
       "ViroSpecsPlacement.ts",
+      "ViroSpecsPresentation.ts",
       "ViroSpecsPresentationHost.ts",
       "ViroSpecsProtocol.ts",
       "ViroSpecsResourceCache.ts",

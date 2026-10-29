@@ -77,7 +77,11 @@ route memory full. See [LensHostDiagnostics.md](LensHostDiagnostics.md).
 
 ## Evidence
 
-`portable-test-passed` only: `scripts/actions.test.mjs` (11 tests) and
+`portable-test-passed`: `scripts/actions.test.mjs` (11 tests) and
 `scripts/actions-fixtures.test.mjs` run the real controller, registry,
-runtime and reference flow on the mock host (`pnpm specs:test-host`). Not
-compiled in Lens Studio, not run in Preview, not run on SPECS hardware.
+runtime and reference flow on the mock host (`pnpm specs:test-host`).
+`preview-validated`: the Platform Lab compiles `ViroSpecsActionsLab`, and the
+LEAF scenarios `viro_lab_actions_reference_flow`,
+`viro_lab_actions_navigation_drop` and `viro_lab_actions_unknown_action`
+pass in SPECS 27 Preview (viro `docs/evidence/specs/lens/ws4-09-release`).
+Not run on SPECS hardware, which is not released.

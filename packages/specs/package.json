@@ -35,7 +35,7 @@
     "prepack": "pnpm --filter @viro-external/xr-contract build && pnpm build && node -e \"require('./dist/cjs/index.js')\" && node --input-type=module -e \"await import('./dist/index.js')\" && pnpm specs:validate-lens && pnpm specs:test-lens && pnpm specs:test-runner && pnpm specs:test-presentation && pnpm specs:test-host && node --test scripts/viro-bundle.test.mjs",
     "specs:test-bundle": "pnpm build && node --test scripts/viro-bundle.test.mjs",
     "specs:test-presentation": "node --test scripts/presentation.test.mjs",
-    "specs:test-host": "node scripts/build-lens-core.mjs && node --test scripts/scene-controller.test.mjs scripts/interaction-kit.test.mjs scripts/actions.test.mjs scripts/actions-fixtures.test.mjs scripts/experience.test.mjs",
+    "specs:test-host": "node scripts/build-lens-core.mjs && node --test scripts/scene-controller.test.mjs scripts/presentation-host.test.mjs scripts/interaction-kit.test.mjs scripts/actions.test.mjs scripts/actions-fixtures.test.mjs scripts/experience.test.mjs",
     "specs:test-consumer": "node scripts/check-packed-consumer.mjs",
     "specs:test-reference-apps": "node examples/reference-apps/gen-lens-scenes.mjs --check && node scripts/build-lens-core.mjs && node --test examples/reference-apps/reference-apps.test.mjs"
   },

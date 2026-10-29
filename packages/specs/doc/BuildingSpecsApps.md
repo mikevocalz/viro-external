@@ -12,7 +12,7 @@ Step-by-step project setup and the known traps are in [LensStudioRunbook.md](./L
 
 ## 1. What Viro renders on Specs
 
-Lens Studio draws everything. Your script builds a JSON page of portable nodes and hands it to `ViroSpecsPresentationHost.present()`; the host validates it, tears down the previous page and creates Lens objects:
+Lens Studio draws everything. Your script builds a JSON page of portable nodes and hands it to `ViroSpecsPresentationHost.present()`. The host validates it and passes it to `ViroSpecsSceneControllerHost`, which builds the new page under a disabled root, enables it, and only then retires the previous page:
 
 | Node | Lens object | Notes |
 | --- | --- | --- |
@@ -31,7 +31,7 @@ Build these yourself, outside Viro, as ordinary Lens components:
 - **Network**: `InternetModule.fetch` for JSON, `RemoteMediaModule` for images.
 - Anything else Lens-native: audio, camera, physics, custom materials.
 
-Viro owns one page of nodes under `ViroSpecsRuntimeHost`. Your other components sit beside it in the scene and you position them yourself (section 10).
+Viro owns one page of nodes under `ViroSpecsSceneControllerHost`. Your other components sit beside it in the scene and you position them yourself (section 10).
 
 ## 2. Project setup
 
@@ -46,14 +46,15 @@ Short version of the runbook:
 
    Resyncing a wired project keeps its `.meta` files and your edits. The doctor fails if a required package is missing or below its minimum; [SyncAndDoctor.md](./SyncAndDoctor.md) lists the checks.
 
-2. Wire the four hosts. In the Platform Lab they sit on `ViroSpecsRuntime` and its children:
+2. Wire three components. In the Platform Lab the registry and the scene controller host already exist (`SceneHost`); add the presentation host beside them:
 
    | Component | Inspector inputs |
    | --- | --- |
    | `ViroSpecsAssetRegistry` | `imageIds` / `imageTextures`, `modelIds` / `modelPrefabs` (parallel arrays), `defaultPanelPrefab`, `defaultFont`, `defaultImageMaterial` |
-   | `ViroSpecsRuntimeHost` | `assetRegistryObject`; optional `root` |
-   | `ViroSpecsInteractionHost` | `runtimeHostObject` |
-   | `ViroSpecsPresentationHost` | `runtimeHostObject`, `interactionHostObject` |
+   | `ViroSpecsSceneControllerHost` | `assetRegistryObject`; optional `root` |
+   | `ViroSpecsPresentationHost` | `sceneHostObject` (the object holding `ViroSpecsSceneControllerHost`) |
+
+   One controller host owns one scene. If a generated host or another script also presents on it, the last `present()` wins; give the presentation host its own `ViroSpecsSceneControllerHost` when both must show at once.
 
 3. Fill the registry: `defaultPanelPrefab` = `ViroLabPanel`, `defaultFont` = `SpecsSans-Medium`, and your textures under ids you will use as `source`.
 
@@ -489,7 +490,7 @@ export class SpecsNavigator extends BaseScriptComponent {
 }
 ```
 
-`present()` checks the whole page before it clears the old one and throws on a bad page (unknown parent, target without a node, missing image id). If it throws after that point, the page stays empty; catch the error and present a fallback page.
+`present()` throws on a bad page (unknown parent, target without a node, child before its parent) and the old page stays on screen with its buttons live. An image `source` that isn't registered does not throw: the page commits with a placeholder box in that slot and a `VS5003` diagnostic, and the scene lifecycle reads `degraded`. Nothing a page can contain clears the screen without a replacement.
 
 ## 8. Data
 
@@ -780,10 +781,11 @@ Test the page builder the same way: unique node ids, parents before children, ev
 
 - **No image renders:** the lab's two image materials are broken. Use the Unlit / Normal / Depth Write off / Base Texture material.
 - **A new page's buttons ignore pinches:** binding a target in the frame the page appears fits the collider to the label. The host binds one frame later; a custom host must too.
-- **The page throws on present:** an image `source` that isn't registered yet, a target id without a node, or a child listed before its parent. The host rejects the page before clearing the old one.
+- **The page throws on present:** a target id without a node, or a child listed before its parent. The old page stays up.
+- **A grey box where an image should be:** its `source` isn't registered yet (`VS5003`). Register the texture before presenting.
 - **Squashed button text:** the label is a child of the scaled plate. Make it a sibling.
 - **Tiny pinch target:** the target group's only visual is a text label. Give it a plate.
-- **Lists jump to the top:** every `present()` rebuilds the ScrollWindow. Carry the offset (section 6).
+- **Lists jump to the top:** `present()` keeps the scroll position of a scroll group whose id and kind stay the same; a list under a new id starts at the top. Carry the offset yourself when the id changes (section 6).
 - **A callback you set never fires:** the other component sits lower in the hierarchy and initialized after you, overwriting it. Set callbacks in `OnStartEvent`.
 - **WebView is blank:** expected in Preview. On device, check Experimental API and load the URL after the texture callback rather than waiting for `onReady`.
 - **A hidden component goes quiet:** you disabled the SceneObject that carries the script. Disable the visual component instead.
