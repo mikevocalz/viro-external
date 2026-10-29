@@ -59,6 +59,11 @@ Needs `@viro-external/xr-contract` ^0.3.0. Pairs with
   `viroSpecsDiscGeometry` and `viroSpecsRoundedRectGeometry`. The
   change adds names and removes none.
 
+- `specs:setup` (`scripts/setup-lens-project.mjs`): prepares a Lens Studio
+  project through its MCP server, from saving a new Spectacles project to a
+  checked Preview run, so the starter needs no Inspector wiring. See
+  [doc/SyncAndDoctor.md](./doc/SyncAndDoctor.md#specssetup).
+
 ### Changed
 
 - `ViroSpecsPresentationHost` runs on `ViroSpecsSceneControllerHost`.

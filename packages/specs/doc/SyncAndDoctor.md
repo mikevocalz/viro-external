@@ -181,6 +181,30 @@ first failure:
 `specs:bootstrap`. A half-synced `Assets/ViroSpecs/` therefore does not block
 the sync that repairs it, and the full check still runs afterwards.
 
+## specs:setup
+
+`pnpm specs:setup -- --project /abs/LensProject [--create] [--steps ...] [--evidence <dir>]`
+(also `viro-specs setup`, and `npm run lens:setup` in a `viro-specs init`
+app) prepares a Lens Studio project through Lens Studio's MCP server, so
+nothing is wired in the Inspector. It reads the server from
+`LENS_STUDIO_MCP_URL` and `LENS_STUDIO_MCP_TOKEN`, or from the MCP config
+file named by `LENS_STUDIO_MCP_CONFIG` (a `lens-studio` entry under
+`mcpServers`, top level or per project), and never prints the key.
+
+| Step | What it does |
+| --- | --- |
+| `preflight` | Checks the MCP tools it needs. With `--create` and no `.esproj` in `--project`, saves a new Spectacles project there; otherwise the open project must be `--project` |
+| `packages` | Installs the 2.x line from the Asset Library when missing: SpectaclesInteractionKit, SpectaclesUIKit, SurfacePlacement, VolumetricLine, SpecsNavigationKit 2.0.0, and AI Preview Agent Inspect 2.0.1 for the preview capture (without it, Lens Studio's MCP server installs 4.0.0, which needs the 4.0.0 UI Kit). One install at a time |
+| `sync` | `specs:sync`, then `specs:doctor`; any doctor error stops the setup |
+| `device` | Preview: SPECS device, Interactive input, Sunlit Room (`--room` picks another). Runs before wiring: the reload a device switch causes ran without the camera's new DeviceTracking component when it came right after `wire` |
+| `recompile` | Needs `Assets/ViroSpecs/generated/ViroGeneratedSceneHost.ts` (compile it first); fails on any TypeScript error |
+| `materials` | Creates `ViroPlaceholder`, `ViroDefaultMaterial`, `ViroDefaultLine`, `ViroImageMaterial` and `ViroExperiencePanel` from presets under `Assets/ViroSpecsSetup/Materials` |
+| `wire` | Runs `scripts/lens-editor/wire-scene-host.ts` in the editor: camera to Perspective with World tracking, the Interaction Kit prefab at the root, package demo roots disabled, and a `ViroSpecsRuntime` object with `AssetRegistry`, `SceneHost`, `GeneratedHost` and `ExperienceHost` wired and saved. Idempotent |
+| `preview` | Refreshes Preview, saves `preview.png` to the evidence folder, and fails on any `E` line, script error or `error VS5xxx` line; warnings such as `VS5008` pass |
+
+Evidence goes to `--evidence` (default `<project>/ViroSpecsSetupEvidence`).
+This reaches lens-compiled and a Preview run, never hardware.
+
 ## Tests
 
 `pnpm --filter @viro-external/specs specs:test-lens` runs
