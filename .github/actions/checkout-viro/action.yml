@@ -33,7 +33,7 @@ runs:
       uses: actions/checkout@v7
       with:
         repository: mikevocalz/viro
-        ref: 99b1d87c55ca9f43a6452144183a0b32a2bfb3c9
+        ref: 017d5f8380efdfc88b62812c9c486d199822f6e2
         token: ${{ inputs.token }}
         path: .spatial-deps/viro
         persist-credentials: false

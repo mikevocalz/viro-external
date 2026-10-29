@@ -16,7 +16,7 @@ Use your existing GitHub authentication; never paste credentials into commands o
 mkdir -p spatial-dev
 cd spatial-dev
 git clone https://github.com/mikevocalz/viro.git
-git -C viro checkout 99b1d87c55ca9f43a6452144183a0b32a2bfb3c9
+git -C viro checkout 017d5f8380efdfc88b62812c9c486d199822f6e2
 git clone https://github.com/mikevocalz/viro-external.git
 cd viro-external
 corepack enable
