@@ -46,3 +46,17 @@ test("production example uses one snapped, curved panel per workspace slot", () 
   }
   assert.doesNotMatch(source, /<SpatialWorkspaceSlotNode\b|@viro-external\/gui/);
 });
+
+test("canonical panel controls do not introduce parallel React useState owners", () => {
+  for (const path of [
+    "packages/ui/src/SpatialPanel.tsx",
+    "packages/ui/src/PanelHeader.tsx",
+    "packages/ui/src/PanelButton.tsx",
+    "packages/viro-external-gui/src/HolographicSlate.tsx",
+    "packages/viro-external-gui/src/CylinderPanel.tsx",
+  ]) {
+    const source = read(path);
+    assert.doesNotMatch(source, /\\buseState\\s*\\(/, path);
+  }
+  assert.match(read("packages/ui/src/PanelButton.tsx"), /createStore/);
+});
