@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import type { Vec3, MovableProps } from "react-native-viro-mux";
 import {
   SpatialPanel,
@@ -85,11 +85,9 @@ export function HolographicSlate({
   // Preserve the old external-texture contract: legacy callers may pass a
   // name expecting the slate to register it before the first Viro frame.
   // The single canonical SpatialPanel still owns the visible geometry.
-  useMemo(() => {
-    if (contentMaterialName) {
-      registerPanelSurfaceMaterial(contentMaterialName);
-    }
-  }, [contentMaterialName]);
+  if (contentMaterialName) {
+    registerPanelSurfaceMaterial(contentMaterialName);
+  }
   return (
     <SpatialPanel
       title={title}
