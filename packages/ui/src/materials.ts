@@ -72,3 +72,16 @@ export function registerPremiumMaterials(): void {
     },
   });
 }
+
+/** One material registration per external surface name, shared by legacy adapters. */
+const panelSurfaceMaterials = new Set<string>();
+export function registerPanelSurfaceMaterial(name: string): void {
+  if (name.trim().length === 0) throw new RangeError("Panel surface material name cannot be empty");
+  if (panelSurfaceMaterials.has(name)) return;
+  // Must be registered before the Viro mesh first commits. The native
+  // texture producer later binds its own content to this exact name.
+  ViroMaterials.createMaterials({
+    [name]: { diffuseColor: "#FF23232B", lightingModel: "Constant" },
+  });
+  panelSurfaceMaterials.add(name);
+}
