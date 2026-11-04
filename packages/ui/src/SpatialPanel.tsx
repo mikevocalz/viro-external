@@ -54,6 +54,8 @@ export type SpatialPanelProps = MovableProps & {
   surfaceMaterial?: string;
   /** Opacity of the entire panel (including content/chrome). */
   opacity?: number;
+  /** Offset the whole visible panel below its one drag carrier (legacy migration only). */
+  surfaceOffset?: Vec3;
   width?: number;
   height?: number;
   cornerRadius?: number;
@@ -88,6 +90,7 @@ export function SpatialPanel({
   variant = "solid",
   surfaceMaterial,
   opacity = 1,
+  surfaceOffset,
   width = 1.6,
   height = 1,
   cornerRadius = 0.06,
@@ -259,6 +262,7 @@ export function SpatialPanel({
       scale={scale}
     >
       <ViroNode
+        position={surfaceOffset}
         rotation={resolvedPlacement?.rotation ?? rotation}
         opacity={opacity}
         transformBehaviors={pinned ? undefined : ["billboardY"]}
