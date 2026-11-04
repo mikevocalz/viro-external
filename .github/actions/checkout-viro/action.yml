@@ -45,7 +45,7 @@ runs:
           exit 1
         fi
         mv .spatial-deps/viro ../viro
-        node -e "const p=require('../viro/package.json'); if (!/^3\\.1\\.0(?:-moyo\\.)?/.test(p.version)) { throw Error('Expected Viro 3.1.0 fork, got '+p.version); } console.log('Viro '+p.version)"
+        node -e "const p=require('../viro/package.json'); if (!p.version.startsWith('3.1.0-moyo.')) { throw Error('Expected Viro 3.1.0 fork, got '+p.version); } console.log('Viro '+p.version)"
     # Viro stopped tracking dist/ (viro da1e7f8d). Without it, "types":
     # "dist/index.d.ts" resolves nowhere and TypeScript falls back to viro's
     # index.ts, typechecking the whole fork source under this repo's stricter
