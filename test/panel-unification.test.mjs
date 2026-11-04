@@ -24,6 +24,7 @@ test("legacy CylinderPanel uses a single canonical panel, keeping only curved ch
   assert.match(source, /@viro-external\/ui/);
   assert.match(source, /<SpatialPanel\b/);
   assert.match(source, /<Container3D\b/);
+  assert.match(source, /surfaceOffset=\{snapTo === undefined/);
   assert.match(source, /const z = radius \* \(Math\.cos\(arcRadians \/ 2\) - Math\.cos\(theta\)\)/);
   assert.doesNotMatch(source, /<MovableNode\b|<PanelHeader3D\b|<ViroGeometry\b|useState\(/);
 });
