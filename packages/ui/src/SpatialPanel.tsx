@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useId, useMemo, useRef } from "react";
 import { useStore } from "zustand";
 import { createPanelStore } from "./panel-store";
 import {
@@ -120,6 +120,10 @@ export function SpatialPanel({
   pinchToScale,
 }: SpatialPanelProps): React.ReactElement {
   registerPremiumMaterials();
+  // Every instance needs an independent Viro native tag even when several
+  // panels share one workspace. An authored tag still takes precedence.
+  const instanceId = useId();
+  const panelTag = tag ?? `vxp-spatial-panel-${instanceId.replace(/:/g, "")}`;
   const depth = resolveVisualDepth(visualDepth);
   const resolvedShape: SpatialPanelShape = shape ?? (curvedProp ? "curved" : "rounded");
   const frameOrigin = useSpatialWorkspaceOrigin();
@@ -250,7 +254,7 @@ export function SpatialPanel({
   return (
     <MovableNode
       movable={movable ?? draggable}
-      tag={tag ?? "vxp-spatial-panel"}
+      tag={panelTag}
       dragType={dragType}
       dragPlane={dragPlane}
       axisLock={axisLock}
