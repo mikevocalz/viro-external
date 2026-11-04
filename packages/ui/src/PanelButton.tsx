@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useRef } from "react";
+import { useStore } from "zustand";
+import { createStore, type StoreApi } from "zustand/vanilla";
 import { ViroNode, ViroQuad, ViroText } from "@reactvision/react-viro";
 import type { Vec3 } from "@viro-external/core";
 import { PremiumMaterials, registerPremiumMaterials } from "./materials";
@@ -24,7 +26,12 @@ export function PanelButton({
   visualDepth,
 }: PanelButtonProps): React.ReactElement {
   registerPremiumMaterials();
-  const [hovered, setHovered] = useState(false);
+  // Button-level hover state is local to this instance, not a second panel
+  // state owner. Use the same Zustand/ref pattern as SpatialPanel.
+  const storeRef = useRef<StoreApi<{ hovered: boolean }> | null>(null);
+  if (storeRef.current === null) storeRef.current = createStore(() => ({ hovered: false }));
+  const store = storeRef.current;
+  const hovered = useStore(store, (state) => state.hovered);
 
   const depth = resolveVisualDepth(visualDepth);
   const material = disabled
@@ -52,7 +59,7 @@ export function PanelButton({
         width={width}
         height={height}
         materials={[material]}
-        onHover={(value: boolean) => setHovered(value)}
+        onHover={(value: boolean) => store.setState({ hovered: value })}
         onClick={disabled ? undefined : onPress}
       />
       {depth.highlight && !disabled ? (
