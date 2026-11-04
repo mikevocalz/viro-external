@@ -15,6 +15,8 @@ test("legacy HolographicSlate forwards one surface to SpatialPanel", () => {
   assert.match(source, /@viro-external\/ui/);
   assert.match(source, /<SpatialPanel\b/);
   assert.match(source, /surfaceMaterial=\{contentMaterialName\}/);
+  assert.match(source, /registerPanelSurfaceMaterial/);
+  assert.ok(!source.includes("ViroMaterials.createMaterials"), "one material registry only");
   assert.match(source, /snapTo=\{snapTo\}/);
   for (const redundant of ["<MovableNode", "<PanelHeader3D", "<ViroGeometry", "useState("]) {
     assert.ok(!source.includes(redundant), `HolographicSlate must not render ${redundant}`);
@@ -38,6 +40,8 @@ test("canonical SpatialPanel owns shape, snap, header and isolated state", () =>
   assert.match(source, /createPanelStore/);
   assert.match(source, /<PanelHeader\b/);
   assert.match(source, /surfaceMaterial \?\?/);
+  assert.match(source, /useId\(\)/);
+  assert.match(source, /tag=\{panelTag\}/);
 });
 
 test("production example uses one snapped, curved panel per workspace slot", () => {
