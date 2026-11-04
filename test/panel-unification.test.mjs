@@ -16,7 +16,9 @@ test("legacy HolographicSlate forwards one surface to SpatialPanel", () => {
   assert.match(source, /<SpatialPanel\b/);
   assert.match(source, /surfaceMaterial=\{contentMaterialName\}/);
   assert.match(source, /snapTo=\{snapTo\}/);
-    assert.ok(!source.includes("useState"), `${path} must use the canonical Zustand/ref state`);
+  for (const redundant of ["<MovableNode", "<PanelHeader3D", "<ViroGeometry", "useState("]) {
+    assert.ok(!source.includes(redundant), `HolographicSlate must not render ${redundant}`);
+  }
 });
 
 test("legacy CylinderPanel uses a single canonical panel, keeping only curved child layout", () => {
@@ -57,7 +59,7 @@ test("canonical panel controls do not introduce parallel React useState owners",
     "packages/viro-external-gui/src/CylinderPanel.tsx",
   ]) {
     const source = read(path);
-    assert.doesNotMatch(source, /\\buseState\\s*\\(/, path);
+    assert.ok(!source.includes("useState("), `${path} must use Zustand/ref state`);
   }
   assert.match(read("packages/ui/src/PanelButton.tsx"), /createStore/);
 });
