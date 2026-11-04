@@ -49,6 +49,7 @@ export {
 export {
   buildCurvedPanelGeometry,
   buildRoundedPanelGeometry,
+  curvedPanelPoseAtX,
   type PanelGeometry,
 } from "./geometry";
 
