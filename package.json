@@ -12,7 +12,8 @@
     "test:rive-contract": "node --test test/rive-contract.test.mjs",
     "test:workspace-surface": "node --conditions=react-native --import ./test/support/metro-like-resolve.mjs --test packages/meta-layout/test/workspace-surface.test.mjs",
     "perf:tracesift:init": "npx --yes @callstack/tracesift@0.3.1 init",
-    "perf:tracesift": "npx --yes @callstack/tracesift@0.3.1 start"
+    "perf:tracesift": "npx --yes @callstack/tracesift@0.3.1 start",
+    "test:panel-unification": "node --test test/panel-unification.test.mjs"
   },
   "workspaces": [
     "packages/*"
