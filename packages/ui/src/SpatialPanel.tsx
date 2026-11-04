@@ -50,6 +50,10 @@ export type SpatialPanelProps = MovableProps & {
   worldOrigin?: SpatialWorkspaceOrigin;
   onSnap?: (slot: SpatialWorkspaceSlot) => void;
   variant?: SpatialPanelVariant;
+  /** Optional pre-registered Viro material for the visible panel surface. */
+  surfaceMaterial?: string;
+  /** Opacity of the entire panel (including content/chrome). */
+  opacity?: number;
   width?: number;
   height?: number;
   cornerRadius?: number;
@@ -82,6 +86,8 @@ export function SpatialPanel({
   worldOrigin,
   onSnap,
   variant = "solid",
+  surfaceMaterial,
+  opacity = 1,
   width = 1.6,
   height = 1,
   cornerRadius = 0.06,
@@ -235,9 +241,8 @@ export function SpatialPanel({
   ];
 
   const panelMaterial =
-    variant === "glass"
-      ? PremiumMaterials.panelGlass
-      : PremiumMaterials.panel;
+    surfaceMaterial ??
+    (variant === "glass" ? PremiumMaterials.panelGlass : PremiumMaterials.panel);
 
   return (
     <MovableNode
@@ -255,6 +260,7 @@ export function SpatialPanel({
     >
       <ViroNode
         rotation={resolvedPlacement?.rotation ?? rotation}
+        opacity={opacity}
         transformBehaviors={pinned ? undefined : ["billboardY"]}
       >
         {depth.edge ? (
