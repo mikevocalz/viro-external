@@ -36,7 +36,7 @@ jobs:
           node scripts/ci/check-manifests.mjs
       - name: Dependency-free contract and CI regression tests
         run: |
-          node --experimental-strip-types --test test/rive-contract.test.mjs packages/ui/test/world-slot.test.mjs packages/pico-layout/test/windowContainerHost.test.mjs test/generated-clean.test.mjs test/ci-boundary.test.mjs
+          node --experimental-strip-types --test test/rive-contract.test.mjs packages/ui/test/world-slot.test.mjs packages/pico-layout/test/windowContainerHost.test.mjs test/generated-clean.test.mjs test/ci-boundary.test.mjs test/panel-unification.test.mjs
       - name: Install registry-only binding generator
         if: inputs.suite == 'all'
         run: |
