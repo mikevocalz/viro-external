@@ -1,8 +1,8 @@
 import React, { useMemo } from "react";
-import { ViroMaterials } from "@reactvision/react-viro";
 import type { Vec3, MovableProps } from "react-native-viro-mux";
 import {
   SpatialPanel,
+  registerPanelSurfaceMaterial,
   type SpatialPanelShape,
   type SpatialWorkspaceSlot,
   type WorldSlotOptions,
@@ -87,12 +87,7 @@ export function HolographicSlate({
   // The single canonical SpatialPanel still owns the visible geometry.
   useMemo(() => {
     if (contentMaterialName) {
-      ViroMaterials.createMaterials({
-        [contentMaterialName]: {
-          diffuseColor: "#F5121216",
-          lightingModel: "Constant",
-        },
-      });
+      registerPanelSurfaceMaterial(contentMaterialName);
     }
   }, [contentMaterialName]);
   return (
