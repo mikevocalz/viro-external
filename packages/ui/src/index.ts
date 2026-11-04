@@ -1,3 +1,5 @@
+export { registerPanelSurfaceMaterial } from "./materials";
+
 export {
   SpatialPanel,
   type SpatialPanelProps,
