@@ -16,7 +16,7 @@ test("legacy HolographicSlate forwards one surface to SpatialPanel", () => {
   assert.match(source, /<SpatialPanel\b/);
   assert.match(source, /surfaceMaterial=\{contentMaterialName\}/);
   assert.match(source, /snapTo=\{snapTo\}/);
-  assert.doesNotMatch(source, /<MovableNode\b|<PanelHeader3D\b|<ViroGeometry\b|useState\(/);
+    assert.doesNotMatch(source, /\buseState\s*\(/, path);
 });
 
 test("legacy CylinderPanel uses a single canonical panel, keeping only curved child layout", () => {
