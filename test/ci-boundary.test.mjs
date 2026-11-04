@@ -34,3 +34,12 @@ test('all callers are read-only and pass only secrets: inherit', () => {
     assert.match(text, /uses: \.\/\.github\/workflows\/spatial-validation.yml/);
   }
 });
+
+test('private Viro checkout pins the same 3.1 source as the access probe', () => {
+  const action = read('.github/actions/checkout-viro/action.yml');
+  const probe = read('scripts/ci/check-viro-access.mjs');
+  const match = action.match(/ref: ([a-f0-9]{40})/);
+  assert.ok(match, 'private checkout must pin a full SHA');
+  assert.ok(probe.includes(`VIRO_REVISION = '${match[1]}'`), 'credential probe must check the exact same revision');
+  assert.match(action, /Expected Viro 3\.1\.0 fork/);
+});
