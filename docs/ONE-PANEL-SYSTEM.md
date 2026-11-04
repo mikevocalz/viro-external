@@ -12,7 +12,7 @@
 
 ## Curvature and content
 
-The unified background and header are real Viro geometry. Its `curved` flag bends the backing, not arbitrary embedded JSX or a live video texture. `CylinderPanel` places individual child controls on the same curvature with tangent rotations, retaining one panel owner. Its unified arc is at most 120°, and the adapter rejects wider grids instead of clipping or putting controls outside the surface. For genuinely curved video, use `SpatialMediaSurface` with the proper native renderer; for text-heavy curved content, compose actual Viro scene children in curved local poses.
+The unified background **and curved titlebar**, including pin/close hit targets, share one cylindrical mesh equation (tangent-aligned at each control). Its `curved` flag bends the backing, not arbitrary embedded JSX or a live video texture. `CylinderPanel` places individual child controls on the same curvature with tangent rotations, retaining one panel owner. Its unified arc is at most 120°, and the adapter rejects wider grids instead of clipping or putting controls outside the surface. For genuinely curved video, use `SpatialMediaSurface` with the proper native renderer; for text-heavy curved content, compose actual Viro scene children in curved local poses.
 
 ## Material and interaction ownership
 
