@@ -24,8 +24,7 @@ sync_repo() {
     local remote
     remote="$(git -C "$dir" remote get-url origin)"
     case "$remote" in
-      "https://github.com/mikevocalz/$name"|"https://github.com/mikevocalz/$name.git"|
-      "git@github.com:mikevocalz/$name"|"git@github.com:mikevocalz/$name.git") ;;
+      "https://github.com/mikevocalz/$name"|"https://github.com/mikevocalz/$name.git"|"git@github.com:mikevocalz/$name"|"git@github.com:mikevocalz/$name.git") ;;
       *) printf 'ERROR: unexpected origin for %s: %s\n' "$name" "$remote" >&2; return 1 ;;
     esac
 
