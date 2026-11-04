@@ -176,6 +176,10 @@ export function CylinderPanel({
       curvature={curvature}
       width={panelWidth}
       height={panelHeight}
+      // Old CylinderPanel's arc lived one radius in front of its drag root.
+      // Retain that local pose with one internal surface transform; snapped
+      // panels instead put their visible surface directly at the world slot.
+      surfaceOffset={snapTo === undefined && snapOnRelease !== true ? [0, 0, -radius] : undefined}
       snapTo={snapTo}
       snapOnRelease={snapOnRelease}
       snapDistanceM={snapDistanceM}
