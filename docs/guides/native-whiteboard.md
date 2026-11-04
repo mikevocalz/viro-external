@@ -24,7 +24,7 @@ Quest 3 and PICO 4 Ultra run Android, and both headset flavors in MoyoLearn filt
 2. Install the Nitro V1 runtime at the version the package pins. Both are optional peers, so the app's copy is the one that loads:
 
    ```sh
-   pnpm add react-native-nitro-modules@1.0.0-alpha.nightly.100.g107f6fc66597 nitro-core@1.0.0-alpha.nightly.100.g107f6fc66597
+   pnpm add react-native-nitro-modules@1.0.0-alpha.nightly.120.g33ef045b96c0 nitro-core@1.0.0-alpha.nightly.120.g33ef045b96c0
    ```
 
 3. Use the viro fork from branch `feat/canvas-surfaces-registry` (`@reactvision/react-viro` 3.0.3-moyo.1 or later with `CanvasSurfaces`). React Native 0.88 with the New Architecture.

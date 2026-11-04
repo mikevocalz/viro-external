@@ -47,7 +47,7 @@ Validate the produced `.so` with `mikevocalz/virocore/scripts/verify-16kb-alignm
 
 ## Nitro module (shipped 2026-07-03, ported to Nitro V1 2026-10-24)
 
-- Nitro: `react-native-nitro-modules`, `nitro-core` and `nitrogen` all at `1.0.0-alpha.nightly.100.g107f6fc66597` (npm dist-tag `alpha-nightly`). The three move together; a mismatch fails at runtime with "Nitro was installed twice".
+- Nitro: `react-native-nitro-modules`, `nitro-core` and `nitrogen` all at `1.0.0-alpha.nightly.120.g33ef045b96c0` (npm dist-tag `alpha-nightly`). The three move together; a mismatch fails at runtime with "Nitro was installed twice".
 - Spec: `src/spec/ViroGPUTextureModule.nitro.ts`, an `@Android({ language: "kotlin", implementation: { className: "HybridViroGPUTextureModule" } })` decorated `declare class`. Every member is `static`; there is no public constructor. Autolinking comes from the decorator, not `nitro.json`.
 - Impl: `android/src/main/java/com/margelo/nitro/viromux/HybridViroGPUTextureModule.kt`. The static members are overrides on `companion object : HybridViroGPUTextureModuleSpec.Companion`, which also owns the handle-id counter and entry map (`ViroGPUTextureEntry.kt`).
 - JS: `src/ViroGPUTexture.ts` calls the statics through the generated runtime `#nitro/ViroGPUTextureModule` (package `imports` map → `nitrogen/generated/shared/javascript/*.cjs`). It imports the spec as a type only, because `@react-native/babel-preset` cannot parse decorators without `parserOpts: { plugins: ['decorators'] }` and this package ships `src/`.

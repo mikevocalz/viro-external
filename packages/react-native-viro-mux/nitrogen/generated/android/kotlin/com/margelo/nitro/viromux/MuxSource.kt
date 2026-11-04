@@ -31,8 +31,6 @@ data class MuxSource(
   @Keep
   val startPositionMs: Double?
 ) {
-
-
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (other !is MuxSource) return false

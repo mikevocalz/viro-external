@@ -34,8 +34,6 @@ data class NitroExternalTextureSource(
   @Keep
   val colorSpace: ExternalTextureColorSpace
 ) {
-
-
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (other !is NitroExternalTextureSource) return false

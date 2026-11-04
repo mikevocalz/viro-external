@@ -101,29 +101,17 @@ abstract class HybridMuxPlayerSpec: HybridObject() {
   @Keep
   abstract fun getTextureHandle(): NitroExternalTextureHandle
 
+  @DoNotStrip
+  @Keep
   abstract fun onStateChange(cb: Callback<(state: MuxPlayerState) -> Unit>): Unit
 
   @DoNotStrip
   @Keep
-  private fun onStateChange_cxx(cb: Callback_void_MuxPlayerState): Unit {
-    onStateChange(cb)
-  }
-
   abstract fun onProgress(cb: Callback<(positionMs: Double, bufferedMs: Double) -> Unit>, intervalMs: Double): Unit
 
   @DoNotStrip
   @Keep
-  private fun onProgress_cxx(cb: Callback_void_double_double, intervalMs: Double): Unit {
-    onProgress(cb, intervalMs)
-  }
-
   abstract fun onError(cb: Callback<(code: String, message: String) -> Unit>): Unit
-
-  @DoNotStrip
-  @Keep
-  private fun onError_cxx(cb: Callback_void_std__string_std__string): Unit {
-    onError(cb)
-  }
 
   // Default implementation of `HybridObject.toString()`
   override fun toString(): String {

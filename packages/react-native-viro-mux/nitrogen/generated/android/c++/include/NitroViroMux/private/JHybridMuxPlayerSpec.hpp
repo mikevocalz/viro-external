@@ -89,9 +89,9 @@ namespace margelo::nitro::viromux {
     void release();
     jni::local_ref<JTypedPromise<void>> setSink(const jni::local_ref<JMuxSink>& sink);
     jni::local_ref<JNitroExternalTextureHandle> getTextureHandle();
-    void onStateChange(const jni::local_ref<margelo::nitro::viromux::JCallback_void_MuxPlayerState::JavaPart>& cb);
-    void onProgress(const jni::local_ref<margelo::nitro::viromux::JCallback_void_double_double::JavaPart>& cb, jdouble intervalMs);
-    void onError(const jni::local_ref<margelo::nitro::viromux::JCallback_void_std__string_std__string::JavaPart>& cb);
+    void onStateChange(const jni::local_ref<JCallback<margelo::nitro::viromux::JCallback_void_MuxPlayerState::JavaPart>>& cb);
+    void onProgress(const jni::local_ref<JCallback<margelo::nitro::viromux::JCallback_void_double_double::JavaPart>>& cb, jdouble intervalMs);
+    void onError(const jni::local_ref<JCallback<margelo::nitro::viromux::JCallback_void_std__string_std__string::JavaPart>>& cb);
 
   public:
     // Constructor and static members
