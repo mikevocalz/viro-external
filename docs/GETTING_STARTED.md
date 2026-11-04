@@ -15,18 +15,15 @@ Use your existing GitHub authentication; never paste credentials into commands o
 ```sh
 mkdir -p spatial-dev
 cd spatial-dev
-git clone https://github.com/mikevocalz/viro.git
-git -C viro checkout c6a0dbc3033f50b74aeaba54a10ba768a1f5f275 # pinned Viro 3.1.0-moyo.0 on main
-git clone https://github.com/mikevocalz/virocore.git
-git -C virocore checkout main           # ViroCore 3.1.0 native renderer sources
 git clone https://github.com/mikevocalz/viro-external.git
 cd viro-external
+bash scripts/sync-viro-3-1.sh   # clones or safely fast-forwards sibling 3.1 source repos
 corepack enable
 corepack prepare pnpm@12.8.1 --activate
 pnpm install --frozen-lockfile --strict-peer-dependencies=false
 ```
 
-The Viro revision above is an explicitly pinned **3.1.0-moyo.0** fork commit from `main`, not the older default branch (`decax9-three-panel`). `pnpm-workspace.yaml` overrides `@reactvision/react-viro` to `link:../viro`, so a normal `git clone` without the explicit checkout silently picks the wrong renderer. Keep ViroCore alongside it for the matched native rebuild; merely checking out the 3.1 source does **not** update the compiled Viro AAR, iOS/visionOS frameworks, or web/WASM renderer. The repo requires Node >=22.13; CI uses Node 24 and Expo SDK 58 / React Native 0.88. Avoid npm `latest` on React Native independently of Expo's compatibility line.
+The helper checks out and verifies both Viro and ViroCore **3.1.0** from their `main` branches, refuses dirty or divergent checkouts, and never resets local work. CI uses its own pinned Viro SHA for reproducibility. The fork's GitHub default branch is still the older `decax9-three-panel`, so an unqualified `git clone` of Viro alone is not sufficient. `pnpm-workspace.yaml` overrides `@reactvision/react-viro` to `link:../viro`, so a normal `git clone` without the explicit checkout silently picks the wrong renderer. Keep ViroCore alongside it for the matched native rebuild; merely checking out the 3.1 source does **not** update the compiled Viro AAR, iOS/visionOS frameworks, or web/WASM renderer. The repo requires Node >=22.13; CI uses Node 24 and Expo SDK 58 / React Native 0.88. Avoid npm `latest` on React Native independently of Expo's compatibility line.
 
 Viro does not commit `dist/`, and its package `types` entry points there. Build the declarations once per Viro checkout, then move Viro's own `node_modules` aside so the link below resolves React types from this workspace only. Without the build, TypeScript falls back to Viro's `index.ts` and reports thousands of errors from the fork source under this repository's stricter options.
 
