@@ -41,7 +41,7 @@ export function PanelHeader({
     [width, height, curvature, segments, curved]
   );
   const pose = (x: number): { position: Vec3; rotation: Vec3 } =>
-    curved ? curvedPanelPoseAtX(width, curvature, x) : {
+    curved ? curvedPanelPoseAtX(width, curvature, Math.max(-width / 2, Math.min(width / 2, x))) : {
       position: [x, 0, 0],
       rotation: [0, 0, 0],
     };
@@ -78,7 +78,7 @@ export function PanelHeader({
         position={[
           titlePose.position[0],
           titlePose.position[1],
-          titlePose.position[2] + 0.008,
+          titlePose.position[2] + 0.014,
         ]}
         rotation={titlePose.rotation}
       >
