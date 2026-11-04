@@ -306,6 +306,8 @@ export function SpatialPanel({
             title={title}
             subtitle={subtitle}
             actions={actions}
+            curvature={resolvedShape === "curved" ? curvature : 0}
+            segments={segments}
             position={[0, headerY, 0.008]}
           />
         ) : null}
