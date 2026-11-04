@@ -1,6 +1,6 @@
 const { withAndroidManifest, withAppBuildGradle } = require('@expo/config-plugins');
 
-const DEFAULT_VERSION = '1.0.0';
+const DEFAULT_VERSION = '1.0.1';
 const VALID_MODULES = new Set([
   'core',
   'camera',

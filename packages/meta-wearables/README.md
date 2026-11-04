@@ -14,7 +14,7 @@ Meta VR glasses and Quest headsets are out of scope. They run Viro's Horizon / O
 | Item | Value | Source |
 | --- | --- | --- |
 | SDK | Meta Wearables Device Access Toolkit 1.0 | `package.json` description |
-| Default artifact version | `1.0.0` | `plugin/index.js` (`DEFAULT_VERSION`) |
+| Default artifact version | `1.0.1` | `plugin/index.js` (`DEFAULT_VERSION`) |
 | Maven coordinates | `com.meta.wearable:mwdat-<module>:<version>` | `plugin/index.js` |
 | Target devices | Meta AI glasses paired with an Android phone, with or without a display | package design |
 | Platforms configured | Android only. The plugin makes no iOS changes. | `plugin/index.js` |
@@ -55,7 +55,7 @@ You also need a DAT application ID from the Wearables Developer Center.
            "@viro-external/meta-wearables",
            {
              applicationId: process.env.META_WEARABLES_APP_ID,
-             version: "1.0.0",
+             version: "1.0.1",
              modules: ["core", "camera", "display", "inputs", "motion", "speech"],
              analyticsOptOut: true,
              crashReportingOptOut: true,
@@ -75,7 +75,7 @@ You also need a DAT application ID from the Wearables Developer Center.
 | Option | Type | Required | Default | Effect |
 | --- | --- | --- | --- | --- |
 | `applicationId` | string | yes | none | Written to manifest `meta-data` `com.meta.wearable.mwdat.APPLICATION_ID`. Prebuild throws `applicationId is required (Wearables Developer Center application ID)` when it is missing. |
-| `version` | string | no | `"1.0.0"` | Version used for every `mwdat-*` artifact. |
+| `version` | string | no | `"1.0.1"` | Version used for every `mwdat-*` artifact. |
 | `modules` | string[] | no | `["core", "camera", "display", "inputs", "motion", "speech"]` | Which `mwdat-*` artifacts to add. An empty array also means the default list. |
 | `analyticsOptOut` | boolean | no | not written | Written to `com.meta.wearable.mwdat.ANALYTICS_OPT_OUT` only when it is a boolean. |
 | `crashReportingOptOut` | boolean | no | not written | Written to `com.meta.wearable.mwdat.CRASH_REPORTING_OPT_OUT` only when it is a boolean. |
@@ -95,8 +95,8 @@ Valid names: `core`, `camera`, `display`, `inputs`, `motion`, `mockdevice`, `spe
 
 ```groovy
 dependencies {
-    implementation "com.meta.wearable:mwdat-core:1.0.0"
-    implementation "com.meta.wearable:mwdat-camera:1.0.0"
+    implementation "com.meta.wearable:mwdat-core:1.0.1"
+    implementation "com.meta.wearable:mwdat-camera:1.0.1"
     // ...one line per selected module
 ```
 
@@ -110,7 +110,7 @@ Lines already present are skipped, so running prebuild twice does not duplicate 
 <meta-data android:name="com.meta.wearable.mwdat.CRASH_REPORTING_OPT_OUT" android:value="true" />
 ```
 
-The plugin does not add Maven repositories. This package's earlier notes state that Meta publishes DAT 1.0.0 to Maven Central under `com.meta.wearable`; if your build cannot resolve the artifacts, add the repository from your own config plugin.
+The plugin does not add Maven repositories. Meta publishes every `mwdat-*` artifact to Maven Central under `com.meta.wearable` (1.0.1 checked in `maven-metadata.xml` on 2026-11-04), so the `mavenCentral()` an Expo app already declares is enough.
 
 ## Permissions
 
