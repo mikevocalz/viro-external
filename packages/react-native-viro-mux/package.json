@@ -15,16 +15,14 @@
     "nitro.json",
     "react-native.config.js",
     "config",
-    "doc",
-    "AGENTS.md",
-    "CLAUDE.md"
+    "doc"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
     "specs": "nitrogen"
   },
   "peerDependencies": {
-    "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
+    "@reactvision/react-viro": ">=3.1.0-moyo.0 <4.0.0",
     "nitro-core": ">=1.0.0-alpha.nightly.120.g33ef045b96c0",
     "react": ">=19.3.0 <20.0.0",
     "react-native": ">=0.88.0-rc.0 <0.89.0",
@@ -39,7 +37,7 @@
     }
   },
   "devDependencies": {
-    "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
+    "@reactvision/react-viro": ">=3.1.0-moyo.0 <4.0.0",
     "@types/react": "19.3.0",
     "nitro-core": "1.0.0-alpha.nightly.120.g33ef045b96c0",
     "nitrogen": "1.0.0-alpha.nightly.120.g33ef045b96c0",

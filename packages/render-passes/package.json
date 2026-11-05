@@ -10,16 +10,13 @@
     "doc",
     "android",
     "native",
-    "expo-module.config.json",
-    "AGENTS.md",
-    "CLAUDE.md",
-    "TASKS.md"
+    "expo-module.config.json"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
+    "@reactvision/react-viro": ">=3.1.0-moyo.0 <4.0.0",
     "@viro-external/splat-pass": "workspace:*",
     "expo": ">=58.0.0 <59.0.0",
     "expo-modules-core": ">=58.0.0 <59.0.0",
@@ -28,7 +25,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@reactvision/react-viro": ">=3.0.1-moyo.0 <4.0.0",
+    "@reactvision/react-viro": ">=3.1.0-moyo.0 <4.0.0",
     "@types/react": "19.3.0",
     "@viro-external/splat-pass": "workspace:*",
     "expo": "58.0.23",

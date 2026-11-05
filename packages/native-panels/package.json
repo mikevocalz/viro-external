@@ -20,7 +20,7 @@
     "test": "node --experimental-strip-types --conditions=react-native --import ../../test/support/metro-like-resolve.mjs --import ./test/support/fake-nitro-modules.mjs --test test/*.test.mjs"
   },
   "peerDependencies": {
-    "@reactvision/react-viro": ">=3.0.3-moyo.1 <4.0.0",
+    "@reactvision/react-viro": ">=3.1.0-moyo.0 <4.0.0",
     "@viro-external/ui": "workspace:*",
     "nitro-core": ">=1.0.0-alpha.nightly.120.g33ef045b96c0",
     "react": ">=19.3.0 <20.0.0",
@@ -40,7 +40,7 @@
     "zustand": "^5.0.16"
   },
   "devDependencies": {
-    "@reactvision/react-viro": ">=3.0.3-moyo.1 <4.0.0",
+    "@reactvision/react-viro": ">=3.1.0-moyo.0 <4.0.0",
     "@types/react": "19.3.0",
     "@viro-external/ui": "workspace:*",
     "nitro-core": "1.0.0-alpha.nightly.120.g33ef045b96c0",
