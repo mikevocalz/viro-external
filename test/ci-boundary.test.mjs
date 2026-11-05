@@ -34,3 +34,25 @@ test('all callers are read-only and pass only secrets: inherit', () => {
     assert.match(text, /uses: \.\/\.github\/workflows\/spatial-validation.yml/);
   }
 });
+
+test('private Viro checkout pins the same 3.1 source as the access probe', () => {
+  const action = read('.github/actions/checkout-viro/action.yml');
+  const probe = read('scripts/ci/check-viro-access.mjs');
+  const match = action.match(/ref: ([a-f0-9]{40})/);
+  assert.ok(match, 'private checkout must pin a full SHA');
+  assert.ok(probe.includes(`VIRO_REVISION = '${match[1]}'`), 'credential probe must check the exact same revision');
+  assert.match(action, /Expected Viro 3\.1\.0 fork/);
+});
+
+test('local Viro and ViroCore 3.1 source pins match the protected checkout', () => {
+  const action = read('.github/actions/checkout-viro/action.yml');
+  const sync = read('scripts/sync-viro-3-1.sh');
+  const match = action.match(/ref: ([a-f0-9]{40})/);
+  assert.ok(match, 'protected checkout must pin a full Viro SHA');
+  assert.ok(sync.includes('VIRO_SHA="' + match[1] + '"'));
+  const virocorePin = sync.match(/VIROCORE_SHA="([a-f0-9]{40})"/);
+  assert.ok(virocorePin, 'ViroCore must also pin a full SHA');
+  assert.match(sync, /merge-base --is-ancestor HEAD/);
+  assert.match(sync, /checkout --detach/);
+  assert.match(sync, /status --porcelain/);
+});

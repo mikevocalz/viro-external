@@ -1,5 +1,5 @@
-name: Checkout compatible Viro fork
-description: Trusted-main-only checkout of the pinned SDK 58 spatial fork.
+name: Checkout Viro 3.1.0 Moyo fork
+description: Trusted-main-only checkout of the pinned SDK 58 / Viro 3.1.0 spatial fork.
 inputs:
   token:
     description: Environment-only token with read-only Contents access to mikevocalz/viro.
@@ -33,7 +33,7 @@ runs:
       uses: actions/checkout@v7
       with:
         repository: mikevocalz/viro
-        ref: 017d5f8380efdfc88b62812c9c486d199822f6e2
+        ref: 8075d97bb3584a04a76a0cda7846dfe5fc2ae483
         token: ${{ inputs.token }}
         path: .spatial-deps/viro
         persist-credentials: false
@@ -45,7 +45,7 @@ runs:
           exit 1
         fi
         mv .spatial-deps/viro ../viro
-        node -p "require('../viro/package.json').version"
+        node -e "const p=require('../viro/package.json'); if (!p.version.startsWith('3.1.0-moyo.')) { throw Error('Expected Viro 3.1.0 fork, got '+p.version); } console.log('Viro '+p.version)"
     # Viro stopped tracking dist/ (viro da1e7f8d). Without it, "types":
     # "dist/index.d.ts" resolves nowhere and TypeScript falls back to viro's
     # index.ts, typechecking the whole fork source under this repo's stricter
