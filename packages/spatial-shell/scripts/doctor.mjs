@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const { placeQuestFlavorBeforeQuestDependencies } = require('../plugin/gradle.js');
 const { FLAG_NAME } = require('../plugin/mainApplication.js');
-const { IMMERSIVE_ACTIVITY_META, USES_METAVR_SDK, VR_ACTIVITY_NAMES } = require('../plugin/manifest.js');
+const { IMMERSIVE_ACTIVITY_META, USES_HORIZONOS_SDK, USES_METAVR_SDK, VR_ACTIVITY_NAMES } = require('../plugin/manifest.js');
 const { PICO_PANEL_ACTIVITY } = require('../plugin/options.js');
 
 const SHELL_PACKAGE = '@viro-external/spatial-shell';
@@ -157,13 +157,15 @@ export async function runDoctor(projectRoot, flags) {
   }
 
   if (questXml !== undefined) {
-    const declaresSdk = questXml.includes(`<${USES_METAVR_SDK}`);
+    const declaresSdk = [questXml, mainXml].some((xml) =>
+      [USES_METAVR_SDK, USES_HORIZONOS_SDK].some((element) => xml.includes(`<${element}`))
+    );
     checks.push({
       status: declaresSdk ? 'pass' : 'fail',
       name: 'Horizon OS SDK',
       detail: declaresSdk
-        ? 'the quest manifest declares metavr:uses-metavr-sdk'
-        : 'the quest manifest has no metavr:uses-metavr-sdk: the spatial-shell plugin did not run',
+        ? 'the quest build declares a Horizon OS SDK version'
+        : `neither ${USES_METAVR_SDK} nor ${USES_HORIZONOS_SDK} is declared: the spatial-shell plugin did not run`,
     });
     const panel = [...activities(questXml).values()].find((text) => /<layout\b[^>]*android:defaultWidth=/.test(text));
     checks.push({

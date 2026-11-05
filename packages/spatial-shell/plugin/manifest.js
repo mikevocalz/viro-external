@@ -28,6 +28,12 @@ const METAVR_NAMESPACE = 'http://schemas.meta.com/metavr-sdk';
 const USES_METAVR_SDK = 'metavr:uses-metavr-sdk';
 
 /**
+ * The older element Horizon OS still accepts, which the mikevocalz/viro fork
+ * writes from `android.questHorizonOsSdk` and moves into the quest flavor.
+ */
+const USES_HORIZONOS_SDK = 'horizonos:uses-horizonos-sdk';
+
+/**
  * @param {XmlNode | undefined} node
  * @returns {string | undefined}
  */
@@ -135,10 +141,23 @@ function hasImmersiveActivity(manifest) {
 }
 
 /**
- * Writes `<metavr:uses-metavr-sdk>` into the quest manifest when it has none.
- * Without it Horizon OS logs "the client's manifest does not specify a minimum
- * HzOS SDK version". An element expo-horizon-core wrote from its own
- * `horizonMinSdkVersion`/`horizonTargetSdkVersion` options is left as it is.
+ * True when the manifest declares a Horizon OS SDK version in either form.
+ *
+ * @param {ParsedManifest} manifest
+ * @returns {boolean}
+ */
+function declaresHorizonSdk(manifest) {
+  const root = manifest.manifest;
+  return [USES_METAVR_SDK, USES_HORIZONOS_SDK].some((key) => Array.isArray(root[key]) && root[key].length > 0);
+}
+
+/**
+ * Writes `<metavr:uses-metavr-sdk>` into the quest manifest when it declares
+ * no Horizon OS SDK version. Without one Horizon OS logs "the client's
+ * manifest does not specify a minimum HzOS SDK version". A declaration that
+ * expo-horizon-core (`horizonMinSdkVersion`) or react-viro
+ * (`questHorizonOsSdk`, the older `horizonos:` element) already wrote is left
+ * as it is, so the app never carries two.
  *
  * @param {ParsedManifest} manifest
  * @param {ResolvedHorizonSdk} sdk
@@ -146,7 +165,7 @@ function hasImmersiveActivity(manifest) {
  */
 function ensureHorizonSdk(manifest, sdk) {
   const root = manifest.manifest;
-  if (Array.isArray(root[USES_METAVR_SDK]) && root[USES_METAVR_SDK].length > 0) return false;
+  if (declaresHorizonSdk(manifest)) return false;
   root.$ = { ...(root.$ ?? {}), 'xmlns:metavr': METAVR_NAMESPACE };
   root[USES_METAVR_SDK] = [
     {
@@ -162,9 +181,11 @@ function ensureHorizonSdk(manifest, sdk) {
 module.exports = {
   IMMERSIVE_ACTIVITY_META,
   METAVR_NAMESPACE,
+  USES_HORIZONOS_SDK,
   USES_METAVR_SDK,
   VR_ACTIVITY_NAMES,
   applyDetailPanelActivity,
+  declaresHorizonSdk,
   detailPanelActivityElement,
   ensureHorizonSdk,
   hasImmersiveActivity,

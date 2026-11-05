@@ -88,6 +88,17 @@ describe("applySpatialShellToAndroidProject", () => {
     assert.ok(report.warnings.some((message) => /expo-horizon-core/.test(message)));
   });
 
+  test("react-viro's SDK element still in main means no second declaration in quest", async () => {
+    const { androidDir } = writeProject({ flavors: ["quest"] });
+    const mainFile = path.join(androidDir, "app", "src", "main", "AndroidManifest.xml");
+    const main = JSON.parse(readFileSync(mainFile, "utf8"));
+    main.manifest["horizonos:uses-horizonos-sdk"] = [{ $: { "horizonos:minSdkVersion": "69" } }];
+    await jsonManifests.write(mainFile, main);
+    await run(androidDir, { options: { platforms: ["QUEST"] } });
+    const quest = readJson(androidDir, "quest", "AndroidManifest.xml");
+    assert.equal(USES_METAVR_SDK in quest.manifest, false);
+  });
+
   test("turned-off pieces are not written", async () => {
     const { androidDir } = writeProject({ flavors: ["quest"] });
     const report = await run(androidDir, {

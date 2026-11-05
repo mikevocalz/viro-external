@@ -131,7 +131,7 @@ a 420x600dp detail panel, a 1280x800dp main panel). Keep `mainWidthDp` and
 | --- | --- | --- |
 | `platforms` | `["QUEST"]` (react-viro passes its QUEST/PICO modes) | Which flavors to configure |
 | `detailPanel` | `{ activity: "expo.modules.pico.PicoPanelActivity", defaultWidth: "420dp", defaultHeight: "600dp" }` | The panel activity in `app/src/quest/AndroidManifest.xml`, sized by `<layout>`; in the pico manifest only when `@expo-pico/core` did not declare it. `false` skips it |
-| `horizonSdk` | `{ minSdkVersion: 207, targetSdkVersion: 209 }` | `metavr:uses-metavr-sdk` in the quest manifest when expo-horizon-core did not write one. `false` skips it |
+| `horizonSdk` | `{ minSdkVersion: 207, targetSdkVersion: 209 }` | `metavr:uses-metavr-sdk` in the quest manifest when the build declares no Horizon OS SDK yet (expo-horizon-core's `horizonMinSdkVersion` and react-viro's `questHorizonOsSdk` both count). `false` skips it |
 | `immersiveActivityMarker` | `true` | `expo.modules.pico.IMMERSIVE_ACTIVITY` on Viro's `.VRActivity`, which `enterImmersiveScene()` looks for |
 | `activityIdentityGuard` | `true` | `skipActivityIdentityAssertionOnHostPause` in `MainApplication.kt`, so Enter XR does not crash on the paused 2D panel |
 

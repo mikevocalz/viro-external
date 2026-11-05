@@ -7,6 +7,7 @@ const { placeQuestFlavorBeforeQuestDependencies } = require('./gradle');
 const { injectActivityIdentityGuard } = require('./mainApplication');
 const {
   applyDetailPanelActivity,
+  declaresHorizonSdk,
   ensureHorizonSdk,
   hasImmersiveActivity,
   markImmersiveActivity,
@@ -96,11 +97,21 @@ async function applySpatialShellToAndroidProject(input) {
     );
   }
 
+  const mainFile = path.join(src, 'main', 'AndroidManifest.xml');
+  const main = await editManifest(mainFile, manifests, (manifest) =>
+    options.immersiveActivityMarker ? markImmersiveActivity(manifest) : false
+  );
+  if (main.changed) record(mainFile);
+
   if (options.platforms.includes('QUEST')) {
     const questFile = path.join(src, 'quest', 'AndroidManifest.xml');
+    // react-viro writes its SDK element into main and moves it to quest in its
+    // own finalized mod; whichever ran first, one of the two holds it.
+    const mainDeclaresSdk = main.manifest !== undefined && declaresHorizonSdk(main.manifest);
     const quest = await editManifest(questFile, manifests, (manifest) => {
       const panelChanged = declarePanel && panel !== null ? applyDetailPanelActivity(manifest, panel, 'replace') : false;
-      const sdkChanged = options.horizonSdk === null ? false : ensureHorizonSdk(manifest, options.horizonSdk);
+      const sdkChanged =
+        options.horizonSdk === null || mainDeclaresSdk ? false : ensureHorizonSdk(manifest, options.horizonSdk);
       return panelChanged || sdkChanged;
     });
     if (!quest.exists) {
@@ -117,12 +128,6 @@ async function applySpatialShellToAndroidProject(input) {
     const pico = await editManifest(picoFile, manifests, (manifest) => applyDetailPanelActivity(manifest, panel, 'keep'));
     if (pico.changed) record(picoFile);
   }
-
-  const mainFile = path.join(src, 'main', 'AndroidManifest.xml');
-  const main = await editManifest(mainFile, manifests, (manifest) =>
-    options.immersiveActivityMarker ? markImmersiveActivity(manifest) : false
-  );
-  if (main.changed) record(mainFile);
 
   const gradleFile = path.join(platformProjectRoot, 'app', 'build.gradle');
   if (fs.existsSync(gradleFile)) {

@@ -143,6 +143,13 @@ describe("Horizon OS SDK declaration", () => {
     ]);
   });
 
+  test("react-viro's older horizonos element counts as a declaration", () => {
+    const manifest = questManifest();
+    manifest.manifest["horizonos:uses-horizonos-sdk"] = [{ $: { "horizonos:minSdkVersion": "69" } }];
+    assert.equal(ensureHorizonSdk(manifest, DEFAULTS.horizonSdk), false);
+    assert.equal(USES_METAVR_SDK in manifest.manifest, false);
+  });
+
   test("an expo-horizon-core declaration is left as it is", () => {
     const manifest = questManifest();
     manifest.manifest[USES_METAVR_SDK] = [{ $: { "metavr:minSdkVersion": "210" } }];
