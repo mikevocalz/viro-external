@@ -68,7 +68,7 @@ Each step needs the previous one merged and its CI green.
 3. **viro-external**: #80, then #81. #81's head contains #80's.
 4. **expo-pico**: #43, then #44 and #45. #45 is stacked on #43 (its base is `chore/expo-58-nitro-v1`, and its head contains `e501aa2`); retarget it to `main` once #43 merges. #44 targets `main` directly.
 
-After the viro merge, bump `VIRO_SHA` in viro-external's `scripts/sync-viro-3-1.sh` and `VIRO_REVISION` in `scripts/ci/check-viro-access.mjs` (#78) to the new viro `main`. They pin `c6a0dbc` today, which #84 contains. After the virocore merges, bump `VIROCORE_SHA` the same way; it pins `29a8512`, which is virocore `main` today.
+#78 pins viro-external's Viro source (`VIRO_SHA` in `scripts/sync-viro-3-1.sh`, `VIRO_REVISION` in `scripts/ci/check-viro-access.mjs`, the protected CI checkout in `.github/actions/checkout-viro/action.yml`) to viro `main` `8075d97`, the commit tagged `v3.1.0-moyo.0`, and `VIROCORE_SHA` to virocore `main` `8a5bdc4`. Move them together the next time viro or virocore `main` advances, and add the new Viro SHA to `VIRO_FORK_VERSIONS` in `scripts/ci/check-manifests.mjs`.
 
 ## What CI produces after each merge
 

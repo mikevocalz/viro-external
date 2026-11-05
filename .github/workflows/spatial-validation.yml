@@ -36,6 +36,7 @@ jobs:
           node scripts/ci/check-manifests.mjs
       - name: Dependency-free contract and CI regression tests
         run: |
+          bash -n scripts/sync-viro-3-1.sh
           node --experimental-strip-types --test test/rive-contract.test.mjs packages/ui/test/world-slot.test.mjs packages/pico-layout/test/windowContainerHost.test.mjs test/generated-clean.test.mjs test/ci-boundary.test.mjs test/panel-unification.test.mjs packages/ui/test/curved-header.test.mjs
       - name: Spatial shell resolver, geometry, config plugin and doctor tests
         if: inputs.suite != 'premium'

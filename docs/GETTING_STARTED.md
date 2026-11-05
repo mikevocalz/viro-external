@@ -15,16 +15,15 @@ Use your existing GitHub authentication; never paste credentials into commands o
 ```sh
 mkdir -p spatial-dev
 cd spatial-dev
-git clone https://github.com/mikevocalz/viro.git
-git -C viro checkout 017d5f8380efdfc88b62812c9c486d199822f6e2
 git clone https://github.com/mikevocalz/viro-external.git
 cd viro-external
+bash scripts/sync-viro-3-1.sh   # clones or safely fast-forwards sibling 3.1 source repos
 corepack enable
 corepack prepare pnpm@12.8.1 --activate
 pnpm install --frozen-lockfile --strict-peer-dependencies=false
 ```
 
-The revision above is the compatible dependency selected in [CI PR #60](https://github.com/mikevocalz/viro-external/pull/60), not a claim that it is the newest Viro commit. `pnpm-workspace.yaml` overrides `@reactvision/react-viro` to `link:../viro`. Keep both folders beside each other. The repository specifies Node >=22.13; CI uses Node 24. The locked branch targets the React 19.3 / RN 0.88 prerelease / Expo 58 integration line; do not upgrade those peers independently while diagnosing compatibility.
+The helper fetches `main` but checks out the **exact, validated Viro 3.1.0 and ViroCore 3.1.0 commits** in detached mode. It refuses dirty, divergent or unexpectedly newer local checkouts rather than replacing work. Re-run it safely to restore the matched pair; advancing a source version requires coordinated binary/ABI verification. CI uses its own pinned Viro SHA for reproducibility. The fork's GitHub default branch is still the older `decax9-three-panel`, so an unqualified `git clone` of Viro alone is not sufficient. `pnpm-workspace.yaml` overrides `@reactvision/react-viro` to `link:../viro`, so a normal `git clone` without the explicit checkout silently picks the wrong renderer. Keep ViroCore alongside it for the matched native rebuild; merely checking out the 3.1 source does **not** update the compiled Viro AAR, iOS/visionOS frameworks, or web/WASM renderer. The repo requires Node >=22.13; CI uses Node 24 and Expo SDK 58 / React Native 0.88. Avoid npm `latest` on React Native independently of Expo's compatibility line.
 
 Viro does not commit `dist/`, and its package `types` entry points there. Build the declarations once per Viro checkout, then move Viro's own `node_modules` aside so the link below resolves React types from this workspace only. Without the build, TypeScript falls back to Viro's `index.ts` and reports thousands of errors from the fork source under this repository's stricter options.
 
@@ -72,7 +71,7 @@ Do not deep-import implementation files in application code. Tests in this repos
 
 | Symptom | Check first |
 | --- | --- |
-| `ViroExternalVideo` or `ViroExternalVideoProps` is missing | Confirm the sibling Viro commit and root override. Upstream v3.0.1 does not provide the required fork API. Do not hide the error with casts or ambient stubs. |
+| `ViroExternalVideo` or `ViroExternalVideoProps` is missing | Confirm the sibling Viro commit and root override. The fork must expose the specific 3.1.0 renderer APIs; do not substitute the public 3.0.x npm package. Do not hide the error with casts or ambient stubs. |
 | Every surface remains in one app window | Check the runtime capability report, host configuration, window budget, and fallback entries. A scene panel is not a promoted native window. |
 | `snapTo` throws | Supply `SpatialWorkspaceFrame` or `worldOrigin`; do not put two world-transform owners around a panel. |
 | Workspace moves unexpectedly | Capture a settled origin; use a new key only when recentering. Unpinned panels billboard their orientation, not their world-space position. |
