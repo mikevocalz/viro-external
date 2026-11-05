@@ -14,7 +14,10 @@
    `expo@58.0.23`'s `bundledNativeModules.json` pins 19.3.0, so that is what
    `expo install --fix` gives an app. 19.3.1 only changed the React Server
    Components transport, which React Native does not load. The peer range
-   stays `>=19.3.0 <20.0.0`.
+   stays `>=19.3.0 <20.0.0`. `meta-wearables`, `spatial-runtime` and
+   `webspatial` pin `react` (and `react-dom` where Expo or the WebSpatial SDK
+   pulls it in) to 19.3.0 as devDependencies, so no lockfile importer resolves
+   19.3.1 through an auto-installed peer.
 3. **`pnpm-workspace.yaml` gains `minimumReleaseAgeExclude`.** pnpm 12 wrote
    it during install because the Expo 58 patch releases are younger than its
    release-age floor. A `--frozen-lockfile` install needs those entries.
