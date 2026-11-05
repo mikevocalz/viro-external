@@ -12,6 +12,10 @@
 
 namespace margelo::nitro::nativepanels {
 
+  jni::local_ref<JCallback_void_WhiteboardRendererState::JFunction_cxx> JCallback_void_WhiteboardRendererState::JFunction_cxx::create(jni::alias_ref<JCallback<JavaPart>> callback) {
+    return newInstance(callback);
+  }
+
   JNIRetainedValue<void>::Type JCallback_void_WhiteboardRendererState::JFunction_cxx::invoke(JNIRetainedValue<jni::local_ref<margelo::nitro::nativepanels::JWhiteboardRendererState>>::Type state) const {
     static const auto __method = javaClassStatic()->getMethod<void(jni::alias_ref<JWhiteboardRendererState>)>("call");
     __method(self(), JNIRetainedValue<jni::local_ref<margelo::nitro::nativepanels::JWhiteboardRendererState>>::borrow(state));
@@ -33,12 +37,9 @@ namespace margelo::nitro::nativepanels {
     callAndForget(state);
   }
 
-  jni::local_ref<JCallback_void_WhiteboardRendererState::JavaPart> JCallback_void_WhiteboardRendererState::fromCxx_cxx(jni::alias_ref<jni::JClass>, jni::alias_ref<JCxxCallback::javaobject> callback) {
-    return create(getCallback(callback));
-  }
-
-  jni::local_ref<JCallback_void_WhiteboardRendererState::JavaPart> JCallback_void_WhiteboardRendererState::fromFunction_cxx(jni::alias_ref<jni::JClass>, jni::alias_ref<JFunction_cxx> function) {
-    return create(CallbackType::make(JNICallable<JFunction_cxx, NativeSignature>(jni::make_global(function))));
+  JCallback_void_WhiteboardRendererState::CallbackType JCallback_void_WhiteboardRendererState::fromKotlin(jni::alias_ref<JCallback<JavaPart>> callback) {
+    auto function = JFunction_cxx::create(callback);
+    return CallbackType::make(JNICallable<JFunction_cxx, NativeSignature>(jni::make_global(function)));
   }
 
   void JCallback_void_WhiteboardRendererState::registerNatives() {
@@ -46,8 +47,6 @@ namespace margelo::nitro::nativepanels {
       makeNativeMethod("callSync_cxx", JCallback_void_WhiteboardRendererState::callSync_cxx),
       makeNativeMethod("callAsync_cxx", JCallback_void_WhiteboardRendererState::callAsync_cxx),
       makeNativeMethod("callAndForget_cxx", JCallback_void_WhiteboardRendererState::callAndForget_cxx),
-      makeNativeMethod("fromCxx_cxx", JCallback_void_WhiteboardRendererState::fromCxx_cxx),
-      makeNativeMethod("fromFunction_cxx", JCallback_void_WhiteboardRendererState::fromFunction_cxx),
     });
   }
 

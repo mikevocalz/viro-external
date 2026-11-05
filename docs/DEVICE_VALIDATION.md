@@ -64,7 +64,7 @@ Fill one block per headset per run. A result without these fields is not accepte
 | virocore commit in the renderer AAR | from the viro commit message that rebuilt `android/viro_renderer/viro_renderer-release.aar` (`d5e219c1` for `e41d43b8`, `48ed1ffc` for `f5d93c23`) |
 | rive-runtime commit | virocore `android/rive/RIVE_RUNTIME_COMMIT` (`8b3ca41b12bfd8ac9454444102c1fb130b3e7e11`) |
 | Vendored header check | `VIROCORE_ROOT=/path/to/virocore pnpm --filter @viro-external/native-panels test` passes against the virocore commit above |
-| Nitro version | `react-native-nitro-modules` and `nitrogen` in the app lockfile (native-panels pins `1.0.0-alpha.nightly.100.g107f6fc66597`) |
+| Nitro version | `react-native-nitro-modules` and `nitrogen` in the app lockfile (native-panels pins `1.0.0-alpha.nightly.120.g33ef045b96c0`) |
 | MoyoLearn commit and dirty state | `git -C MoyoLearn rev-parse HEAD; git -C MoyoLearn status --short` |
 | Variant | `questDebug`, `questRelease`, `picoDebug` or `picoRelease` |
 | Flags | `nativeBoard` and `nativeRive` values for the run |

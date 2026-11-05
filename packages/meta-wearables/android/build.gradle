@@ -23,7 +23,7 @@ dependencies {
   // and version. Keeping them off the module's runtime classpath means the
   // app — not this library — owns the DAT version and which sub-artifacts
   // ship. Versions below only need to satisfy compilation.
-  def mwdatCompileVersion = '1.0.0'
+  def mwdatCompileVersion = '1.0.1'
   compileOnly "com.meta.wearable:mwdat-core:${mwdatCompileVersion}"
   compileOnly "com.meta.wearable:mwdat-camera:${mwdatCompileVersion}"
   compileOnly "com.meta.wearable:mwdat-display:${mwdatCompileVersion}"

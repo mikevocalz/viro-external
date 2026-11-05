@@ -91,8 +91,8 @@ namespace margelo::nitro::nativepanels {
     static const auto __method = CxxPart::getClass()->getNonvirtualMethod<void(jni::alias_ref<jni::JString> /* overlayJson */)>("setOverlay");
     __method(_javaPart, CxxPart::getClass(), overlayJson);
   }
-  jni::local_ref<JListenerSubscription> JHybridWhiteboardRendererSpec::addOnStateChangedListener(const jni::local_ref<margelo::nitro::nativepanels::JCallback_void_WhiteboardRendererState::JavaPart>& listener) {
-    static const auto __method = CxxPart::getClass()->getNonvirtualMethod<jni::local_ref<JListenerSubscription>(jni::alias_ref<margelo::nitro::nativepanels::JCallback_void_WhiteboardRendererState::JavaPart> /* listener */)>("addOnStateChangedListener_cxx");
+  jni::local_ref<JListenerSubscription> JHybridWhiteboardRendererSpec::addOnStateChangedListener(const jni::local_ref<JCallback<margelo::nitro::nativepanels::JCallback_void_WhiteboardRendererState::JavaPart>>& listener) {
+    static const auto __method = CxxPart::getClass()->getNonvirtualMethod<jni::local_ref<JListenerSubscription>(jni::alias_ref<JCallback<margelo::nitro::nativepanels::JCallback_void_WhiteboardRendererState::JavaPart>> /* listener */)>("addOnStateChangedListener");
     auto __result = __method(_javaPart, CxxPart::getClass(), listener);
     return __result;
   }

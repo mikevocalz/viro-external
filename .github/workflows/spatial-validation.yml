@@ -37,6 +37,11 @@ jobs:
       - name: Dependency-free contract and CI regression tests
         run: |
           node --experimental-strip-types --test test/rive-contract.test.mjs packages/ui/test/world-slot.test.mjs packages/pico-layout/test/windowContainerHost.test.mjs test/generated-clean.test.mjs test/ci-boundary.test.mjs test/panel-unification.test.mjs packages/ui/test/curved-header.test.mjs
+      - name: Spatial shell resolver, geometry, config plugin and doctor tests
+        if: inputs.suite != 'premium'
+        run: |
+          npm install --prefix "$RUNNER_TEMP/spatial-shell-tools" --ignore-scripts --no-audit --no-fund --no-save @expo/config-plugins@58.0.10
+          NODE_PATH="$RUNNER_TEMP/spatial-shell-tools/node_modules" node --experimental-strip-types --import ./test/support/metro-like-resolve.mjs --test packages/spatial-shell/test/*.test.mjs
       - name: Install registry-only binding generator
         if: inputs.suite == 'all'
         run: |
@@ -124,12 +129,13 @@ jobs:
         run: |
           pnpm --filter @viro-external/xr-contract typecheck
           pnpm --filter @viro-external/specs typecheck
-          for name in meta-layout pico-layout spatial-runtime web-layout webspatial; do
+          for name in meta-layout pico-layout spatial-runtime spatial-shell web-layout webspatial; do
             pnpm --filter "@viro-external/$name" typecheck
           done
       - name: Workspace and Rive contracts
         if: inputs.suite != 'premium'
         run: |
+          pnpm --filter @viro-external/spatial-shell test
           pnpm test:workspace-surface
           pnpm test:rive-contract
           pnpm check:metro

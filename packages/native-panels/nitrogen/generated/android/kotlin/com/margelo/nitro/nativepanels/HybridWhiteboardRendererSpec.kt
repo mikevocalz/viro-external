@@ -49,14 +49,9 @@ abstract class HybridWhiteboardRendererSpec: HybridObject() {
   @Keep
   abstract fun setOverlay(overlayJson: String): Unit
 
-  abstract fun addOnStateChangedListener(listener: Callback<(state: WhiteboardRendererState) -> Unit>): ListenerSubscription
-
   @DoNotStrip
   @Keep
-  private fun addOnStateChangedListener_cxx(listener: Callback_void_WhiteboardRendererState): ListenerSubscription {
-    val __result = addOnStateChangedListener(listener)
-    return __result
-  }
+  abstract fun addOnStateChangedListener(listener: Callback<(state: WhiteboardRendererState) -> Unit>): ListenerSubscription
 
   // Default implementation of `HybridObject.toString()`
   override fun toString(): String {
