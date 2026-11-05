@@ -1,291 +1,161 @@
-# Release plan: expo-pico, react-viro fork, viro-external
+# Release plan: virocore, react-viro fork, viro-external, expo-pico
 
-Status on 2026-11-04: nothing is published, and nothing can be published until the blockers below are fixed. This file lists the version each package would ship at, the order and dist-tag for each, and the one command that publishes them all.
+None of these packages go to npm. Apps install them from GitHub: expo-pico from its `release/*` branches, the react-viro fork from a tag or SHA of mikevocalz/viro, viro-external from a pinned checkout or tarballs packed from one, and virocore only as the renderer binaries that ship inside the other two.
 
-## Source commits
+Status on 2026-11-04: every PR in the merge order below is an open draft. `scripts/release.sh` checks them and previews the cut; nothing has been merged or tagged.
 
-Every number below comes from a throwaway local merge of the open PRs. Neither the merges nor the version bumps were pushed.
+## Packages and install specs
 
-| Repo | Merged | Result |
+| Package | GitHub source | Spec an app uses |
 | --- | --- | --- |
-| mikevocalz/expo-pico | #45 `fix/spatial-rail-layout-xr-entry` at `4b85dbc` (contains #43) + #44 `chore/pico-sdk-latest` at `3f7b6b6` | Merged clean. |
-| mikevocalz/viro | #84 `feat/spatial-shell-autoinject` at `20269f1` + #83 `chore/expo-58-nitro-v1` at `bfbfbc7` | **Conflicts.** `plugins/withViro.ts`: both sides add an import and options to `android`. I kept both (`spatialShell` from #84, `questFeatures` / `questHorizonOsSdk` / `openxr` from #83). `dist/`: #83 stops tracking it and #84 commits a rebuilt `dist/`, so I dropped it, as #83 intends. GitHub also reports #84 as `CONFLICTING` against `main`. |
-| mikevocalz/viro-external | #81 `feat/spatial-shell` at `154a075` + #80 `chore/expo-58-nitro-v1` at `50cec41` | Git merges it without conflicts, but the merged `pnpm-lock.yaml` is broken: `pnpm install --frozen-lockfile` fails with `no entry for 'zustand@5.0.16(@types/react@19.3.0)(react@19.3.1)'`. #81 resolved React 19.3.1 and #80 moved every importer to 19.3.0. Taking #80's lockfile and running `pnpm install --lockfile-only` fixes it (exit 0). |
-
-## How the numbers were produced
-
-- **Versions.**
-  - expo-pico: computed with the repo's own changesets (`@changesets/cli` 2.29.7, `.changeset/config.json`).
-  - viro and viro-external: neither has changesets, so the version is whatever `package.json` says.
-- **Current published version.** From `npm view <name> dist-tags` on 2026-11-04. Every `@expo-pico/*`, `@viro-external/*` and `react-native-viro-*` name returns E404. `@reactvision/react-viro` returns `{ latest: '3.0.3' }`.
-- **Tarballs.**
-  - The publish dry run was **not run**. This session's permission settings deny `npm publish --dry-run` in every form I tried, and I did not try to get around that.
-  - The size, file-count and manifest columns come from building and packing the real tarballs:
-    - `pnpm pack` for viro-external. pnpm rewrites `workspace:*`, so this is the tarball that would ship.
-    - `npm pack` for viro and expo-pico. `prepare` runs nitrogen and tsc.
-  - Every pack exited 0. `scripts/release.sh --pack` reproduced all 41 tarballs (exit 0).
-  - Each tarball was then checked for:
-    - `main`, `types`, `module`, `exports` and `bin` targets that are missing from the tarball;
-    - bundled `node_modules`;
-    - leftover `workspace:` / `link:` / `file:` ranges;
-    - secret-like files (`.env`, `.npmrc`, keys, keystores);
-    - secret-like strings (npm, GitHub and AWS tokens, private keys);
-    - agent files (`AGENTS.md`, `CLAUDE.md`, `TASKS.md`).
-- **To get the real publish dry run**, run `scripts/release.sh --dry-run` from a machine where `npm publish --dry-run` is allowed. Pack checks do not cover registry-side failures, such as a scope you do not own or a version that already exists.
-
-## Versions
-
-### expo-pico (changesets)
-
-`changeset version` gives every changed package **2.0.0**:
-
-- `pico-off-without-app-id.md` is a `major` bump for `@expo-pico/core`.
-- The other packages declare `@expo-pico/core` as a peer, and the `linked` group pulls them along.
-
-This plan uses **pre mode** instead: `changeset pre enter alpha && changeset version`. Pre mode gives `2.0.0-alpha.0`, for two reasons:
-
-- These packages peer on Nitro `>=1.0.0-alpha.nightly.120.g33ef045b96c0`. A plain `2.0.0` that needs an alpha runtime would occupy the `2.0.0` number for good.
-- The repo's own `prerelease.yml` requires pre mode.
-
-Commit the `pre.json` and the version bump before running the script.
-
-`npm publish --dry-run` was not run for any row (see above). Pack exit code was 0 for every row.
-
-| Package | Published | `changeset version` | Pre mode (to publish) | Tag | Packed | Files | Pack findings |
-| --- | --- | --- | --- | --- | --: | --: | --- |
-| @expo-pico/platform-service-common | unpublished | 1.0.0 | 1.0.0 | alpha | 11.5 kB | 24 | none |
-| @expo-pico/core | unpublished | 2.0.0 | 2.0.0-alpha.0 | alpha | 3.57 MB | 434 | Ships `android/app/`, a whole example app module (28 files) with the stock React Native `debug.keystore` (`androiddebugkey`, created 2013). That key is public, so it is not a leaked secret, but a library should not ship it. 7.5 MB unpacked is the staged `libviro_renderer.so` overlay. |
-| @expo-pico/spatial | unpublished | 2.0.0 | 2.0.0-alpha.0 | alpha | 51.0 kB | 115 | none |
-| @expo-pico/account | unpublished | 2.0.0 | 2.0.0-alpha.0 | alpha | 26.1 kB | 58 | none |
-| @expo-pico/iap | unpublished | 2.0.0 | 2.0.0-alpha.0 | alpha | 22.5 kB | 57 | none |
-| @expo-pico/notifications | unpublished | 2.0.0 | 2.0.0-alpha.0 | alpha | 25.9 kB | 67 | none |
-| @expo-pico/rtc | unpublished | 2.0.0 | 2.0.0-alpha.0 | alpha | 25.5 kB | 83 | none |
-| @expo-pico/rooms | unpublished | 2.0.0 | 2.0.0-alpha.0 | alpha | 33.1 kB | 96 | none |
-| @expo-pico/subscription | unpublished | 2.0.0 | 2.0.0-alpha.0 | alpha | 25.4 kB | 60 | none |
-| @expo-pico/storage | unpublished | 2.0.0 | 2.0.0-alpha.0 | alpha | 26.8 kB | 83 | none |
-| @expo-pico/social | unpublished | 2.0.0 | 2.0.0-alpha.0 | alpha | 44.7 kB | 95 | none |
-| @expo-pico/achievements | unpublished | 2.0.0 | 2.0.0-alpha.0 | alpha | 27.8 kB | 68 | none |
-| @expo-pico/leaderboards | unpublished | 2.0.0 | 2.0.0-alpha.0 | alpha | 26.6 kB | 70 | none |
-| @expo-pico/app-kit | unpublished | 2.0.0 | 2.0.0-alpha.0 | alpha | 42.8 kB | 50 | none |
-| @expo-pico/template | unpublished | 0.1.1 | 0.1.2-alpha.0 | alpha | 8.1 kB | 9 | Pins `react-native-nitro-modules` to the nightly exactly. |
-
-`expo-horizon-quest` and `@expo-pico/eskiu-runtime` are `private` and are not published.
-
-### @reactvision/react-viro (fork, mikevocalz/viro)
-
-`npm publish --dry-run` was not run (see above).
-
-| Package | Published | To publish | Tag | Pack exit | Packed | Unpacked | Files | Pack findings |
-| --- | --- | --- | --- | --: | --: | --: | --: | --- |
-| @reactvision/react-viro | `latest` 3.0.3 (ReactVision) | 3.1.0-moyo.0 | next | 0 | 53.6 MB | 95.9 MB | 2093 | none from the checks |
-
-- `prepare` (`tsc`, the plugins tsconfig, the specs CLI, `copy-files`) ran during pack.
-- `require('./app.plugin.js')` loads under Node 26.13.0 from the packed tarball. #84 reported `ERR_MODULE_NOT_FOUND` under Node 26 on its own tree; that error did not show up in this merge.
-
-### viro-external
-
-No changesets, so each version is the one in `package.json`. Every package returns E404 today. `npm publish --dry-run` was not run for any row (see above).
-
-Pack exit code was 0 for every row. "src entry" means `main`/`types` point at TypeScript source: Metro can load it, but Node and web bundlers without a TS loader cannot.
-
-| Package | To publish | Tag | Packed | Files | Pack findings |
-| --- | --- | --- | --: | --: | --- |
-| @viro-external/xr-contract | 0.3.0 | next | 40.7 kB | 79 | none (dist entry points via `publishConfig`) |
-| @viro-external/specs | 0.3.0 | next | 699.9 kB | 182 | none (dist entry points via `publishConfig`) |
-| @viro-external/meta-layout | 0.1.0 | next | 12.4 kB | 9 | src entry |
-| @viro-external/spatial-shell | 0.1.0 | next | 34.9 kB | 42 | src entry. `/plugin`, `/doctor` and the `viro-spatial-shell-doctor` bin resolve. |
-| react-native-viro-mux | 0.1.1 | alpha | 54.4 kB | 90 | src entry; ships `AGENTS.md`, `CLAUDE.md` |
-| @viro-external/splat-pass | 0.0.1 | alpha | 36.6 kB | 27 | src entry; ships `AGENTS.md`, `CLAUDE.md`, `TASKS.md` |
-| @viro-external/core | 0.1.0 | alpha | 18.7 kB | 25 | src entry; ships `AGENTS.md`, `CLAUDE.md` |
-| @viro-external/media | 0.1.0 | next | 13.8 kB | 16 | src entry |
-| @viro-external/ui | 0.1.0 | alpha | 59.8 kB | 62 | src entry |
-| @viro-external/gui | 0.1.0 | alpha | 67.2 kB | 49 | src entry; ships `AGENTS.md`, `CLAUDE.md` |
-| @viro-external/meta | 0.1.0 | alpha | 4.7 kB | 12 | src entry; ships `AGENTS.md`, `CLAUDE.md` |
-| @viro-external/meta-wearables | 0.1.0 | next | 11.7 kB | 10 | src entry |
-| @viro-external/native-panels | 0.1.0 | alpha | 101.9 kB | 218 | src entry |
-| @viro-external/openxr | 0.1.0 | next | 2.0 kB | 3 | src entry |
-| @viro-external/render-passes | 0.0.0 | alpha | 22.1 kB | 24 | src entry; ships `AGENTS.md`, `CLAUDE.md`, `TASKS.md`; version is `0.0.0` |
-| @viro-external/orb-pass | 0.0.1 | alpha | 17.2 kB | 9 | src entry; ships `AGENTS.md` |
-| @viro-external/pano | 0.2.0 | next | 0.7 kB | 3 | src entry |
-| @viro-external/pico-layout | 0.1.0 | next | 8.7 kB | 5 | src entry |
-| @viro-external/premium | 0.1.0 | alpha | 1.4 kB | 6 | src entry |
-| @viro-external/spatial-panels | 0.1.0 | next | 18.0 kB | 55 | src entry |
-| @viro-external/spatial-runtime | 0.1.0 | next | 4.0 kB | 8 | src entry |
-| @viro-external/viture | 0.1.0 | next | 1.4 kB | 3 | src entry |
-| @viro-external/web-layout | 0.1.0 | next | 6.1 kB | 5 | src entry |
-| @viro-external/webspatial | 0.1.0 | next | 3.0 kB | 3 | src entry |
-| react-native-viro-webrtc | 0.1.0 | next | 5.8 kB | 10 | src entry |
-
-No tarball in any repo bundles `node_modules`, points `main`/`types`/`exports`/`bin` at a missing file, keeps a `workspace:` range, or contains a token-shaped string.
-
-## Blockers
-
-### All three repos
-
-1. **The PRs are unmerged drafts.** The release has to come from merged commits, not from the throwaway merges used here.
+| `@expo-pico/core` and the other `@expo-pico/*` packages | mikevocalz/expo-pico, branch `release/<name>` (scope dropped: `release/core`, `release/spatial`, `release/account`, ...) | `"github:mikevocalz/expo-pico#release/core"`, or pinned: `"github:mikevocalz/expo-pico#<release-commit-sha>"` or `#@expo-pico/core@<version>+<source-sha>` |
+| `expo-horizon-core` (quest flavor) | mikevocalz/expo-pico, branch `release/horizon-core` | `"github:mikevocalz/expo-pico#release/horizon-core"` |
+| `@reactvision/react-viro` 3.1.0-moyo.0 | mikevocalz/viro, tag `v3.1.0-moyo.0` (created by `release.sh --push` on the merge commit), or a `main` SHA | `"github:mikevocalz/viro#v3.1.0-moyo.0"` or `"github:mikevocalz/viro#<sha>"`. Always give a ref: the repo's default branch is `decax9-three-panel`, not `main`. |
+| `@viro-external/*`, `react-native-viro-mux`, `react-native-viro-webrtc` | mikevocalz/viro-external, tag `release-<date>` (created by `release.sh --push`) | No `github:` spec works yet (see below). Check out the tag next to the app and use `link:`, or vendor `pnpm pack` tarballs built at the tag and use `file:`. |
+| virocore | mikevocalz/virocore `main` SHA, pinned by viro-external's `scripts/sync-viro-3-1.sh` (#78) | None. Apps get the renderer from react-viro (`android/viro_renderer/viro_renderer-release.aar`, `ios/dist/ViroRenderer/ViroKit.framework`) and from `@expo-pico/core` (`plugin/assets/jniLibs/arm64-v8a/libviro_renderer.so`). |
+| `react-native-nitro-modules` | npm (third party) | `1.0.0-alpha.nightly.120.g33ef045b96c0`, the build expo-pico pins. It pulls `nitro-core` at the same version. |
 
 ### expo-pico
 
-1. **The `@expo-pico` scope does not exist on npm** (`npm org ls expo-pico`: "Scope not found"). Create the org, or a user with that name, before publishing.
-2. **Versions are not committed.** `changeset pre enter alpha` and `yarn version-packages` have to land on `main` first.
-3. **#43 has five unresolved CodeRabbit threads**:
-   - exact Nitro peer pin versus the `>=` floors;
-   - documenting the `nitro-core` install requirement;
-   - `release/horizon-core` wording;
-   - `fileURLToPath` in `nitro-peers.test.mjs`;
-   - `withQuestMetaLayout` ordering, which #45 fixed in code but the thread is still open.
+[`docs/INSTALL-FROM-GITHUB.md`](https://github.com/mikevocalz/expo-pico/blob/main/docs/INSTALL-FROM-GITHUB.md) is the consumer guide. On every push to `main`, `.github/workflows/release-branches.yml` runs `yarn build` and then `scripts/build-release-branches.mjs --push`, which packs each package and commits the packed tree to its `release/<name>` branch. Release branches only move forward. Each release commit is `release <name>@<version> from <source-sha>` and gets an annotated tag `<name>@<version>+<source-short-sha>`. The packed manifests have no `scripts`, so nothing builds at install time.
 
-   There is also an outside-diff finding to add `permissions: contents: read` to `verify` in `ci.yml`.
-4. **`@expo-pico/core` ships `android/app/`.** The tarball carries the example app module and its debug keystore. Narrow `files` to the library module.
-5. **The quest flavor needs a git dependency.** It now lives in the `expo-horizon-core` plugin entry from `github:mikevocalz/expo-pico#release/horizon-core`. That branch is not an npm package, so Quest users still need a git dependency. #43 says that branch is still at 57.0.3.
+List every expo-pico package the app uses plus their peers (`@expo-pico/core`, `@expo-pico/platform-service-common`, Nitro) in the app's own `package.json`. The release manifests turn workspace dependencies into peers because pnpm 12 refuses a git dependency below the top level (`ERR_PNPM_EXOTIC_SUBDEP`).
+
+`release/core` is currently cut from `9be55e4` (`@expo-pico/core` 1.0.0). The first push to `main` after #43, #44 and #45 merge recuts every branch, and moves `release/horizon-core` from 57.0.3 to 58.0.1.
 
 ### react-viro fork
 
-1. **mikevocalz cannot publish `@reactvision/react-viro`.** `npm owner ls` lists `doranteseduardo` and `oliedis` (ReactVision). Either ReactVision publishes it, or the fork moves to a scope mikevocalz owns. A rename also changes every `@reactvision/react-viro` peer range in viro-external.
-2. **The viro-external peer ranges reject this version.**
-   - viro-external peers are `>=3.0.1-moyo.0 <4.0.0`, and `>=3.0.3-moyo.1 <4.0.0` for `native-panels` and `spatial-panels`.
-   - `semver.satisfies('3.1.0-moyo.0', …)` is `false` for both: a prerelease only matches a comparator with the same major.minor.patch.
-   - ReactVision's stock `3.0.3` does satisfy them, so `npm install` would choose stock Viro over the fork.
-   - Fix the ranges, for example to `>=3.1.0-moyo.0 <4.0.0`, before publishing viro-external.
-3. **The merge conflict** between #84 and #83 has to be resolved for real (see Source commits).
-4. **No publish workflow.** viro has no workflow with `id-token: write`, so `--provenance` is unavailable for it unless one is added.
+`dist/` is gitignored on `main`, #83 and #84. A git install still gets it: npm clones the repo, installs its devDependencies, runs `prepare` (`npm run build`: `tsc`, the plugins tsconfig, the specs CLI, `copy-files`), and packs the result. Checked on 2026-11-04 with npm 12.2.1 against #84 (`feat/spatial-shell-autoinject`) in an empty project:
+
+- `npm install github:mikevocalz/viro#feat/spatial-shell-autoinject --legacy-peer-deps=false` exits 1 with `EALLOWGIT`. npm 12 defaults `allow-git` to `none`. With `--allow-git=all` it exits 0 and the installed package has `dist/plugins/withViro.js`.
+- `require('@reactvision/react-viro/app.plugin.js')` then fails on `@expo/config-plugins`, which an Expo app gets from `expo` (an optional peer). With `NODE_PATH` pointing at an app's `node_modules` (MoyoLearn's, `@expo/config-plugins` 58.0.10) it loads, and applying the plugin to a config with `_internal.projectRoot` set returns `ios` and `android` mods (exit 0).
+
+Not checked: a pnpm or yarn git install of the fork, and whether pnpm's build-script approval blocks `prepare` for it.
 
 ### viro-external
 
-1. **The lockfile must be regenerated** after merging #81 and #80 (see Source commits).
-2. **Seven tarballs ship agent instruction files.** `AGENTS.md`, `CLAUDE.md` and `TASKS.md` are in `react-native-viro-mux`, `core`, `gui`, `meta`, `orb-pass`, `render-passes` and `splat-pass`. They are listed in each package's `files` array. Remove them from `files` before publishing.
-3. **The `@viro-external` scope does not exist on npm** ("Scope not found").
-4. **Do not run `npm publish` from a package folder.** That ships `workspace:*` ranges and the source entry points. Publish the `pnpm pack` tarball instead, which is what `publish-specs.yml` and the script do.
-5. **`@viro-external/render-passes` is at `0.0.0`.** Pick a real first version.
+viro-external has no release branches. On `main`, every package except `@viro-external/specs` points `main` at TypeScript source, and most depend on each other through `workspace:*`, which only resolves inside this workspace. A `github:` spec (with or without pnpm's `&path:`) would install those ranges unresolved. That leaves the two ways the apps already use:
 
-## Dist-tags
+- **Sibling checkout plus `link:`** (Harlem-Might). Check out the release tag next to the app; `scripts/sync-viro-3-1.sh` does the same for viro and virocore at their pinned SHAs.
+- **Vendored tarballs plus `file:`** (MoyoLearn). Run `pnpm pack` in each package at the release tag (pnpm rewrites `workspace:*` and applies `publishConfig`), commit the tarballs to the app, and name the source SHA in the file name.
 
-No package in this release should go to `latest`.
+Porting expo-pico's release-branch workflow here would give viro-external real `github:` specs. Nobody has done that.
 
-- **alpha** is for any package that peers on Nitro `1.0.0-alpha.nightly.120.g33ef045b96c0`, directly or through a dependency:
-  - every `@expo-pico/*` package (`platform-service-common` rides along with the linked group);
-  - `react-native-viro-mux` and `@viro-external/native-panels`, which peer on Nitro directly;
-  - `splat-pass`, `core`, `ui`, `gui`, `meta`, `premium`, `render-passes` and `orb-pass`, which depend on one of those two.
-- **next** covers everything else, which still depends on the prerelease fork or has never run on a device:
-  - `@reactvision/react-viro` 3.1.0-moyo.0. npm refuses a prerelease without `--tag`.
-  - The remaining viro-external packages.
+After #80, every viro-external package that peers on react-viro asks for `>=3.1.0-moyo.0 <4.0.0`. An app on an older fork build (MoyoLearn's vendored 3.0.1-moyo.1) fails that peer check until it moves to 3.1.0-moyo.0.
 
-All of these names are new to the registry. A package's first publish also gets `latest`, whatever `--tag` says. That is registry behaviour, not something tested here. After the first publish, run `npm dist-tag rm <name> latest` or point `latest` where it belongs.
+### What the apps use today
 
-## Publish order
+Read from the working trees on 2026-11-04 (Harlem-Might on `main`, MoyoLearn on `feat/motion-03-signatures`):
 
-1. `@viro-external/xr-contract`, then `@viro-external/specs`, `@viro-external/meta-layout` and `@viro-external/spatial-shell`.
-   - react-viro declares `@viro-external/specs ^0.3.0` as an optional peer.
-   - Its config plugin (`plugins/withViroSpatialShell.ts`) resolves `@viro-external/spatial-shell/plugin` from the app at prebuild. When the package is missing, it warns and continues.
-2. `@reactvision/react-viro`. Most viro-external packages peer on it.
-3. The rest of viro-external, in dependency order. Computed from the packed manifests, with no cycles:
-   - `react-native-viro-mux`
-   - `splat-pass`
-   - `core`
-   - `media`
-   - `ui`
-   - `gui`
-   - `meta`
-   - `meta-wearables`
-   - `native-panels`
-   - `openxr`
-   - `render-passes`
-   - `orb-pass`
-   - `pano`
-   - `pico-layout`
-   - `premium`
-   - `spatial-panels`
-   - `spatial-runtime`
-   - `viture`
-   - `web-layout`
-   - `webspatial`
-   - `react-native-viro-webrtc`
-4. expo-pico:
-   - `platform-service-common`
-   - `core`
-   - the twelve feature packages
-   - `app-kit`
-   - `template`
+- **Harlem-Might** `apps/mobile/package.json`:
+  - `"@expo-pico/core": "github:mikevocalz/expo-pico#release/core"`
+  - `"expo-horizon-core": "github:mikevocalz/expo-pico#release/horizon-core"`
+  - `"@reactvision/react-viro": "link:../../../viro"`
+  - `"@viro-external/core": "link:../../../viro-external/packages/viro-external-core"`, and the same for `media`, `meta-layout`, `ui` and `xr-contract` (`packages/xr-platform-contract`)
+  - `packages/spatial` and `apps/web` take `"@reactvision/react-viro": "catalog:"`, which `pnpm-workspace.yaml` sets to `3.0.2` from npm.
+- **MoyoLearn** root `package.json`, `pnpm.overrides`:
+  - `"@reactvision/react-viro": "file:./vendors/reactvision-react-viro-3.0.1-moyo.1.tgz"`
+  - `"@viro-external/core": "file:./vendors/viro-external-core-0.1.0-4dc2775.tgz"`, and the same pattern for `media`, `meta-layout`, `native-panels`, `spatial-panels`, `ui` and `xr-contract-0.3.0`
+  - `"@expo-pico/core": "file:./vendors/expo-pico-core-1.0.0-nitro-v1.tgz"`
+  - `apps/mobile` declares `"expo-horizon-core": "57.0.2"` (upstream, from npm).
 
-   Nothing published from expo-pico depends on viro or viro-external; only its `example` app pins `@reactvision/react-viro` 3.0.2.
+## Merge order
 
-## virocore
+Each step needs the previous one merged and its CI green.
 
-virocore is not an npm package. It reaches npm in two places.
+1. **virocore**: #116 into `moyo/renderer-73c6a92`; #118 and #119 into `main`.
+2. **viro**: #83, then #84. #84's head contains #83's (the merge in `343a3d7`), so merging #84 after #83 adds only #84's commits.
+3. **viro-external**: #80, then #81. #81's head contains #80's.
+4. **expo-pico**: #43, then #44 and #45. #45 is stacked on #43 (its base is `chore/expo-58-nitro-v1`, and its head contains `e501aa2`); retarget it to `main` once #43 merges. #44 targets `main` directly.
 
-**Inside `@reactvision/react-viro` 3.1.0-moyo.0:**
+After the viro merge, bump `VIRO_SHA` in viro-external's `scripts/sync-viro-3-1.sh` and `VIRO_REVISION` in `scripts/ci/check-viro-access.mjs` (#78) to the new viro `main`. They pin `c6a0dbc` today, which #84 contains. After the virocore merges, bump `VIROCORE_SHA` the same way; it pins `29a8512`, which is virocore `main` today.
 
-- Android: `android/viro_renderer/viro_renderer-release.aar`, 14.8 MB.
-  - sha256 `ca8711dc…5a7b12`, which matches `controller-build.json`.
-  - Built from mikevocalz/virocore `881e5da89` (`sync/upstream-3.1.0`) by a local `:viroreact:assembleRelease`, not CI.
-  - Also in the tarball: `android/react_viro/react_viro-release.aar`.
-- iOS: `ios/dist/ViroRenderer/ViroKit.framework`.
-  - sha256 `6195a69b…6b9742`, which matches `ios/dist/ios-build.json`.
-  - Same virocore commit, built locally.
-  - Also in the tarball: `ios/dist/lib/libViroReact.a` from viro `7fdfd239`.
-- The build notes say ReactVisionCCA is not linked on either platform, and that no headset run was done with this build.
-- None of virocore #116, #118 or #119 is in this renderer:
-  - #118 and #119 are 5 commits ahead of `881e5da` (merged into nothing yet).
-  - #116 has diverged from it: 14 ahead, 463 behind, based on `moyo/renderer-73c6a92`.
-  - Shipping those fixes means rebuilding the AAR and framework after they merge, then bumping the fork version.
+## What CI produces after each merge
 
-**Inside `@expo-pico/core`:**
+| Repo | On push to `main` | Output |
+| --- | --- | --- |
+| virocore | `Build PICO renderer AAR` (also on `v*-pico*` tags) | Artifact `viro_renderer-release-aar`. Nothing in viro or expo-pico picks it up automatically. |
+| virocore | `Release with changelog`, on any tag push | A GitHub release. `release.sh` does not tag virocore for this reason. |
+| viro | `Viro convergence`, `Engine contract facade`, `Specs public API` (path-filtered) | Tests, build, plugin-load check, `npm pack --dry-run`, uploaded artifacts. No branch or tag. The `v3.1.0-moyo.0` tag comes from `release.sh --push`. |
+| viro-external | `Premium spatial stack`, `Viro 3 / Expo 58 validation`, `XR platform adapters`, `SPECS release gates` (path-filtered) | Checks only. The protected spatial validation, including `check-viro-access.mjs`, runs only on trusted `main` pushes with the dependency token. The `release-<date>` tag comes from `release.sh --push`. |
+| expo-pico | `CI`, `Release branches`, `Version Packages` | `Release branches` recuts every `release/*` branch and tags each package. `Version Packages` opens a PR when changesets are pending. |
 
-- `plugin/assets/jniLibs/arm64-v8a/libviro_renderer.so`, 7.5 MB, sha256 `0d6d8ee1…46938f`.
-- Built from virocore `main` at `a346988f` (PRs #103 to #109), per `plugin/assets/jniLibs/README.md`. It is staged into an app's PICO and Quest flavors at prebuild.
-- #43 says this overlay is built against react-viro 3.0.2, which is why the example app stays on 3.0.2.
-- The OpenXR loader staged next to it is Khronos 1.1.65 (from #44).
+`publish-specs.yml` (viro-external) and `release.yml` / `prerelease.yml` (expo-pico) publish to npm and only run on manual dispatch. This release does not use them.
 
-## The single command
+## virocore binaries
 
-`scripts/release.sh` in this repository. Clone `viro` and `expo-pico` next to it, check out the merged release commits, then:
+A virocore merge does not change what apps run until the binaries are rebuilt and committed. What ships today:
+
+- **In react-viro 3.1.0-moyo.0**: `android/viro_renderer/viro_renderer-release.aar` (14.8 MB, sha256 `ca8711dc…5a7b12`, matching `controller-build.json`) and `ios/dist/ViroRenderer/ViroKit.framework` (sha256 `6195a69b…6b9742`, matching `ios/dist/ios-build.json`). Both were built locally from virocore `881e5da89` (`sync/upstream-3.1.0`), not by CI. The build notes say ReactVisionCCA is not linked and no headset run was done with this build.
+- **In `@expo-pico/core`**: `plugin/assets/jniLibs/arm64-v8a/libviro_renderer.so` (7.5 MB, sha256 `0d6d8ee1…46938f`), built from virocore `main` at `a346988f` per `plugin/assets/jniLibs/README.md`, next to the Khronos OpenXR loader 1.1.65 from #44.
+- None of #116, #118 or #119 is in either binary. Shipping them means rebuilding the AAR, the framework and the `.so` after they merge, committing them to viro and expo-pico, and cutting again.
+
+## `scripts/release.sh`
 
 ```bash
-scripts/release.sh --pack       # install, build and pack all 41 tarballs, check name@version, no registry contact
-scripts/release.sh --dry-run    # same, then npm publish --dry-run per tarball (the default)
-scripts/release.sh --publish    # same, then npm publish for real, in the order above
+scripts/release.sh          # check only, pushes nothing (default)
+scripts/release.sh --push   # after every PR has merged: create the tags, dispatch release-branches.yml
 ```
 
-What the script does:
+It reads everything through the GitHub API with `gh`, so it needs no clones. In order:
 
-- Runs under `set -euo pipefail` and stops at the first failure.
-- Packs viro-external with `pnpm pack`, and viro and expo-pico with `npm pack`.
-- Refuses a tarball whose name or version differs from the plan, or whose manifest still has a `workspace:`, `link:` or `file:` range.
-- Publishes the tarball, never the folder, with `--access public` and the tag from the plan.
-- Adds `--provenance` only when `GITHUB_ACTIONS=true`, because provenance needs an OIDC token. expo-pico (`release.yml`, `prerelease.yml`) and viro-external (`publish-specs.yml`) have `id-token: write` workflows today; viro does not.
-- On a rerun, skips any `name@version` the registry already has, so a failed run resumes where it stopped.
+1. Lists every PR in the merge order with its state, base, head, mergeability and check results. A conflict or a failing check fails the run.
+2. Confirms the stacked PRs contain their dependencies (viro #84 ⊇ #83, viro-external #81 ⊇ #80, expo-pico #45 ⊇ #43).
+3. Picks the release source per repo: `main` once every PR has merged, otherwise the PR heads, as a preview.
+4. Compares viro-external's Viro and ViroCore pins with those sources, and checks that the sync script and `check-viro-access.mjs` pin the same Viro commit.
+5. Lists the tags it would create: `v<version>` on viro and `release-<UTC date>` on viro-external (`VX_TAG` overrides it). It never moves an existing tag.
+6. Compares expo-pico's `release/core` source commit with the release source.
 
-Two environment flags exist for local rehearsal only:
+`--push` refuses to run until every PR in the merge order is merged. It then creates the annotated tags through the API and, if `release/*` is behind `main`, dispatches `release-branches.yml`. Without `--push` it writes nothing.
 
-- `SKIP_INSTALL=1` reuses existing `node_modules`.
-- `ALLOW_DIRTY=1` skips the clean-tree check.
+Run on 2026-11-04 against the current PR heads, check mode exited 0:
 
-`--pack` ran against the throwaway merges and exited 0. `--dry-run` and `--publish` have never run.
+```text
+==> 2. Stacked PRs
+  viro #84 (46487c7) contains #83 (bfbfbc7)
+  viro-external #81 (49575b4) contains #80 (55f29c5)
+  expo-pico #45 (41aa84b) contains #43 (e501aa2)
+
+==> 4. viro-external source pins (Viro / ViroCore)
+  #78 not merged; reading pins from its head 1f1252d
+  viro pin c6a0dbc is behind the release source 46487c7: bump it after the viro merge
+  virocore pin 29a8512 = virocore main
+
+==> 5. Tags
+  viro v3.1.0-moyo.0 -> 46487c7 (would create)
+  viro-external release-2026-11-05 -> 49575b4 (would create)
+
+==> 6. expo-pico release branches
+  release/core was cut from 9be55e4; release source is 41aa84b
+```
+
+`--push` against the same heads exited 1 with `refusing --push: not every PR in the merge order is merged`, and created no tag.
+
+## Resolved blockers
+
+| Blocker | Fixed in |
+| --- | --- |
+| viro-external peer ranges rejected react-viro 3.1.0-moyo.0; agent files in package tarballs | viro-external `55f29c5` (#80) |
+| viro-external lockfile broken after merging #80 and #81 | viro-external `49575b4` (#81) |
+| viro #84 conflicted with #83 | viro `343a3d7` (#84) |
+| `@expo-pico/core` packed the example Android app and its debug keystore | expo-pico `5b1562a` (#43) |
+| #43's CodeRabbit threads: script paths, Meta Layout ordering, `release/horizon-core` wording | expo-pico `3e27559`, `e17b60b`, `e501aa2` (#43) |
 
 ## Status
 
 **Verified on device:**
 
-- expo-pico #45 layout. The user confirmed it on 2026-11-04 on a Quest 3S (Horizon OS v209, `UP1A.231005.007.A1`) and a PICO 4 Ultra (OS 5.15.7): the rail, the rounded selected tab, and the aspect frame on resize. Those runs used the questDebug and picoDebug APKs with JS from Metro at `9438535`.
-- On Quest, Enter XR held `XR_SESSION_STATE_FOCUSED` in an earlier build (working tree of `0fe95b7`, then `191207f` for about 54 s). On PICO, Enter XR was not re-run on those builds.
-- #45's PR body still says no APK containing `dd6adb8` or later is installed. The device comments after it supersede that line, and the body should be updated.
+- expo-pico #45 layout. The user confirmed it on 2026-11-04 on a Quest 3S (Horizon OS 209) and a PICO 4 Ultra (OS 5.15.7): the rail, the rounded selected tab and the aspect frame on resize, with the questDebug and picoDebug APKs and JS from Metro at `9438535`.
 
-**Verified only in CI or locally, never on a device from these packages:**
+**Verified only in CI or locally:**
 
-- expo-pico #44 (PPS pins, OpenXR loader 1.1.65).
-- viro #83 and #84.
-- viro-external #80 and #81.
-- virocore #118 and #119, whose CI is green, including `build-aar`.
-- The renderer AAR and ViroKit framework inside react-viro 3.1.0-moyo.0 (local release builds, "No headset run").
-- Every tarball in this file, which was packed but never installed into an app.
+- expo-pico #43 and #44; viro #83 and #84; viro-external #80 and #81; virocore #116, #118 and #119.
+- The react-viro git install described above (npm 12 only).
 
 **Blocked or not run:**
 
 - Android XR: deferred, no device.
-- MX Ink stylus (virocore #116): never run with a stylus. The one trial used a Logitech Muse and failed to pair. Tip force, haptics and tip pose are unverified.
+- MX Ink stylus (virocore #116): never run with a stylus.
 - Meta VR Glasses: not tested.
-- virocore #116, #118 and #119: not run on a headset from those branches. #116's device notes come from an older build (`0ea78070`).
-- Nitro V1: still `1.0.0-alpha.nightly.120`. npm `latest` for `react-native-nitro-modules` is 0.37.2, so every Nitro-dependent package here can only ship under `alpha`.
-- Controller ray and hand pinch on the rail: only exercised with `adb input`.
-- PICO with a registered app ID: CI uses `expo-pico-ci-unregistered`.
-- `npm publish --dry-run`: denied in the session that wrote this file. Run `scripts/release.sh --dry-run` to get it.
+- virocore #116, #118 and #119: not run on a headset from their branches.
+- Nitro V1 is still the alpha nightly (`1.0.0-alpha.nightly.120.g33ef045b96c0`).
