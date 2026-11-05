@@ -22,10 +22,10 @@
   "peerDependencies": {
     "@reactvision/react-viro": ">=3.0.3-moyo.1 <4.0.0",
     "@viro-external/ui": "workspace:*",
-    "nitro-core": "*",
+    "nitro-core": ">=1.0.0-alpha.nightly.120.g33ef045b96c0",
     "react": ">=19.3.0 <20.0.0",
     "react-native": ">=0.88.0-rc.0 <0.89.0",
-    "react-native-nitro-modules": "*"
+    "react-native-nitro-modules": ">=1.0.0-alpha.nightly.120.g33ef045b96c0"
   },
   "peerDependenciesMeta": {
     "nitro-core": {
