@@ -171,17 +171,17 @@ namespace margelo::nitro::viromux {
     auto __result = __method(_javaPart);
     return __result;
   }
-  void JHybridMuxPlayerSpec::onStateChange(const jni::local_ref<margelo::nitro::viromux::JCallback_void_MuxPlayerState::JavaPart>& cb) {
-    static const auto __method = CxxPart::getClass()->getNonvirtualMethod<void(jni::alias_ref<margelo::nitro::viromux::JCallback_void_MuxPlayerState::JavaPart> /* cb */)>("onStateChange_cxx");
-    __method(_javaPart, CxxPart::getClass(), cb);
+  void JHybridMuxPlayerSpec::onStateChange(const jni::local_ref<JCallback<margelo::nitro::viromux::JCallback_void_MuxPlayerState::JavaPart>>& cb) {
+    static const auto __method = CxxPart::getClass()->getMethod<void(jni::alias_ref<JCallback<margelo::nitro::viromux::JCallback_void_MuxPlayerState::JavaPart>> /* cb */)>("onStateChange");
+    __method(_javaPart, cb);
   }
-  void JHybridMuxPlayerSpec::onProgress(const jni::local_ref<margelo::nitro::viromux::JCallback_void_double_double::JavaPart>& cb, jdouble intervalMs) {
-    static const auto __method = CxxPart::getClass()->getNonvirtualMethod<void(jni::alias_ref<margelo::nitro::viromux::JCallback_void_double_double::JavaPart> /* cb */, jdouble /* intervalMs */)>("onProgress_cxx");
-    __method(_javaPart, CxxPart::getClass(), cb, intervalMs);
+  void JHybridMuxPlayerSpec::onProgress(const jni::local_ref<JCallback<margelo::nitro::viromux::JCallback_void_double_double::JavaPart>>& cb, jdouble intervalMs) {
+    static const auto __method = CxxPart::getClass()->getMethod<void(jni::alias_ref<JCallback<margelo::nitro::viromux::JCallback_void_double_double::JavaPart>> /* cb */, jdouble /* intervalMs */)>("onProgress");
+    __method(_javaPart, cb, intervalMs);
   }
-  void JHybridMuxPlayerSpec::onError(const jni::local_ref<margelo::nitro::viromux::JCallback_void_std__string_std__string::JavaPart>& cb) {
-    static const auto __method = CxxPart::getClass()->getNonvirtualMethod<void(jni::alias_ref<margelo::nitro::viromux::JCallback_void_std__string_std__string::JavaPart> /* cb */)>("onError_cxx");
-    __method(_javaPart, CxxPart::getClass(), cb);
+  void JHybridMuxPlayerSpec::onError(const jni::local_ref<JCallback<margelo::nitro::viromux::JCallback_void_std__string_std__string::JavaPart>>& cb) {
+    static const auto __method = CxxPart::getClass()->getMethod<void(jni::alias_ref<JCallback<margelo::nitro::viromux::JCallback_void_std__string_std__string::JavaPart>> /* cb */)>("onError");
+    __method(_javaPart, cb);
   }
 
 } // namespace margelo::nitro::viromux

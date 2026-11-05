@@ -45,13 +45,13 @@
     "zustand": "^5.0.16"
   },
   "devDependencies": {
-    "@expo/config-plugins": "^58.0.10",
+    "@expo/config-plugins": "58.0.12",
     "@types/node": "26.6.5",
     "@types/react": "19.3.0",
     "@viro-external/meta-layout": "workspace:*",
     "@viro-external/xr-contract": "workspace:*",
-    "react": "19.3.1",
-    "react-native": "0.88.0",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
     "react-native-safe-area-context": "5.11.1",
     "react-native-svg": "15.16.0",
     "typescript": "7.0.2"

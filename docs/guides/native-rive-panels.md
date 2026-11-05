@@ -19,7 +19,7 @@ The renderer AAR in the viro fork from commit `e41d43b8` onward (virocore `d5e21
 
 ## Install
 
-Same as the [native whiteboard](native-whiteboard.md#install): add `@viro-external/native-panels`, install `react-native-nitro-modules` and `nitro-core` at `1.0.0-alpha.nightly.100.g107f6fc66597`, use the viro fork from `feat/canvas-surfaces-registry`, and make sure Metro resolves `.cjs` (Expo does by default; bare `@react-native/metro-config` needs `cjs` added to `resolver.sourceExts`).
+Same as the [native whiteboard](native-whiteboard.md#install): add `@viro-external/native-panels`, install `react-native-nitro-modules` and `nitro-core` at `1.0.0-alpha.nightly.120.g33ef045b96c0`, use the viro fork from `feat/canvas-surfaces-registry`, and make sure Metro resolves `.cjs` (Expo does by default; bare `@react-native/metro-config` needs `cjs` added to `resolver.sourceExts`).
 
 The Android build of native-panels links `libviro_renderer.so` as an imported library. It extracts the `.so` per ABI from the app's `@reactvision/react-viro` renderer AAR, or takes `-PviroRendererLibDir=<dir with one folder per ABI>`. It does not package the `.so`; the app already ships it through Viro.
 

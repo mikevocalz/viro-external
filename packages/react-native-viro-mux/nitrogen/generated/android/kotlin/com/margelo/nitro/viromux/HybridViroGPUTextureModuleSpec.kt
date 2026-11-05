@@ -81,8 +81,7 @@ abstract class HybridViroGPUTextureModuleSpec: HybridObject() {
     @DoNotStrip
     @Keep
     private fun registerExternalTexture_cxx(materialName: String, source: NitroExternalTextureSource): NitroExternalTextureHandle {
-      val __result = HybridViroGPUTextureModule.registerExternalTexture(materialName, source)
-      return __result
+      return HybridViroGPUTextureModule.registerExternalTexture(materialName, source)
     }
 
     @JvmStatic
@@ -103,8 +102,7 @@ abstract class HybridViroGPUTextureModuleSpec: HybridObject() {
     @DoNotStrip
     @Keep
     private fun isSurfaceReady_cxx(id: Double): Boolean {
-      val __result = HybridViroGPUTextureModule.isSurfaceReady(id)
-      return __result
+      return HybridViroGPUTextureModule.isSurfaceReady(id)
     }
   }
 }

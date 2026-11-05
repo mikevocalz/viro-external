@@ -20,15 +20,15 @@ namespace margelo::nitro::nativepanels {
   struct JListenerSubscription final : public jni::JavaClass<JListenerSubscription> {
     static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/nativepanels/ListenerSubscription;";
 
-    static jni::local_ref<JListenerSubscription> create(jni::alias_ref<margelo::nitro::nativepanels::JCallback_void::JavaPart> remove) {
+    static jni::local_ref<JListenerSubscription> create(jni::alias_ref<JCallback<margelo::nitro::nativepanels::JCallback_void::JavaPart>> remove) {
       static const auto clazz = javaClassStatic();
-      static const auto create = clazz->getStaticMethod<JListenerSubscription(jni::alias_ref<margelo::nitro::nativepanels::JCallback_void::JavaPart>)>("fromCpp");
+      static const auto create = clazz->getStaticMethod<JListenerSubscription(jni::alias_ref<JCallback<margelo::nitro::nativepanels::JCallback_void::JavaPart>>)>("fromCpp");
       return create(clazz, remove);
     }
 
-    jni::local_ref<margelo::nitro::nativepanels::JCallback_void::JavaPart> getRemove() const {
-      static const auto method = javaClassStatic()->getMethod<margelo::nitro::nativepanels::JCallback_void::JavaPart()>("getRemove_cxx");
-      return method(this->self());
+    jni::local_ref<JCallback<margelo::nitro::nativepanels::JCallback_void::JavaPart>> getRemove() const {
+      static const auto field = javaClassStatic()->getField<JCallback<margelo::nitro::nativepanels::JCallback_void::JavaPart>>("remove");
+      return getFieldValue(field);
     }
   };
 

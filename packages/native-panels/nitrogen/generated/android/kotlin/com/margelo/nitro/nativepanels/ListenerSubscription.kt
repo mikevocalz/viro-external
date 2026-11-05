@@ -22,13 +22,6 @@ data class ListenerSubscription(
   @Keep
   val remove: Callback<() -> Unit>
 ) {
-  @DoNotStrip
-  @Keep
-  @Suppress("unused", "FunctionName")
-  private fun getRemove_cxx(): Callback_void {
-    return Callback_void.fromKotlin(remove)
-  }
-
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (other !is ListenerSubscription) return false
@@ -49,7 +42,7 @@ data class ListenerSubscription(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(remove: Callback_void): ListenerSubscription {
+    private fun fromCpp(remove: Callback<() -> Unit>): ListenerSubscription {
       return ListenerSubscription(remove)
     }
   }
