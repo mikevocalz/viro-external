@@ -13,6 +13,7 @@ const read = (path) => JSON.parse(readFileSync(path, 'utf8'));
 const VIRO_FORK_VERSIONS = {
   '017d5f8380efdfc88b62812c9c486d199822f6e2': '3.1.0-moyo.0',
   'c6a0dbc3033f50b74aeaba54a10ba768a1f5f275': '3.1.0-moyo.0',
+  '8075d97bb3584a04a76a0cda7846dfe5fc2ae483': '3.1.0-moyo.0',
 };
 // Stock ReactVision releases that must not satisfy the peer range, or npm and
 // pnpm pick the registry package over the fork.

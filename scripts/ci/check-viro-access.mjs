@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-export const VIRO_REVISION = 'c6a0dbc3033f50b74aeaba54a10ba768a1f5f275';
+export const VIRO_REVISION = '8075d97bb3584a04a76a0cda7846dfe5fc2ae483';
 const ENDPOINT = `https://api.github.com/repos/mikevocalz/viro/git/commits/${VIRO_REVISION}`;
 
 /**

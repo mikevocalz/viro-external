@@ -6,8 +6,8 @@ set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "$0")/.." && pwd)"
 PARENT="$(dirname "$ROOT")"
-readonly VIRO_SHA="c6a0dbc3033f50b74aeaba54a10ba768a1f5f275"
-readonly VIROCORE_SHA="29a851203a83cf320a36d663ee9c288d4e9ded6f"
+readonly VIRO_SHA="8075d97bb3584a04a76a0cda7846dfe5fc2ae483"
+readonly VIROCORE_SHA="8a5bdc47aa0f47d9c6249461ef5f07fe77fe60ac"
 
 sync_repo() {
   local name="$1"
