@@ -42,7 +42,8 @@ class Callback_void_MuxPlayerState @DoNotStrip @Keep private constructor(hybridD
   }
 
   /**
-   * Lets C++ call a Kotlin callback with JNI types, e.g. `Long` instead of `ULong`.
+   * Lets C++ call a callback implemented in Kotlin through a JNI entry point.
+   * C++ creates it when such a callback crosses JNI.
    */
   @DoNotStrip
   @Keep
@@ -65,30 +66,4 @@ class Callback_void_MuxPlayerState @DoNotStrip @Keep private constructor(hybridD
   @DoNotStrip
   @Keep
   private external fun callAndForget_cxx(state: MuxPlayerState): Unit
-
-  companion object {
-    /**
-     * Returns the given [callback] as its JNI representation.
-     * A callback from another module keeps its C++ `Callback<...>`, and
-     * a callback created in Kotlin is wrapped in a C++ `Callback<...>` that calls it.
-     */
-    @JvmStatic
-    fun fromKotlin(callback: Callback<(state: MuxPlayerState) -> Unit>): Callback_void_MuxPlayerState {
-      return when (callback) {
-        is Callback_void_MuxPlayerState -> callback
-        is CxxCallback -> fromCxx_cxx(callback)
-        else -> fromFunction_cxx(Function_cxx(callback))
-      }
-    }
-
-    @JvmStatic
-    @DoNotStrip
-    @Keep
-    private external fun fromCxx_cxx(callback: CxxCallback): Callback_void_MuxPlayerState
-
-    @JvmStatic
-    @DoNotStrip
-    @Keep
-    private external fun fromFunction_cxx(function: Function_cxx): Callback_void_MuxPlayerState
-  }
 }

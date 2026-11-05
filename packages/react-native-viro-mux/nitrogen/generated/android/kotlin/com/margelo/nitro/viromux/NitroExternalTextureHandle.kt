@@ -37,8 +37,6 @@ data class NitroExternalTextureHandle(
   @Keep
   val nativeToken: Double
 ) {
-
-
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (other !is NitroExternalTextureHandle) return false

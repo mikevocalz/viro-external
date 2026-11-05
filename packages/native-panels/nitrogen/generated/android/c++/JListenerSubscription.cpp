@@ -15,12 +15,12 @@ namespace margelo::nitro {
 
   jni::local_ref<margelo::nitro::nativepanels::JListenerSubscription> JSIConverter<jni::local_ref<margelo::nitro::nativepanels::JListenerSubscription>>::fromJSI(jsi::Runtime& runtime, const jsi::Value& value) {
     auto object = value.asObject(runtime);
-    return margelo::nitro::nativepanels::JListenerSubscription::create(JSIConverter<jni::local_ref<margelo::nitro::nativepanels::JCallback_void::JavaPart>>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "remove"))));
+    return margelo::nitro::nativepanels::JListenerSubscription::create(JSIConverter<jni::local_ref<JCallback<margelo::nitro::nativepanels::JCallback_void::JavaPart>>>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "remove"))));
   }
 
   jsi::Value JSIConverter<jni::local_ref<margelo::nitro::nativepanels::JListenerSubscription>>::toJSI(jsi::Runtime& runtime, jni::alias_ref<margelo::nitro::nativepanels::JListenerSubscription> value) {
     jsi::Object object(runtime);
-    object.setProperty(runtime, PropNameIDCache::get(runtime, "remove"), JSIConverter<jni::local_ref<margelo::nitro::nativepanels::JCallback_void::JavaPart>>::toJSI(runtime, value->getRemove()));
+    object.setProperty(runtime, PropNameIDCache::get(runtime, "remove"), JSIConverter<jni::local_ref<JCallback<margelo::nitro::nativepanels::JCallback_void::JavaPart>>>::toJSI(runtime, value->getRemove()));
     return object;
   }
 
@@ -28,7 +28,7 @@ namespace margelo::nitro {
     if (!value.isObject()) return false;
     auto object = value.getObject(runtime);
     if (!isPlainObject(runtime, object)) return false;
-    return JSIConverter<jni::local_ref<margelo::nitro::nativepanels::JCallback_void::JavaPart>>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "remove")));
+    return JSIConverter<jni::local_ref<JCallback<margelo::nitro::nativepanels::JCallback_void::JavaPart>>>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "remove")));
   }
 
 } // namespace margelo::nitro
