@@ -1,5 +1,34 @@
 # viro-external — DECISIONS.md (workspace-level)
 
+## 2026-11-04 — SDK 58 patch line, Nitro V1 nightly.120, DAT 1.0.1
+
+1. **Nitro moves to `1.0.0-alpha.nightly.120.g33ef045b96c0`.** V1 is still
+   alpha-nightly; npm has no stable 1.0 (`latest` is 0.37.2). The 20 commits
+   since nightly.100 only touch Android JNI glue (`JNICallback` renamed to
+   `JCallback`, unsigned values kept as Kotlin `ULong`, invariant Kotlin
+   callbacks, generated `Callback_*.fromKotlin` removed) and the
+   `GlobalErrorHandler` Swift names. Regenerating both packages changed
+   Android JNI and Kotlin output only; `shared/c++` and `shared/javascript`
+   are byte-identical. No hand-written C++ or Kotlin uses a changed symbol.
+2. **`react` devDependencies follow SDK 58 (`19.3.0`), not 19.3.1.**
+   `expo@58.0.23`'s `bundledNativeModules.json` pins 19.3.0, so that is what
+   `expo install --fix` gives an app. 19.3.1 only changed the React Server
+   Components transport, which React Native does not load. The peer range
+   stays `>=19.3.0 <20.0.0`. `meta-wearables`, `spatial-runtime` and
+   `webspatial` pin `react` (and `react-dom` where Expo or the WebSpatial SDK
+   pulls it in) to 19.3.0 as devDependencies, so no lockfile importer resolves
+   19.3.1 through an auto-installed peer.
+3. **`pnpm-workspace.yaml` gains `minimumReleaseAgeExclude`.** pnpm 12 wrote
+   it during install because the Expo 58 patch releases are younger than its
+   release-age floor. A `--frozen-lockfile` install needs those entries.
+   Remove them once the versions age past the floor.
+4. **Meta Wearables DAT moves to 1.0.1** (Maven Central
+   `com.meta.wearable:mwdat-*`, `maven-metadata.xml` checked 2026-11-04). The
+   1.0.1 changelog lists two streaming fixes and no API change. No other
+   Meta artifact (`com.meta.spatial`, Horizon Platform SDK, OpenXR,
+   `com.oculus`) and no `expo-horizon-*` package is a dependency in this
+   workspace, so none was bumped.
+
 ## 2026-10-24 — react-native-viro-mux on Nitro V1 alpha
 
 Moved `react-native-viro-mux` from Nitro 0.37.1 to `1.0.0-alpha.nightly.100.g107f6fc66597`
@@ -42,11 +71,11 @@ The July 2026 dependency matrix is historical. The active workspace baseline is 
 |---|---|
 | `@reactvision/react-viro` | **3.0.3** upstream; local Moyo fork is **3.0.3-moyo.1** |
 | `expo` | **SDK 58 / 58.x** |
-| `react-native` | **0.88.0** (SDK 58 line) |
-| `react` | **19.3.1** |
-| `react-native-nitro-modules` / `nitro-core` / `nitrogen` | **1.0.0-alpha.nightly.100.g107f6fc66597** (all three, dist-tag `alpha-nightly`) |
-| `@expo/config-plugins` | **58.0.10** |
-| `expo-modules-core` | **58.0.26** |
+| `react-native` | **0.88.1** (SDK 58 line) |
+| `react` | **19.3.0** (SDK 58 `bundledNativeModules.json`) |
+| `react-native-nitro-modules` / `nitro-core` / `nitrogen` | **1.0.0-alpha.nightly.120.g33ef045b96c0** (all three, dist-tag `alpha-nightly`) |
+| `@expo/config-plugins` | **58.0.12** |
+| `expo-modules-core` | **58.0.30** |
 | `zustand` | **5.0.16** |
 | `sharp` | **0.35.5** |
 | `lucide-static` | **1.61.0** |
@@ -58,7 +87,7 @@ The July 2026 dependency matrix is historical. The active workspace baseline is 
 1. **Viro 2.x is no longer a valid workspace target.** Every external package must declare a Viro 3 peer range.
 2. **Expo SDK 58 wins over the generic npm `react-native@latest` tag.** SDK 58 is on the React Native 0.88 line; do not downgrade to RN 0.87 just because npm's generic latest tag temporarily points there.
 3. The root `pnpm.overrides["@reactvision/react-viro"] = "link:../viro"` is intentional for side-by-side development against the Moyo Viro fork. That sibling checkout must be Viro 3.x.
-4. Nitro runtime (`react-native-nitro-modules` + `nitro-core`) and Nitrogen codegen move together on one exact version. After a Nitro version change, regenerate the committed `nitrogen/generated` trees (including `shared/javascript/*.cjs` and `hybrid-classes.json`) before merging.
+4. Nitro runtime (`react-native-nitro-modules` + `nitro-core`) and Nitrogen codegen move together on one exact version. After a Nitro version change, regenerate the committed `nitrogen/generated` trees (including `shared/javascript/*.cjs` and `hybrid-classes.json`) before merging. The optional `react-native-nitro-modules` and `nitro-core` peers of a package with generated code start at that version (`>=<pin>`), because the generated headers need it; `scripts/ci/check-manifests.mjs` enforces this.
 5. Package peers are ranges for consumers; workspace dev dependencies are pinned to the validated SDK 58 toolchain.
 6. TypeScript is a build-time tool here, so the workspace tracks the current stable compiler rather than Expo's starter-template TypeScript pin. CI/typecheck is the gate for compiler compatibility.
 7. pnpm 12 stays pinned for CI, but `pmOnFail: ignore` keeps `pnpm-lock.yaml` single-document so GitHub's dependency graph and Dependabot can continue to read the project dependency graph.

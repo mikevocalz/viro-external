@@ -74,7 +74,7 @@ namespace margelo::nitro::nativepanels {
     void applyDiff(jdouble revision, const jni::local_ref<jni::JString>& diffJson);
     void setCamera(const jni::local_ref<JBoardCamera>& camera);
     void setOverlay(const jni::local_ref<jni::JString>& overlayJson);
-    jni::local_ref<JListenerSubscription> addOnStateChangedListener(const jni::local_ref<margelo::nitro::nativepanels::JCallback_void_WhiteboardRendererState::JavaPart>& listener);
+    jni::local_ref<JListenerSubscription> addOnStateChangedListener(const jni::local_ref<JCallback<margelo::nitro::nativepanels::JCallback_void_WhiteboardRendererState::JavaPart>>& listener);
 
   public:
     // Constructor and static members

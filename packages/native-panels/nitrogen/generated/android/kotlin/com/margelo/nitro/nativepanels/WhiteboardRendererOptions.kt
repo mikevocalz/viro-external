@@ -37,8 +37,6 @@ data class WhiteboardRendererOptions(
   @Keep
   val backgroundColor: String
 ) {
-
-
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (other !is WhiteboardRendererOptions) return false

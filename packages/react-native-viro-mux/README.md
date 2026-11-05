@@ -15,11 +15,11 @@ renderer feature rather than a separate React Native native-runtime dependency.
 
 ## Nitro V1
 
-The bridge runs on Nitro Modules V1 alpha (`1.0.0-alpha.nightly.100.g107f6fc66597`,
+The bridge runs on Nitro Modules V1 alpha (`1.0.0-alpha.nightly.120.g33ef045b96c0`,
 dist-tag `alpha-nightly`), Android only. Install the matching runtime in the app:
 
 ```sh
-npm install react-native-nitro-modules@1.0.0-alpha.nightly.100.g107f6fc66597 nitro-core@1.0.0-alpha.nightly.100.g107f6fc66597
+npm install react-native-nitro-modules@1.0.0-alpha.nightly.120.g33ef045b96c0 nitro-core@1.0.0-alpha.nightly.120.g33ef045b96c0
 ```
 
 Both are optional peers, so the app's copy is the one that loads. V1 needs

@@ -76,8 +76,7 @@ abstract class HybridWhiteboardRendererFactorySpec: HybridObject() {
     @DoNotStrip
     @Keep
     private fun createRenderer_cxx(options: WhiteboardRendererOptions): Promise<HybridWhiteboardRendererSpec> {
-      val __result = HybridWhiteboardRendererFactory.createRenderer(options)
-      return __result
+      return HybridWhiteboardRendererFactory.createRenderer(options)
     }
 
     // Static properties
@@ -85,8 +84,7 @@ abstract class HybridWhiteboardRendererFactorySpec: HybridObject() {
     @DoNotStrip
     @Keep
     private fun getIsAvailable_cxx(): Boolean {
-      val __result = HybridWhiteboardRendererFactory.isAvailable
-      return __result
+      return HybridWhiteboardRendererFactory.isAvailable
     }
   }
 }

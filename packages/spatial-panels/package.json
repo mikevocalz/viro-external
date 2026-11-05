@@ -15,7 +15,7 @@
     "test": "node --experimental-strip-types --conditions=react-native --import ../../test/support/metro-like-resolve.mjs --test test/*.test.mjs"
   },
   "peerDependencies": {
-    "@reactvision/react-viro": ">=3.0.3-moyo.1 <4.0.0",
+    "@reactvision/react-viro": ">=3.1.0-moyo.0 <4.0.0",
     "expo": ">=58.0.0 <59.0.0",
     "expo-modules-core": ">=58.0.26 <59.0.0",
     "react": ">=19.3.0 <20.0.0",
@@ -25,12 +25,12 @@
     "zustand": "^5.0.16"
   },
   "devDependencies": {
-    "@reactvision/react-viro": ">=3.0.3-moyo.1 <4.0.0",
+    "@reactvision/react-viro": ">=3.1.0-moyo.0 <4.0.0",
     "@types/react": "19.3.0",
-    "expo": "58.0.19",
-    "expo-modules-core": "58.0.26",
-    "react": "19.3.1",
-    "react-native": "0.88.0",
+    "expo": "58.0.23",
+    "expo-modules-core": "58.0.30",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
     "typescript": "7.0.2"
   }
 }
