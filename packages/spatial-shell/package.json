@@ -1,0 +1,62 @@
+{
+  "name": "@viro-external/spatial-shell",
+  "version": "0.1.0",
+  "description": "The rail, main panel and detail panel layout for Viro apps on Meta Quest, PICO, tablets and phones, plus the Expo config plugin react-viro applies for headset builds.",
+  "main": "src/index.ts",
+  "react-native": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "files": [
+    "src",
+    "plugin",
+    "scripts",
+    "app.plugin.js",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "react-native": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./plugin": "./app.plugin.js",
+    "./app.plugin.js": "./app.plugin.js",
+    "./doctor": "./scripts/doctor.mjs",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "viro-spatial-shell-doctor": "scripts/doctor.mjs"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.plugin.json",
+    "test": "node --experimental-strip-types --conditions=react-native --import ../../test/support/metro-like-resolve.mjs --test test/*.test.mjs",
+    "doctor": "node scripts/doctor.mjs"
+  },
+  "peerDependencies": {
+    "@expo/config-plugins": ">=58.0.0 <59.0.0",
+    "@viro-external/meta-layout": "workspace:*",
+    "@viro-external/xr-contract": "workspace:*",
+    "react": ">=19.3.0 <20.0.0",
+    "react-native": ">=0.88.0-rc.0 <0.89.0",
+    "react-native-safe-area-context": ">=5.0.0",
+    "react-native-svg": ">=15.0.0"
+  },
+  "dependencies": {
+    "zustand": "^5.0.16"
+  },
+  "devDependencies": {
+    "@expo/config-plugins": "^58.0.10",
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@viro-external/meta-layout": "workspace:*",
+    "@viro-external/xr-contract": "workspace:*",
+    "react": "19.3.1",
+    "react-native": "0.88.0",
+    "react-native-safe-area-context": "5.11.1",
+    "react-native-svg": "15.16.0",
+    "typescript": "7.0.2"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}

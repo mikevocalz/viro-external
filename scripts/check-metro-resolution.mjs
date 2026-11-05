@@ -17,10 +17,14 @@ const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..")
 const tmp = mkdtempSync(path.join(os.tmpdir(), "metro-consumer-"));
 mkdirSync(path.join(tmp, "node_modules/@viro-external"), { recursive: true });
 symlinkSync(path.join(root, "packages/specs"), path.join(tmp, "node_modules/@viro-external/specs"));
+symlinkSync(path.join(root, "packages/spatial-shell"), path.join(tmp, "node_modules/@viro-external/spatial-shell"));
 const checks = [
   [path.join(root, "packages/meta-layout/src/index.ts"), "@viro-external/xr-contract"],
   [path.join(root, "packages/pico-layout/src/index.ts"), "@viro-external/xr-contract"],
+  [path.join(root, "packages/spatial-shell/src/index.ts"), "@viro-external/meta-layout"],
+  [path.join(root, "packages/spatial-shell/src/index.ts"), "@viro-external/xr-contract"],
   [path.join(tmp, "index.ts"), "@viro-external/specs"],
+  [path.join(tmp, "index.ts"), "@viro-external/spatial-shell"],
 ];
 
 const fileSystemLookup = (p) => {
@@ -83,11 +87,14 @@ const modes = [
 // Metro has no ".js" -> ".ts" substitution, so "./ui.js" in a .ts file breaks
 // the bundle even when the package entry resolves.
 const relativeSpecifier = /(?:\bfrom\s+|\bimport\s*\(\s*|\bimport\s+)["'](\.{1,2}\/[^"']+)["']/g;
-for (const pkg of ["packages/xr-platform-contract/src", "packages/meta-layout/src"]) {
-  const dir = path.join(root, pkg);
-  for (const name of readdirSync(dir)) {
-    if (!/\.tsx?$/.test(name)) continue;
+const sourceFiles = (dir) =>
+  readdirSync(dir).flatMap((name) => {
     const file = path.join(dir, name);
+    if (statSync(file).isDirectory()) return sourceFiles(file);
+    return /\.tsx?$/.test(name) ? [file] : [];
+  });
+for (const pkg of ["packages/xr-platform-contract/src", "packages/meta-layout/src", "packages/spatial-shell/src"]) {
+  for (const file of sourceFiles(path.join(root, pkg))) {
     for (const m of readFileSync(file, "utf8").matchAll(relativeSpecifier)) {
       checks.push([file, m[1]]);
     }
