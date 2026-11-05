@@ -22,7 +22,7 @@ export function SpatialWorkspaceExample({
       <SpatialPanel title="Discover" curved snapTo="left" showCloseAction={false}>
         <PanelText text="Choose an item in your application" width={1.3} height={0.6} />
       </SpatialPanel>
-      <SpatialPanel title="Workspace" snapTo="center" showCloseAction={false}>
+      <SpatialPanel title="Workspace" curved curvature={0.28} snapTo="center" showCloseAction={false}>
         <PanelText text="Primary task" width={1.3} height={0.6} />
       </SpatialPanel>
       {selectedItem !== null ? (

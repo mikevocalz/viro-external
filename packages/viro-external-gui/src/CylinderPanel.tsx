@@ -1,11 +1,16 @@
-import React, { useCallback, useState } from "react";
-import { ViroNode } from "@reactvision/react-viro";
-import { MovableNode, type MovableProps, type Vec3 } from "react-native-viro-mux";
+import React, { useCallback } from "react";
+import type { MovableProps, Vec3 } from "react-native-viro-mux";
+import {
+  SpatialPanel,
+  type SpatialWorkspaceSlot,
+  type SpatialWorkspaceOrigin,
+  type WorldSlotOptions,
+} from "@viro-external/ui";
 import defaults from "../config/defaults.json";
 import { Container3D, type ArrangedChild } from "./Container3D";
 import { MovablePanelContext } from "./MovablePanelContext";
-import { PanelHeader3D } from "./PanelHeader3D";
 
+/** @deprecated Use SpatialPanel with a curved layout for new experiences. */
 export type VolumeOrientation =
   | "FACEORIGIN_ORIENTATION"
   | "FACEORIGIN_REVERSED"
@@ -18,31 +23,36 @@ export interface CylinderPanelProps extends MovableProps {
   columns?: number;
   rows?: number;
   orientation?: VolumeOrientation;
-  /** Per-item width/height (meters). Defaults to button defaults. */
   itemWidth?: number;
   itemHeight?: number;
   blockLayout?: boolean;
-  /** Optional PanelHeader3D floating above the arc (title bar + pin + close). */
   title?: string;
+  /** @deprecated Typography is owned by the canonical panel header. */
   titleFontFamily?: string;
-  /** Called when the header's close button hides the panel. */
   onClose?: () => void;
-  /** Pinned = fixed in place; unpinned = billboardY toward the user. */
   defaultPinned?: boolean;
   position?: Vec3;
   rotation?: Vec3;
   scale?: Vec3;
   children: React.ReactNode;
+  /** The new snapping API, forwarded to the one canonical panel owner. */
+  snapTo?: SpatialWorkspaceSlot;
+  snapOnRelease?: boolean;
+  snapDistanceM?: number;
+  snapOptions?: WorldSlotOptions;
+  worldOrigin?: SpatialWorkspaceOrigin;
+  onSnap?: (slot: SpatialWorkspaceSlot) => void;
 }
 
-function degrees(rad: number) { return rad * (180 / Math.PI); }
-function radians(deg: number) { return deg * (Math.PI / 180); }
+const degrees = (radians: number) => radians * 180 / Math.PI;
+const radians = (degreesValue: number) => degreesValue * Math.PI / 180;
 
-interface ArcLayout {
+export interface ArcLayout {
   arcDegrees: number;
   stepDegrees: number;
 }
 
+/** Retained for existing grid users. Native chrome/snap state is no longer duplicated. */
 export function deriveCylinderArc(opts: {
   radius: number;
   itemWidth: number;
@@ -50,115 +60,143 @@ export function deriveCylinderArc(opts: {
   marginRadians: number;
 }): ArcLayout {
   const { radius, itemWidth, columns, marginRadians } = opts;
-  if (itemWidth >= 2 * radius) {
-    throw new Error("CylinderPanel: itemWidth must be < 2 * radius");
+  if (!Number.isFinite(radius) || radius <= 0 ||
+      !Number.isFinite(itemWidth) || itemWidth <= 0 ||
+      !Number.isInteger(columns) || columns <= 0 ||
+      !Number.isFinite(marginRadians) || marginRadians < 0 ||
+      itemWidth >= 2 * radius) {
+    throw new RangeError("CylinderPanel: expected positive radius, valid item width, columns and margin");
   }
   const stepRad = 2 * Math.asin(itemWidth / (2 * radius)) + marginRadians;
-  const stepDeg = degrees(stepRad);
-  const arcDeg = columns * stepDeg;
-  if (arcDeg > 360) {
-    throw new Error(
-      `CylinderPanel: over-subscribed — ${columns} columns at radius ${radius} need ` +
-        `${arcDeg.toFixed(1)}° (max 360°). Increase radius, reduce columns, or shrink itemWidth.`
+  const stepDegrees = degrees(stepRad);
+  const arcDegrees = columns * stepDegrees;
+  if (arcDegrees > 360) {
+    throw new RangeError(
+      `CylinderPanel: ${columns} columns need ${arcDegrees.toFixed(1)}° (max 360°)`
     );
   }
-  return { arcDegrees: arcDeg, stepDegrees: stepDeg };
+  return { arcDegrees, stepDegrees };
 }
 
-export function CylinderPanel(props: CylinderPanelProps): React.ReactElement {
-  const {
-    radius = defaults.cylinderPanel.radius,
-    margin = defaults.cylinderPanel.margin,
-    columns = defaults.cylinderPanel.columns,
-    rows = defaults.cylinderPanel.rows,
-    orientation = defaults.cylinderPanel.orientation as VolumeOrientation,
-    itemWidth = defaults.button.widthMeters,
-    itemHeight = defaults.button.heightMeters,
-    blockLayout,
-    title,
-    titleFontFamily,
-    onClose,
-    defaultPinned = true,
-    position,
-    rotation,
-    scale,
-    movable,
-    tag,
-    dragType,
-    dragPlane,
-    axisLock,
-    onMoveStart,
-    onMove,
-    onMoveEnd,
-    pinchToScale,
-    children,
-  } = props;
-
-  const [pinned, setPinned] = useState(defaultPinned);
-  const [closed, setClosed] = useState(false);
+/**
+ * @deprecated Backwards-compatible curved-grid adapter to SpatialPanel.
+ *
+ * All panel geometry, header, close/pin, drag, snap, and scaling now live in
+ * @viro-external/ui's SpatialPanel. This component only computes child poses.
+ * No second header, material registry, MovableNode or local UI store is made.
+ */
+export function CylinderPanel({
+  radius = defaults.cylinderPanel.radius,
+  margin = defaults.cylinderPanel.margin,
+  columns = defaults.cylinderPanel.columns,
+  rows = defaults.cylinderPanel.rows,
+  orientation = defaults.cylinderPanel.orientation as VolumeOrientation,
+  itemWidth = defaults.button.widthMeters,
+  itemHeight = defaults.button.heightMeters,
+  blockLayout,
+  title,
+  onClose,
+  defaultPinned,
+  position,
+  rotation,
+  scale,
+  children,
+  snapTo,
+  snapOnRelease,
+  snapDistanceM,
+  snapOptions,
+  worldOrigin,
+  onSnap,
+  movable,
+  tag,
+  dragType,
+  dragPlane,
+  axisLock,
+  onMoveStart,
+  onMove,
+  onMoveEnd,
+  pinchToScale,
+}: CylinderPanelProps): React.ReactElement {
+  if (!Number.isInteger(rows) || rows <= 0 || !Number.isFinite(itemHeight) ||
+      itemHeight <= 0 || !Number.isFinite(margin) || margin < 0) {
+    throw new RangeError("CylinderPanel: expected positive rows, item height and nonnegative margin");
+  }
 
   const { arcDegrees, stepDegrees } = deriveCylinderArc({
     radius,
     itemWidth,
     columns,
-    marginRadians: margin / radius, // margin meters → radians at given radius
+    marginRadians: margin / radius,
   });
 
-  // Header chrome above the arc, sitting at the arc's front face (cells lie
-  // at z = -radius·cosθ, so the front face is local z = -radius — the plane
-  // consumers pull to their anchor with position [0, 0, radius]).
-  const barH = Math.max(
-    defaults.holographicSlate.titleBarHeightMeters,
-    itemHeight * 0.4
-  );
-  const headerW = Math.min(
-    2 * radius * Math.sin(radians(arcDegrees) / 2), // arc chord
-    columns * (itemWidth + margin)
-  );
-  const headerY = (rows * itemHeight) / 2 + margin + barH;
+  // The canonical curved panel currently covers at most 120 degrees. Refuse
+  // layouts it cannot actually wrap, instead of leaving invisible off-panel
+  // controls / a mismatched collision surface.
+  if (arcDegrees > 120) {
+    throw new RangeError(
+      `CylinderPanel: ${arcDegrees.toFixed(1)}° exceeds the 120° unified panel. Increase radius or use fewer columns.`
+    );
+  }
 
-  const arrange = useCallback(
-    (kids: React.ReactNode[]): ArrangedChild[] => {
-      const out: ArrangedChild[] = [];
-      for (let i = 0; i < kids.length; i++) {
-        const col = i % columns;
-        const row = Math.floor(i / columns);
-        if (row >= rows) break; // overflow children are silently dropped at the layout boundary
-        const thetaDeg = -arcDegrees / 2 + (col + 0.5) * stepDegrees;
-        const thetaRad = radians(thetaDeg);
-        const y = ((rows - 1) / 2) * (itemHeight + margin) - row * (itemHeight + margin);
-        const pos: Vec3 = [radius * Math.sin(thetaRad), y, -radius * Math.cos(thetaRad)];
+  const arcRadians = radians(arcDegrees);
+  const panelWidth = 2 * radius * Math.sin(arcRadians / 2);
+  const panelHeight = rows * itemHeight + Math.max(0, rows - 1) * margin;
+  const curvature = Math.max(0.001, arcDegrees / 120);
 
-        // Cell sits at [r·sinθ, y, -r·cosθ]. A node yawed by φ has its +z
-        // normal at [sinφ, 0, cosφ]; facing the cylinder axis (the user)
-        // needs the normal at [-sinθ, 0, cosθ] → φ = -θ. (+θ was the
-        // "buttons point sideways" bug: off-center cells turned AWAY by 2θ.)
-        let facingDeg = 0;
-        switch (orientation) {
-          case "FACEORIGIN_ORIENTATION":
-            facingDeg = -thetaDeg;
-            break;
-          case "FACEORIGIN_REVERSED":
-            facingDeg = -thetaDeg + 180;
-            break;
-          case "FACEFORWARD_ORIENTATION":
-            facingDeg = 0;
-            break;
-          case "FACEFORWARD_REVERSED":
-            facingDeg = 180;
-            break;
-        }
-        out.push({ child: kids[i], position: pos, rotation: [0, facingDeg, 0] });
-      }
-      return out;
-    },
-    [arcDegrees, stepDegrees, columns, rows, radius, itemHeight, margin, orientation]
-  );
-
-  if (closed) return <ViroNode />;
+  const arrange = useCallback((kids: React.ReactNode[]): ArrangedChild[] => {
+    const placed: ArrangedChild[] = [];
+    for (let i = 0; i < Math.min(kids.length, columns * rows); i += 1) {
+      const col = i % columns;
+      const row = Math.floor(i / columns);
+      const thetaDeg = -arcDegrees / 2 + (col + 0.5) * stepDegrees;
+      const theta = radians(thetaDeg);
+      const y = ((rows - 1) / 2 - row) * (itemHeight + margin);
+      // Match buildCurvedPanelGeometry's visible arc exactly. SpatialPanel
+      // already offsets its children 12 mm forward, so no extra Z offset.
+      const x = radius * Math.sin(theta);
+      const z = radius * (Math.cos(arcRadians / 2) - Math.cos(theta));
+      const yaw = orientation === "FACEORIGIN_ORIENTATION"
+        ? -thetaDeg
+        : orientation === "FACEORIGIN_REVERSED"
+          ? -thetaDeg + 180
+          : orientation === "FACEFORWARD_REVERSED" ? 180 : 0;
+      placed.push({
+        child: kids[i],
+        position: [x, y, z],
+        rotation: [0, yaw, 0],
+      });
+    }
+    return placed;
+  }, [arcDegrees, arcRadians, columns, rows, radius, itemHeight, margin, orientation, stepDegrees]);
 
   return (
-    <MovableNode
+    <SpatialPanel
+      title={title}
+      shape="curved"
+      curvature={curvature}
+      width={panelWidth}
+      height={panelHeight}
+      // Old children were at z = -radius * cos(theta). New arc vertices
+      // are z = radius * (cos(halfArc) - cos(theta)); shift the entire
+      // canonical surface by -radius * cos(halfArc) to preserve that pose.
+      // Snapped panels anchor directly to their captured world slot instead.
+      surfaceOffset={
+        snapTo === undefined && snapOnRelease !== true
+          ? [0, 0, -radius * Math.cos(arcRadians / 2)]
+          : undefined
+      }
+      snapTo={snapTo}
+      snapOnRelease={snapOnRelease}
+      snapDistanceM={snapDistanceM}
+      snapOptions={snapOptions}
+      worldOrigin={worldOrigin}
+      onSnap={onSnap}
+      defaultPinned={defaultPinned}
+      showCloseAction={onClose !== undefined}
+      onClose={onClose}
+      position={position}
+      rotation={rotation}
+      scale={scale}
       movable={movable}
       tag={tag}
       dragType={dragType}
@@ -168,47 +206,12 @@ export function CylinderPanel(props: CylinderPanelProps): React.ReactElement {
       onMove={onMove}
       onMoveEnd={onMoveEnd}
       pinchToScale={pinchToScale}
-      position={position}
-      scale={scale}
     >
-      {/* Panel body — billboardY toward the user while unpinned (header pin). */}
-      <ViroNode rotation={rotation} transformBehaviors={pinned ? undefined : ["billboardY"]}>
-        <MovablePanelContext.Provider value={!!movable}>
-          {title !== undefined && (
-            <PanelHeader3D
-              width={headerW}
-              barHeight={barH}
-              title={title}
-              titleFontFamily={titleFontFamily}
-              pinned={pinned}
-              onTogglePin={() => setPinned((p) => !p)}
-              onClose={() => {
-                setClosed(true);
-                onClose?.();
-              }}
-              position={[0, headerY, -radius]}
-            />
-          )}
-          <Container3D blockLayout={blockLayout} arrange={arrange}>
-            {children}
-          </Container3D>
-        </MovablePanelContext.Provider>
-      </ViroNode>
-    </MovableNode>
+      <MovablePanelContext.Provider value={!!movable}>
+        <Container3D blockLayout={blockLayout} arrange={arrange}>
+          {children}
+        </Container3D>
+      </MovablePanelContext.Provider>
+    </SpatialPanel>
   );
-}
-
-// Self-check.
-const nodeEnv = (
-  globalThis as typeof globalThis & {
-    process?: { env?: { NODE_ENV?: string } };
-  }
-).process?.env?.NODE_ENV;
-
-if (nodeEnv === "test") {
-  const a = deriveCylinderArc({ radius: 1, itemWidth: 0.18, columns: 6, marginRadians: 0.04 });
-  console.assert(a.stepDegrees > 0 && a.arcDegrees <= 360, "arc within bounds");
-  let threw = false;
-  try { deriveCylinderArc({ radius: 0.1, itemWidth: 0.18, columns: 6, marginRadians: 0.04 }); } catch { threw = true; }
-  console.assert(threw, "should throw when over-subscribed");
 }

@@ -108,3 +108,28 @@ export function buildCurvedPanelGeometry(
 
   return { vertices, normals, texcoords, triangleIndices };
 }
+
+/**
+ * Place interactive chrome tangent to the same cylindrical surface produced
+ * by buildCurvedPanelGeometry. Shared formula prevents the title bar and hit
+ * targets from drifting off the curved panel when width/curvature change.
+ */
+export function curvedPanelPoseAtX(
+  width: number,
+  curvature: number,
+  x: number
+): { position: Vec3; rotation: Vec3 } {
+  if (!Number.isFinite(width) || width <= 0 ||
+      !Number.isFinite(curvature) || !Number.isFinite(x) ||
+      curvature <= 0 || curvature > 1 || Math.abs(x) > width / 2) {
+    throw new RangeError("curvedPanelPoseAtX: expected positive width, curvature (0, 1] and an in-bounds x");
+  }
+  const halfArc = curvature * Math.PI / 3;
+  const radius = width / (2 * Math.sin(halfArc));
+  const theta = Math.asin(Math.max(-1, Math.min(1, x / radius)));
+  const z = radius * (Math.cos(halfArc) - Math.cos(theta));
+  return {
+    position: [x, 0, z],
+    rotation: [0, -theta * 180 / Math.PI, 0],
+  };
+}

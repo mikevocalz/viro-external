@@ -13,3 +13,12 @@ Hardware family chooses native navigation: ordinary phones use bottom tabs; fold
 Preserve existing Expo Router/SplitView/AdaptivePanes ownership, Zustand/refs, semantic UI, Kinetrell, Rive and platform/renderer contracts. Keep authored stage ratios and screen-specific Inspector rules; do not import PaCasa's numeric presets into unrelated screens. Use the skill's hinge-safe geometry, session-continuity and 18 acceptance scenarios. Apple-native examples must not become a cross-platform SwiftUI rewrite or mandatory glass redesign.
 
 Read relevant existing specialist skills. No Tamagui or Bento. No runtime changes, dependency upgrades, merges or deployments solely for a skills-only task. Clearly distinguish actual device validation from browser/simulator checks.
+
+## Production spatial UI: no duplicate panel shells
+
+- **`@viro-external/ui/SpatialPanel` is the single workspace panel owner.** It owns visible surface, header chrome, drag/snap carrier, pin/close Zustand state, geometry and child slot. `@viro-external/premium` re-exports this canonical UI; it must not re-export or internally construct legacy GUI shells.
+- Use `SpatialWorkspaceFrame` once per scene with `SpatialPanel.snapTo` for left/center/right. Never nest `SpatialWorkspaceSlotNode` around a snapping panel; no duplicate world transform.
+- New application screens must not use `@viro-external/gui/HolographicSlate` or `CylinderPanel` as panel implementations. Existing imports remain deprecated adapters over the canonical panel. Keep specialized curved child arrangements as **layouts**, not independently draggable/closeable panel shells.
+- Match curved header geometry, text and hit targets to the actual panel curve; a curved background behind unmodified flat controls is not considered finished.
+- Keep `ViroSlate` as a low-level textured primitive, `DecaSlate` as a specialized animated pill widget, and OpenXR compositor layers as separate backends with a single-presentation fallback. Do not present them as a second general-purpose workspace UI.
+- Run `pnpm test:panel-unification` and the curved-header geometry tests. Full TypeScript/native package linking, compositor/fallback state, PICO/Quest/visionOS headset interaction, reduced motion and performance are separate release gates. Do not claim device readiness from source checks.

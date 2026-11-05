@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useId, useMemo, useRef } from "react";
 import { useStore } from "zustand";
 import { createPanelStore } from "./panel-store";
 import {
@@ -50,6 +50,12 @@ export type SpatialPanelProps = MovableProps & {
   worldOrigin?: SpatialWorkspaceOrigin;
   onSnap?: (slot: SpatialWorkspaceSlot) => void;
   variant?: SpatialPanelVariant;
+  /** Optional pre-registered Viro material for the visible panel surface. */
+  surfaceMaterial?: string;
+  /** Opacity of the entire panel (including content/chrome). */
+  opacity?: number;
+  /** Offset the whole visible panel below its one drag carrier (legacy migration only). */
+  surfaceOffset?: Vec3;
   width?: number;
   height?: number;
   cornerRadius?: number;
@@ -82,6 +88,9 @@ export function SpatialPanel({
   worldOrigin,
   onSnap,
   variant = "solid",
+  surfaceMaterial,
+  opacity = 1,
+  surfaceOffset,
   width = 1.6,
   height = 1,
   cornerRadius = 0.06,
@@ -111,6 +120,10 @@ export function SpatialPanel({
   pinchToScale,
 }: SpatialPanelProps): React.ReactElement {
   registerPremiumMaterials();
+  // Every instance needs an independent Viro native tag even when several
+  // panels share one workspace. An authored tag still takes precedence.
+  const instanceId = useId();
+  const panelTag = tag ?? `vxp-spatial-panel-${instanceId.replace(/:/g, "")}`;
   const depth = resolveVisualDepth(visualDepth);
   const resolvedShape: SpatialPanelShape = shape ?? (curvedProp ? "curved" : "rounded");
   const frameOrigin = useSpatialWorkspaceOrigin();
@@ -235,14 +248,13 @@ export function SpatialPanel({
   ];
 
   const panelMaterial =
-    variant === "glass"
-      ? PremiumMaterials.panelGlass
-      : PremiumMaterials.panel;
+    surfaceMaterial ??
+    (variant === "glass" ? PremiumMaterials.panelGlass : PremiumMaterials.panel);
 
   return (
     <MovableNode
       movable={movable ?? draggable}
-      tag={tag ?? "vxp-spatial-panel"}
+      tag={panelTag}
       dragType={dragType}
       dragPlane={dragPlane}
       axisLock={axisLock}
@@ -254,7 +266,9 @@ export function SpatialPanel({
       scale={scale}
     >
       <ViroNode
+        position={surfaceOffset}
         rotation={resolvedPlacement?.rotation ?? rotation}
+        opacity={opacity}
         transformBehaviors={pinned ? undefined : ["billboardY"]}
       >
         {depth.edge ? (
@@ -300,6 +314,8 @@ export function SpatialPanel({
             title={title}
             subtitle={subtitle}
             actions={actions}
+            curvature={resolvedShape === "curved" ? curvature : 0}
+            segments={segments}
             position={[0, headerY, 0.008]}
           />
         ) : null}
