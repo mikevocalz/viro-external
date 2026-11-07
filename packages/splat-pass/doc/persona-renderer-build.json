@@ -1,0 +1,21 @@
+{
+  "status": "verified-ci-candidate-not-installed",
+  "repository": "mikevocalz/virocore",
+  "pullRequest": 120,
+  "headCommit": "426291c9222e08d4ec5559728f4a3007a60e87e8",
+  "builtCommit": "fb14e0878336201b26e816ec2685e67bd8f49715",
+  "builtTree": "1b95efff76606bd27dbd82615ad40431d37e6c41",
+  "workflowRun": 42417822735,
+  "artifactId": 13592053986,
+  "artifactUrl": "https://github.com/mikevocalz/virocore/actions/runs/42417822735/artifacts/13592053986",
+  "aarSha256": "4c091fb1a0d33de22550570c99c08ec89901229968659b8ca3a706358d3a235e",
+  "dirty": false,
+  "arm64LibrariesChecked": 14,
+  "minimumElfAlignment": 16384,
+  "limitations": [
+    "PR artifact has retention limits; not a release distribution URL",
+    "Not installed into the Viro React bridge",
+    "No headset/stereo render verification",
+    "Splat package native build and ABI integration still required"
+  ]
+}
