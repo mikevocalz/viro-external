@@ -15,14 +15,14 @@ export interface SplatSource {
 
 export interface SplatQuality {
   /**
-   * Hard cap on rendered splats. Native pass truncates by importance
-   * ranking (alpha × screen-space size). 0 ⇒ device-profile default
+   * Hard cap on rendered splats. Native allocation cap; importance-ranked LOD is not implemented. 0 ⇒ device-profile default
    * from config/defaults.json.
    */
   maxSplats?: number;
 
   /**
-   * Auto-throttle the cap based on a measured frame budget. When set,
+   * Reserved: rejected until the native timing/throttling implementation lands.
+   * Intended behavior: auto-throttle based on a measured frame budget. When set,
    * the native pass will halve the cap if the splat render exceeds
    * `frameBudgetMs` for `throttleAfterFrames` consecutive frames.
    * Defaults: budget 4ms, throttleAfter 30 frames.
@@ -45,7 +45,8 @@ export interface SplatPassOpts {
   source: SplatSource;
 
   /**
-   * Returns the current playback time in seconds for 4D sources.
+   * Reserved: currently rejected because native timestamp wiring is absent.
+   * Intended to return the current playback time in seconds for 4D sources.
    * Called from the native side once per frame on the render thread —
    * keep cheap. Omitted ⇒ static 3D (no temporal evaluation).
    */
@@ -73,7 +74,7 @@ export interface SplatPassHandle {
   splatCount(): number;
 
   /** Detach from the active VROChoreographer and free native resources. */
-  release(): void;
+  release(): Promise<void>;
 }
 
 export interface SplatPassMetrics {

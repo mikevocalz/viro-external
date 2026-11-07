@@ -15,11 +15,12 @@ import {
 // ponytail: try/catch swallow handles the "not installed" case, not a hot path.
 type SplatPassRegistrar = {
   registerSplatPass: (opts: {
+    sceneNavTag: number;
     source: { uri: string; format: string };
     quality?: { maxSplats?: number };
     priority?: number;
     getTimestamp?: () => number;
-  }) => Promise<{ id: string; release: () => void; splatCount: () => number }>;
+  }) => Promise<{ id: string; release: () => Promise<void>; splatCount: () => number }>;
   isNativeSplatPassAvailable: () => boolean;
 };
 let SPLAT_PASS: SplatPassRegistrar | null = null;
@@ -46,6 +47,8 @@ export interface ViroGaussianSplatMeta {
 }
 
 export interface ViroGaussianSplatProps extends MovableProps {
+  /** Native navigator tag required by the optional splat-pass backend. */
+  sceneNavTag?: number;
   source: ViroGaussianSplatSource;
   /** Seconds into the 4D sequence. Omitted ⇒ static 3D (degenerate path; no temporal eval). */
   timestamp?: number;
@@ -169,17 +172,25 @@ export function ViroGaussianSplat(props: ViroGaussianSplatProps): React.ReactEle
   useEffect(() => {
     const pass = SPLAT_PASS;
     if (!pass || !pass.isNativeSplatPassAvailable()) return;
+    if (props.sceneNavTag === undefined) {
+      onError?.(new Error("ViroGaussianSplat: sceneNavTag is required by the splat-pass backend."));
+      return;
+    }
+    const reportReleaseError = (error: unknown) => {
+      onError?.(error instanceof Error ? error : new Error(String(error)));
+    };
     let cancelled = false;
-    let handle: { release: () => void } | null = null;
+    let handle: { release: () => Promise<void> } | null = null;
     pass
       .registerSplatPass({
+        sceneNavTag: props.sceneNavTag,
         source: { uri: source.uri, format: source.format },
         quality: { maxSplats: effectiveMaxSplats },
         getTimestamp: timestamp !== undefined ? () => tsRef.current : undefined,
       })
       .then((h) => {
         if (cancelled) {
-          h.release();
+          void h.release().catch(reportReleaseError);
           return;
         }
         handle = h;
@@ -189,12 +200,12 @@ export function ViroGaussianSplat(props: ViroGaussianSplatProps): React.ReactEle
       });
     return () => {
       cancelled = true;
-      handle?.release();
+      if (handle) void handle.release().catch(reportReleaseError);
       handle = null;
     };
     // timestamp tracked via ref — re-registering on every frame would be wrong.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source.uri, source.format, effectiveMaxSplats]);
+  }, [source.uri, source.format, effectiveMaxSplats, props.sceneNavTag, timestamp !== undefined]);
 
   useEffect(() => {
     createPlaceholderMaterial(materialName);
