@@ -1,3 +1,5 @@
+import { createSplatHandle } from './lifecycle';
+import { validateSplatOptions } from './validate';
 /**
  * @viro-external/splat-pass — public API.
  *
@@ -59,19 +61,20 @@ class SplatPassNotAvailableError extends Error {
  * handle whose `release()` detaches the pass and frees native resources.
  *
  * Async because the native side may need to fetch and decode the source
- * URI before the pass is live. Resolves once the first frame has
- * rasterized successfully — earlier callers see a transparent draw.
+ * URI before the pass is live. Resolves when native registration completes. This is not a
+ * first-render acknowledgement.
  *
  * Throws SplatPassNotAvailableError if the native module is absent.
  */
 export async function registerSplatPass(
   opts: SplatPassOpts
 ): Promise<SplatPassHandle> {
+  validateSplatOptions(opts);
   const native = getNativeSplatPass();
   if (!native) throw new SplatPassNotAvailableError();
 
   const maxSplats =
-    opts.quality?.maxSplats ??
+    (opts.quality?.maxSplats || undefined) ??
     useSplatPassStore.getState().deviceProfile.maxSplats ??
     defaults.maxSplatsDefault;
 
@@ -80,7 +83,7 @@ export async function registerSplatPass(
     format: opts.source.format,
     maxSplats,
     priority: opts.priority ?? 0,
-    has4D: Boolean(opts.getTimestamp),
+    has4D: false,
   });
 
   useSplatPassStore.getState().trackPass({
@@ -89,26 +92,12 @@ export async function registerSplatPass(
     priority: opts.priority ?? 0,
   });
 
-  // The timestamp accessor is held on the JS side and pushed to native
-  // on each render-thread poll. Native bridge stores a weak ref; the
-  // handle owner is responsible for keeping the closure alive.
-  if (opts.getTimestamp) {
-    // Wire the poll in the native module callback table. Implementation
-    // detail of the bridge — see NativeSplatPass.registerPass.
-  }
-
-  let released = false;
-
-  return {
+  return createSplatHandle(
     id,
-    splatCount: () => native.splatCount(id),
-    release: () => {
-      if (released) return;
-      released = true;
-      void native.unregisterPass(id);
-      useSplatPassStore.getState().untrackPass(id);
-    },
-  };
+    () => native.splatCount(id),
+    () => native.unregisterPass(id),
+    () => useSplatPassStore.getState().untrackPass(id),
+  );
 }
 
 /**
