@@ -18,7 +18,9 @@ v1 is a separate adapter. Do not duplicate that engine here.
 
 ## Live tracking design
 
-SDK adapters remain unimplemented. No headset tracking is claimed by this PR.
+Meta and Android XR native face/eye capture adapters are implemented in Forge PR 64
+and compiled/tested against real Khronos headers with a fake runtime. PICO capture
+and app-session integration remain pending. No headset capture is verified.
 Native adapters must query extension support, device capabilities, permissions,
 tracking validity and data source at runtime. Sensor estimates and audio-derived
 expressions must remain distinguishable. Do not infer support from a brand name.
@@ -43,7 +45,7 @@ measurement. For an AI persona, synthesized speech drives the face independently
 of the wearer. Never silently apply the wearer's mouth motion to an AI speaker.
 
 The C++ reference selector in Forge tests source precedence, measured zero,
-stale/future timestamps, invalid values and mismatched layouts. SDK capture,
+stale/future timestamps, invalid values and mismatched layouts. Device verification,
 native frame transport, smooth transitions and renderer binding remain pending.
 No React state updates or JavaScript callback should drive the render frame loop.
 
@@ -54,12 +56,16 @@ before native changes. Current scripts/sync-viro-3-1.sh pins ViroCore
 8a5bdc47aa0f47d9c6249461ef5f07fe77fe60ac, whose inspected choreographer header
 lacks setCustomPostOpaquePass. The older v2.55.0-nitro-canvas branch has the hook
 and four render call sites. Matching current binary provenance is not verified.
-Restore the hook to the chosen current source, build and pin matching AARs,
+ViroCore PR 120 restores the hook across all five current paths (including the
+new gamma-correction path): https://github.com/mikevocalz/virocore/pull/120
+Its AAR CI builds with provenance and alignment checks; success is not yet verified.
+Build and pin matching AARs,
 and verify OpenXR loader and 16 KB alignment before renderer implementation.
 
 ## Remaining advanced work (not shipped)
 
-1. Native SDK capture adapters and permission/session lifecycle, with headset tests.
+1. PICO native capture, platform permission/session lifecycle and headset tests
+   for the implemented Meta/Android capture adapters.
 2. GNM model fitting/evaluation from images/video and calibrated rig export.
 3. Mesh-bound splat deformation, per-eye sorting of animated positions, and
    explicit eyes/teeth/tongue geometry. A static SPZ file alone is not a facial rig.
